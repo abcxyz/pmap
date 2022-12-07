@@ -1,0 +1,78 @@
+### Go ###
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+
+### Go Patch ###
+/vendor/
+/Godeps/
+
+### IDE related and tmp files ###
+bazel-*
+*~
+.idea/
+.vscode/
+.DS_Store
+*.swp
+.history
+tmp/
+
+### Terraform related ###
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Ignore override files as they are usually used to override resources locally and so
+# are not checked in
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+### macOS ###
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Log file
+*.log
+
+# Package Files #
+*.jar
+*.war
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+.factorypath
+.settings
+
+# Go workspace file
+go.work
+
+# Ignore goreleaser output
+dist/
+
+# Ignore google auth action cred file.
+gha-creds-*.json
