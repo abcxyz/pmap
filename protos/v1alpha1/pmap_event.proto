@@ -32,13 +32,22 @@ message PmapEvent {
   google.protobuf.Timestamp timestamp = 3;
 
   // Required. The source of the payload.
-  GitHubSource source = 4;
+  GitHubSource github_source = 4;
 }
 
 message GitHubSource {
+  // Required. The repository name where the payload is located.
+  string repo_name = 1;
+
   // Required. The file path of the payload.
-  string file_path = 1;
+  string file_path = 2;
 
   // Required. The git commit.
-  string commit = 2;
+  string commit = 3;
+
+  // Required. The name of the workflow triggered.
+  string workflow = 4;
+
+  // Required. The fully-formed ref of the branch or tag that triggered the workflow run.
+  string ref = 5;
 }
