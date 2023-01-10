@@ -44,10 +44,4 @@ message GitHubSource {
 
   // Required. The git commit.
   string commit = 3;
-
-  // Required. The name of the workflow triggered.
-  string workflow = 4;
-
-  // Required. The fully-formed ref of the branch or tag that triggered the workflow run.
-  string ref = 5;
 }
