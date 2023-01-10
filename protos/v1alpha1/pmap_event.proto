@@ -20,14 +20,25 @@ import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 option go_package = "github.com/abcxyz/pmap/apis/v1alpha1";
 
-// A representation of an event associated with add/modification of RetentionPlan.
-message RetentionPlanEvent {
-  // Required. The retention plan definition.
-  google.protobuf.Any retention_plan = 1;
+// A representation of an event associated with creation/modification of privacy related information represented by a payload.
+message PmapEvent {
+  // Required.
+  google.protobuf.Any payload = 1;
+
+  // Required. The type of the payload such as resource mapping and retention plan.
+  string type = 2;
 
   // Required.
-  google.protobuf.Timestamp timestamp = 2;
+  google.protobuf.Timestamp timestamp = 3;
+
+  // Required. The source of the payload.
+  GitHubSource source = 4;
+}
+
+message GitHubSource {
+  // Required. The file path of the payload.
+  string file_path = 1;
 
   // Required. The git commit.
-  string commit = 3;
+  string commit = 2;
 }

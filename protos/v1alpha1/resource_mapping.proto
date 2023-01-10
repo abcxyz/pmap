@@ -20,18 +20,6 @@ import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 option go_package = "github.com/abcxyz/pmap/apis/v1alpha1";
 
-// A representation of an event associated with add/modification of ResourceMapping.
-message ResourceMappingEvent {
-  // Required.
-  ResourceMapping resource_mapping = 1;
-
-  // Required.
-  google.protobuf.Timestamp timestamp = 2;
-
-  // Required. The git commit.
-  string commit = 3;
-}
-
 // A ResourceMapping can be any resource in the GCP or non-GCP services.
 message ResourceMapping {
   // Required. Resource that identifies the resource described by the ResourceMapping.
