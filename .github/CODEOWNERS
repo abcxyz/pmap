@@ -1,1 +1,5 @@
-*   @abcxyz/spc-wg @sethvargo
+# Default fallback
+*    @abcxyz/breakglass
+
+# spc-wg owns all files
+*    @abcxyz/spc-wg
