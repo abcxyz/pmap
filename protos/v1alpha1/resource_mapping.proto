@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2023 The Authors (see AUTHORS file)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,18 +19,6 @@ package abcxyz.pmap;
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 option go_package = "github.com/abcxyz/pmap/apis/v1alpha1";
-
-// A representation of an event associated with add/modification of ResourceMapping.
-message ResourceMappingEvent {
-  // Required.
-  ResourceMapping resource_mapping = 1;
-
-  // Required.
-  google.protobuf.Timestamp timestamp = 2;
-
-  // Required. The git commit.
-  string commit = 3;
-}
 
 // A ResourceMapping can be any resource in the GCP or non-GCP services.
 message ResourceMapping {

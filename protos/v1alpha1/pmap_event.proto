@@ -1,0 +1,47 @@
+// Copyright 2023 The Authors (see AUTHORS file)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package abcxyz.pmap;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+option go_package = "github.com/abcxyz/pmap/apis/v1alpha1";
+
+// A representation of an event associated with creation/modification of privacy related information represented by a payload.
+message PmapEvent {
+  // Required.
+  google.protobuf.Any payload = 1;
+
+  // Required. The type of the payload such as resource mapping and retention plan.
+  string type = 2;
+
+  // Required.
+  google.protobuf.Timestamp timestamp = 3;
+
+  // Required. The source of the payload.
+  GitHubSource github_source = 4;
+}
+
+message GitHubSource {
+  // Required. The repository name where the payload is located.
+  string repo_name = 1;
+
+  // Required. The file path of the payload.
+  string file_path = 2;
+
+  // Required. The git commit.
+  string commit = 3;
+}
