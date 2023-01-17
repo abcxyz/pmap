@@ -35,10 +35,14 @@ tmp/
 ### Terraform related ###
 # Local .terraform directories
 **/.terraform/*
+**/.terraform.lock.hcl
 
 # .tfstate files
 *.tfstate
 *.tfstate.*
+
+# .tfvar files
+*.tfvars
 
 # Ignore override files as they are usually used to override resources locally and so
 # are not checked in
