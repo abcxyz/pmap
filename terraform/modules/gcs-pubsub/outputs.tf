@@ -28,16 +28,16 @@ output "gcs_bucket_url" {
 }
 
 output "gcs_notification_id" {
-  value       = [ for notification in google_storage_notification.notification : notification.notification_id]
+  value       = [for notification in google_storage_notification.notification : notification.notification_id]
   description = "The ID of the created GCS notification."
 }
 
 output "gcs_notification_self_link" {
-  value       = [ for notification in google_storage_notification.notification : notification.self_link]
+  value       = [for notification in google_storage_notification.notification : notification.self_link]
   description = "The URI of the created GCS notification."
 }
 
 output "pubsub_topic_ids" {
-  value       = [ for topic in google_pubsub_topic.topics : topic.id ]
+  value       = [for topic in google_pubsub_topic.topics : topic.id]
   description = "The IDs of the Pub/Sub topic."
 }

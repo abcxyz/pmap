@@ -18,15 +18,15 @@ variable "project_id" {
 }
 
 variable "services" {
-    type = list(object({
-        name = string
-        image = string
-        env_vars = map(string)
-        publish_to_topic = string
-        gcs_bucket_name = string
-        subscribe_to_topic = string
-        subscription_filter = string
-    }))
+  type = list(object({
+    name                = string
+    image               = string
+    env_vars            = map(string)
+    publish_to_topic    = string
+    gcs_bucket_name     = string
+    subscribe_to_topic  = string
+    subscription_filter = string
+  }))
   description = "The cloud run services to create."
 }
 

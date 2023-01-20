@@ -76,10 +76,10 @@ variable "pubsub_for_gcs_notification" {
   description = "An object in this list contains information required to create a GCS notification and a Pub/Sub topic and subscription associated with it."
 
   type = list(object({
-    topic                  = string
-    notification_payload_format = string
-    object_name_prefix          = string
-    notification_event_types    = list(string)
+    topic                            = string
+    notification_payload_format      = string
+    object_name_prefix               = string
+    notification_event_types         = list(string)
     topic_message_retention_duration = string
   }))
 }

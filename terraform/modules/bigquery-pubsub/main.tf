@@ -78,7 +78,7 @@ resource "google_bigquery_dataset" "dataset" {
 }
 
 resource "google_bigquery_table" "tables" {
-  for_each            = { for table in var.tables: table.table_id => table }
+  for_each            = { for table in var.tables : table.table_id => table }
   project             = var.project_id
   dataset_id          = google_bigquery_dataset.dataset.dataset_id
   friendly_name       = each.value.friendly_name
@@ -88,9 +88,9 @@ resource "google_bigquery_table" "tables" {
   clustering          = each.value.clustering
   deletion_protection = each.value.deletion_protection
 
- time_partitioning {
-    type                     = each.value.time_partitioning.type
-    field                    = each.value.time_partitioning.field
+  time_partitioning {
+    type  = each.value.time_partitioning.type
+    field = each.value.time_partitioning.field
   }
 }
 
