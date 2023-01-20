@@ -36,7 +36,7 @@ resource "google_project_service" "services" {
 
 resource "google_cloud_run_service" "services" {
   project  = var.project_id
-  name = var.service.name
+  name     = var.service.name
   location = var.service.region
 
   template {
@@ -92,14 +92,14 @@ resource "google_cloud_run_service" "services" {
 // See https://cloud.google.com/run/docs/securing/service-identity#per-service-identity.
 resource "google_service_account" "cloudrun_service_identity" {
   project      = var.project_id
-  account_id   = "${var.service.name}"
+  account_id   = var.service.name
   display_name = "Dedicated Service Account for all cloud run services."
 }
 
 // Grant Pub/Sub publisher role of desired Pub/Sub topic to cloud run service account.
-resource "google_pubsub_topic_iam_member""member" {
+resource "google_pubsub_topic_iam_member" "member" {
   project = var.project_id
   topic   = var.service.publish_to_topic
   role    = "roles/pubsub.publisher"
-  member = google_service_account.cloudrun_service_identity.member
+  member  = google_service_account.cloudrun_service_identity.member
 }
