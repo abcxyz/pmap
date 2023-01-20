@@ -110,7 +110,7 @@ resource "google_service_account" "gh-access-acc" {
   display_name = "GitHub Access Account"
 }
 
-// Cannot destroy and recreate as the pool name cannot be reused even it is deleted.
+// Cannot destroy and recreate as the pool name cannot be reused if it is deleted within 30 days.
 module "workload-identity-federation" {
   source      = "github.com/abcxyz/pkg//terraform/modules/workload-identity-federation"
   project_id  = var.project_id

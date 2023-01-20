@@ -132,7 +132,7 @@ resource "google_pubsub_topic" "dead_letter_topics" {
 }
 
 // Create a dummy subscription as the dead letter topic should have at least one subscription so that dead-lettered messages will not be lost.
-resource "google_pubsub_subscription" "dummy_subscription" {
+resource "google_pubsub_subscription" "dead_letter_subscription" {
   for_each = toset(distinct([for path in var.pubsub_for_bigquery : path.dead_letter_topic]))
   project  = var.project_id
   name     = "${each.key}-subscription"

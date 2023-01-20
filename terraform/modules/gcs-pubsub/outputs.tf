@@ -41,3 +41,8 @@ output "pubsub_topic_ids" {
   value       = [for topic in google_pubsub_topic.topics : topic.id]
   description = "The IDs of the Pub/Sub topic."
 }
+
+output "wif_service_account" {
+  value       = google_service_account.gh-access-acc.email
+  description = "Workload Idendity Federation service account for GitHub action to access cloud resources."
+}
