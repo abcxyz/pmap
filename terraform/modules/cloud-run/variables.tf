@@ -18,12 +18,12 @@ variable "project_id" {
 }
 
 variable "service" {
-    type = object({
-        name = string
-        region = string
-        image = string
-        env_vars = map(string)
-        publish_to_topic = string
-    })
+  type = object({
+    name             = string
+    region           = string
+    image            = string
+    env_vars         = map(string)
+    publish_to_topic = string
+  })
   description = "The cloud run service to create."
 }
