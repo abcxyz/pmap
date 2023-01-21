@@ -12,22 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-output "cloudrun_service_url" {
-  value       = { for service in var.services : service.name => module.cloud-run[service.name].service_url }
-  description = "Map of cloud run services urls."
+output "retention_service_url" {
+  description = "Retention cloud run service URL."
+  value       = module.retention_service.pmap_service_url
 }
 
-output "pubsub_subscription_ids" {
-  value       = [for subscription in google_pubsub_subscription.push_subscriptions : subscription.id]
-  description = "The Pub/Sub subscription ids."
+output "mapping_service_url" {
+  description = "Mapping cloud run service URL."
+  value       = module.mapping_service.pmap_service_url
 }
 
-output "dead_letter_topic_id" {
-  value       = google_pubsub_topic.dead_letter_topic.id
-  description = "The ID of the Pub/Sub dead letter topic."
+output "retention_gcs_subscription_id" {
+  description = "The Pub/Sub subscription ID for retention."
+  value       = module.retention_service.gcs_pubsub_subscription_id
 }
 
-output "cloudrun_service_identitys" {
-  value       = { for service in var.services : service.name => module.cloud-run[service.name].cloud_run_service_account }
-  description = "Map of dedicated service accounts for cloud run services."
+output "mapping_gcs_subscription_id" {
+  description = "The Pub/Sub subscription ID for mapping."
+  value       = module.mapping_service.gcs_pubsub_subscription_id
+}
+
+output "retention_service_account" {
+  description = "Dedicated service account for retention cloud run service."
+  value       = module.retention_service.pmap_service_account
+}
+
+output "mapping_service_account" {
+  description = "Dedicated service account for mapping cloud run service."
+  value       = module.mapping_service.pmap_service_account
 }

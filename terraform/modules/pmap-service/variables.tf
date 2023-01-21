@@ -13,26 +13,37 @@
 // limitations under the License.
 
 variable "project_id" {
-  description = "The GCP project to host the pmap services."
+  description = "The GCP project to host the pmap service."
   type        = string
 }
 
-variable "mapping_service_image" {
-  description = "The service immage of mapping service."
+variable "service_name" {
+  description = "The pmap ervice name."
   type        = string
 }
 
-variable "retention_service_image" {
-  description = "The service immage of retention service."
+variable "image" {
+  type        = string
+  description = "The pmap service immage."
+}
+
+variable "publish_to_topic_id" {
+  description = "The Pub/Sub topics to which the handlers pass the messages."
   type        = string
 }
 
-variable "infra_project_id" {
-  description = "The project id where the ci infra is hosted."
+variable "subscribe_to_topic_id" {
+  description = "The Pub/Sub topic for GCS bucket notifications."
   type        = string
 }
 
-variable "commit_sha" {
-  description = "Commit sha that triggered this CI deployment"
+variable "gcs_bucket_name" {
+  description = "The GCS bucket of all pmap events."
   type        = string
+}
+
+variable "subscription_filter" {
+  description = "The subscription only delivers the messages that match the filter."
+  type        = string
+  default     = ""
 }
