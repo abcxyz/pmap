@@ -19,7 +19,7 @@ jobs:
     uses: 'abcxyz/pkg/.github/workflows/go-lint.yml@main' # ratchet:exclude
     with:
       go_version: '1.19'
-
+      
   terraform_lint:
     uses: 'abcxyz/pkg/.github/workflows/terraform-lint.yml@main' # ratchet:exclude
     with:
