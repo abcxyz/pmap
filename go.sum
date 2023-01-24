@@ -16,8 +16,8 @@ cloud.google.com/go/longrunning v0.3.0/go.mod h1:qth9Y41RRSUE69rDcOn6DdK3HfQfsUI
 cloud.google.com/go/osconfig v1.10.0 h1:NO0RouqCOM7M2S85Eal6urMSSipWwHU8evzwS+siqUI=
 cloud.google.com/go/osconfig v1.10.0/go.mod h1:uMhCzqC5I8zfD9zDEAfvgVhDS8oIjySWh+l4WK6GnWw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/abcxyz/pkg v0.1.1 h1:WLYLqnX9KGJWrE4gev0CcwNFOrvyYoLzOTCykC47jeU=
-github.com/abcxyz/pkg v0.1.1/go.mod h1:vzO7x3uKaRbxbCCrQZvgxrglkVhMbf/1FlDgU/DJoxA=
+github.com/abcxyz/pkg v0.1.2-0.20230124181009-b0837f3d7cf8 h1:tyqPwFMVa8dBbEI3UCCRj0L5fKKtWy8L+g+oud8pXAc=
+github.com/abcxyz/pkg v0.1.2-0.20230124181009-b0837f3d7cf8/go.mod h1:ZM2C+K92ftjvITPMNWru4F4YsMaobZ40ERo2iVR5Hag=
 github.com/benbjohnson/clock v1.3.0 h1:ip6w0uFQkncKQ979AypyG0ER7mqUSBdKLOgAle/AT8A=
 github.com/benbjohnson/clock v1.3.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
