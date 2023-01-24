@@ -13,7 +13,7 @@
 // limitations under the License.
 
 variable "project_id" {
-  description = "The GCP project to host the pmap services and other resources created during ci."
+  description = "The GCP project to host the pmap services and other resources created during CI."
   type        = string
 }
 
@@ -28,7 +28,7 @@ variable "retention_service_image" {
 }
 
 variable "infra_project_id" {
-  description = "The project id where the ci infra is hosted."
+  description = "The project id where the CI infra is hosted."
   type        = string
 }
 

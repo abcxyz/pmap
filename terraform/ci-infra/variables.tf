@@ -13,7 +13,7 @@
 // limitations under the License.
 
 variable "project_id" {
-  description = "The GCP project that owns the topics and subscriptions."
+  description = "The GCP project that hosts the pmap infra resources for CI."
   type        = string
 }
 
@@ -29,13 +29,13 @@ variable "retention_table_schema" {
 }
 
 variable "mapping_table_clustering" {
-  description = "List of fields used for data clustering."
+  description = "List of fields used for data clustering in mapping table."
   type        = list(string)
   default     = []
 }
 
 variable "retention_table_clustering" {
-  description = "List of fields used for data clustering."
+  description = "List of fields used for data clustering in retention table."
   type        = list(string)
   default     = []
 }
@@ -63,6 +63,6 @@ variable "retention_topic_schema" {
 }
 
 variable "table_partition_field" {
-  description = "The field used to determine how to create a time-based partition."
+  description = "The field used to determine how to create a time-based partition for both mapping and retention."
   type        = string
 }
