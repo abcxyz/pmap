@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	cloud.google.com/go/asset v1.11.0
-	github.com/abcxyz/pkg v0.1.1
+	github.com/abcxyz/pkg v0.1.2-0.20230124181009-b0837f3d7cf8
 	github.com/google/go-cmp v0.5.9
 	google.golang.org/api v0.106.0
 	google.golang.org/genproto v0.0.0-20230106154932-a12b697841d9
