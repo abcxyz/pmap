@@ -13,7 +13,7 @@
 // limitations under the License.
 
 variable "project_id" {
-  description = "The GCP project to host the pmap services."
+  description = "The GCP project to host the pmap services and other resources created during ci."
   type        = string
 }
 

@@ -60,10 +60,10 @@ module "service" {
 
 // Create push subscriptions with cloud run service push endpoint.
 resource "google_pubsub_subscription" "pmap" {
-  project              = var.project_id
-  name                 = var.service_name
-  topic                = var.subscribe_to_topic_id
-  filter               = var.subscription_filter
+  project = var.project_id
+  name    = var.service_name
+  topic   = var.subscribe_to_topic_id
+  filter  = var.subscription_filter
 
   // Required for Cloud Run, see https://cloud.google.com/run/docs/triggering/pubsub-push#ack-deadline.
   ack_deadline_seconds = 600

@@ -24,9 +24,9 @@ data "google_project" "project" {
 // Create ci infrastructure resources including artifact repository, workload identity pool and provider,
 // and ci service account.
 module "github_ci_infra" {
-  source                 = "github.com/abcxyz/terraform-modules/modules/github_ci_infra"
-  project_id             = var.project_id
-  name                   = "pmap"
+  source     = "github.com/abcxyz/terraform-modules/modules/github_ci_infra"
+  project_id = var.project_id
+  name       = "pmap"
 
   // Terraform apply will fail because of retricted access to this repo via github_repository,
   // could related to the repo privacy setting.

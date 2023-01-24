@@ -21,7 +21,7 @@ jobs:
       go_version: '1.19'
 
   terraform_lint:
-    uses: 'abcxyz/pkg/.github/workflows/terraform-lint.yml@05893fce7fae208eb14b8952caf0a20acfdc772c' # ratchet:abcxyz/pkg/.github/workflows/terraform-lint.yml@main
+    uses: 'abcxyz/pkg/.github/workflows/terraform-lint.yml@main' # # ratchet:exclude
     with:
       directory: 'terraform'
       terraform_version: '1.3'
@@ -31,5 +31,6 @@ jobs:
     runs-on: 'ubuntu-latest'
     needs:
       - 'go_lint'
+      - 'terraform_lint'
     steps:
       - run: 'echo prechecks complete'
