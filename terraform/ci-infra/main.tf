@@ -211,7 +211,7 @@ resource "google_pubsub_topic" "pmap_gcs_notification" {
   ]
 }
 
-// Grant WIF service account suscriber permission to GCS notification topic.
+// Grant WIF service account subscriber permission to GCS notification topic.
 resource "google_pubsub_topic_iam_member" "gcs_notification_subscriber" {
   for_each = local.event_type
   topic    = google_pubsub_topic.pmap_gcs_notification[each.key].id
