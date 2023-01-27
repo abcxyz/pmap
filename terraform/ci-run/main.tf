@@ -12,28 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-locals {
-  short_sha = substr(var.commit_sha, 0, 7)
-}
-
 module "mapping_service" {
   source                = "../modules/pmap-service"
-  service_name          = "mapping-${local.short_sha}"
+  service_name          = "mapping"
   project_id            = var.project_id
   image                 = var.mapping_service_image
-  publish_to_topic_id   = "projects/${var.infra_project_id}/topics/mapping"
-  subscribe_to_topic_id = "projects/${var.infra_project_id}/topics/pmap_gcs_notification"
-  gcs_bucket_name       = "pmap-ci"
-  // TODO: add mapping subscription filter.
+  publish_to_topic_id   = "projects/${var.project_id}/topics/mapping"
+  subscribe_to_topic_id = "projects/${var.project_id}/topics/mapping-gcs-notification"
+  gcs_bucket_name       = "pmap"
+  pmap_service_account  = "run-pmap-sa@${var.project_id}.iam.gserviceaccount.com"
 }
 
 module "retention_service" {
   source                = "../modules/pmap-service"
-  service_name          = "retention-${local.short_sha}"
+  service_name          = "retention"
   project_id            = var.project_id
   image                 = var.retention_service_image
-  publish_to_topic_id   = "projects/${var.infra_project_id}/topics/retention"
-  subscribe_to_topic_id = "projects/${var.infra_project_id}/topics/pmap_gcs_notification"
-  gcs_bucket_name       = "pmap-ci"
-  // TODO: add retention subscription filter.
+  publish_to_topic_id   = "projects/${var.project_id}/topics/retention"
+  subscribe_to_topic_id = "projects/${var.project_id}/topics/retention-gcs-notification"
+  gcs_bucket_name       = "pmap"
+  pmap_service_account  = "run-pmap-sa@${var.project_id}.iam.gserviceaccount.com"
 }

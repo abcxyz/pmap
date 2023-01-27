@@ -21,18 +21,3 @@ output "gcs_pubsub_subscription_id" {
   description = "The Pub/Sub subscription ID."
   value       = google_pubsub_subscription.pmap.id
 }
-
-output "dead_letter_topic_id" {
-  description = "The Pub/Sub dead letter topic ID."
-  value       = google_pubsub_topic.dead_letter_topic.id
-}
-
-output "pmap_service_account" {
-  description = "The dedicated service account email for the pmap service to run as."
-  value       = google_service_account.cloudrun_service_identity.email
-}
-
-output "pmap_service_account_member" {
-  description = "The dedicated service account member for the pmap service."
-  value       = google_service_account.cloudrun_service_identity.member
-}

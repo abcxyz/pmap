@@ -31,13 +31,3 @@ output "mapping_gcs_subscription_id" {
   description = "The Pub/Sub subscription ID for mapping."
   value       = module.mapping_service.gcs_pubsub_subscription_id
 }
-
-output "retention_service_account" {
-  description = "Dedicated service account for retention cloud run service."
-  value       = module.retention_service.pmap_service_account
-}
-
-output "mapping_service_account" {
-  description = "Dedicated service account for mapping cloud run service."
-  value       = module.mapping_service.pmap_service_account
-}

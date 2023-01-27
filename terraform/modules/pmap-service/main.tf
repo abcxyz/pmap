@@ -41,107 +41,42 @@ resource "google_project_service" "services" {
   ]
 }
 
-// Dedicate a service account to cloud run service to run as.
-// See https://cloud.google.com/run/docs/securing/service-identity#per-service-identity.
-resource "google_service_account" "cloudrun_service_identity" {
-  project      = var.project_id
-  account_id   = var.service_name
-  display_name = "Dedicated service account for the service to run as."
-}
-
 module "service" {
-  source                = "github.com/abcxyz/terraform-modules/modules/cloud_run"
+  source                = "git@github.com:abcxyz/terraform-modules.git//modules/cloud_run?ref=main"
   project_id            = var.project_id
   name                  = var.service_name
-  service_account_email = google_service_account.cloudrun_service_identity.email
+  service_account_email = var.pmap_service_account
   image                 = var.image
-  service_iam           = { "roles/run.invoker" = [google_service_account.oidc_token_creator.member] }
+  service_iam           = { "roles/run.invoker" = ["serviceAccount:${var.pmap_service_account}"] }
 }
 
-// Create push subscriptions with cloud run service push endpoint.
+// Create push subscriptions with the pmap service push endpoint.
 resource "google_pubsub_subscription" "pmap" {
   project = var.project_id
-  name    = var.service_name
+  name    = module.service.service_name
   topic   = var.subscribe_to_topic_id
-  filter  = var.subscription_filter
 
   // Required for Cloud Run, see https://cloud.google.com/run/docs/triggering/pubsub-push#ack-deadline.
   ack_deadline_seconds = 600
-  dead_letter_policy {
-    dead_letter_topic     = "projects/${var.project_id}/topics/dead-letter-${var.service_name}"
-    max_delivery_attempts = 7
-  }
 
   push_config {
     push_endpoint = module.service.url
     oidc_token {
-      service_account_email = google_service_account.oidc_token_creator.email
+      service_account_email = var.pmap_service_account
     }
   }
-
-  depends_on = [
-    google_pubsub_topic.dead_letter_topic
-  ]
 }
 
-// Delegate a service account for generating OIDC token, this service account must have invoker
-// permission to destination cloud run service.
-// See https://cloud.google.com/pubsub/docs/push#cloud-run.
-resource "google_service_account" "oidc_token_creator" {
-  project      = var.project_id
-  account_id   = "oidc-${var.service_name}"
-  display_name = "Service Account for generating OIDC Token for the topic."
-}
-
-resource "google_pubsub_topic" "dead_letter_topic" {
-  project = var.project_id
-  name    = "dead-letter-${var.service_name}"
-  labels = {
-    type = "dead-letter-topic"
-  }
-
-  depends_on = [
-    google_project_service.services["pubsub.googleapis.com"]
-  ]
-}
-
-// Create a dummy subscription as the dead letter topic should have at least one subscription
-// so that dead-lettered messages will not be lost.
-resource "google_pubsub_subscription" "dead_letter" {
-  project = var.project_id
-  name    = "dead-letter-${var.service_name}"
-  topic   = google_pubsub_topic.dead_letter_topic.id
-
-  depends_on = [
-    google_pubsub_topic.dead_letter_topic
-  ]
-}
-
-// Grant permissions required for dead letter topic.
-resource "google_pubsub_subscription_iam_member" "dead_letter_subscriber" {
-  project      = var.project_id
-  subscription = google_pubsub_subscription.pmap.id
-  role         = "roles/pubsub.subscriber"
-  member       = "serviceAccount:${local.pubsub_svc_account_email}"
-}
-
-resource "google_pubsub_topic_iam_member" "dead_letter_publisher" {
-  project = var.project_id
-  topic   = google_pubsub_topic.dead_letter_topic.id
-  role    = "roles/pubsub.publisher"
-  member  = "serviceAccount:${local.pubsub_svc_account_email}"
-}
-
-// Grant Pub/Sub publisher role of desired Pub/Sub topic to cloud run service account.
-resource "google_pubsub_topic_iam_member" "member" {
+// Grant Pub/Sub publisher role of desired Pub/Sub topic to the pmap service account.
+resource "google_pubsub_topic_iam_member" "publisher" {
   topic  = var.publish_to_topic_id
   role   = "roles/pubsub.publisher"
-  member = google_service_account.cloudrun_service_identity.member
+  member = "serviceAccount:${var.pmap_service_account}"
 }
 
-// Grant GCS object viewer permission to cloud run services.
-resource "google_storage_bucket_iam_member" "member" {
+// Grant GCS object viewer permission to the pmap service.
+resource "google_storage_bucket_iam_member" "objectViewer" {
   bucket = var.gcs_bucket_name
   role   = "roles/storage.objectViewer"
-  member = google_service_account.cloudrun_service_identity.member
+  member = "serviceAccount:${var.pmap_service_account}"
 }

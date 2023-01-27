@@ -18,17 +18,17 @@ variable "project_id" {
 }
 
 variable "service_name" {
-  description = "The pmap ervice name."
+  description = "The pmap service name."
   type        = string
 }
 
 variable "image" {
+  description = "The pmap service image."
   type        = string
-  description = "The pmap service immage."
 }
 
 variable "publish_to_topic_id" {
-  description = "The Pub/Sub topics to which the handlers pass the messages."
+  description = "The Pub/Sub topics to which the pmap service publishes the messages."
   type        = string
 }
 
@@ -42,8 +42,7 @@ variable "gcs_bucket_name" {
   type        = string
 }
 
-variable "subscription_filter" {
-  description = "The subscription only delivers the messages that match the filter."
+variable "pmap_service_account" {
+  description = "Service account for the pmap Cloud Run service to run as."
   type        = string
-  default     = ""
 }

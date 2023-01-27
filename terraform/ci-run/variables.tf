@@ -26,13 +26,3 @@ variable "retention_service_image" {
   description = "The service immage of retention service."
   type        = string
 }
-
-variable "infra_project_id" {
-  description = "The project id where the CI infra is hosted."
-  type        = string
-}
-
-variable "commit_sha" {
-  description = "Commit sha that triggered this CI deployment"
-  type        = string
-}
