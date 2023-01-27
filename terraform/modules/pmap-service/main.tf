@@ -42,7 +42,7 @@ resource "google_project_service" "services" {
 }
 
 module "service" {
-  source                = "git@github.com:abcxyz/terraform-modules.git//modules/cloud_run?ref=main"
+  source                = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=main"
   project_id            = var.project_id
   name                  = var.service_name
   service_account_email = var.pmap_service_account

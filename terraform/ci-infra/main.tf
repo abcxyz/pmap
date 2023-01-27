@@ -25,7 +25,7 @@ data "google_project" "project" {
 // Create CI infrastructure resources including artifact repository, workload identity pool and provider,
 // and CI service account.
 module "github_ci_infra" {
-  source                 = "git@github.com:abcxyz/terraform-modules.git//modules/github_ci_infra?ref=main"
+  source                 = "git::https://github.com/abcxyz/terraform-modules.git//modules/github_ci_infra?ref=main"
   project_id             = var.project_id
   name                   = "pmap"
   github_repository_name = "pmap"
