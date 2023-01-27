@@ -182,7 +182,7 @@ resource "google_storage_bucket_iam_member" "object_creator" {
 resource "google_storage_notification" "pmap" {
   for_each           = local.event_type
   bucket             = google_storage_bucket.pmap.name
-  payload_format     = "NONE"
+  payload_format     = "JSON_API_V1"
   topic              = google_pubsub_topic.pmap_gcs_notification[each.key].id
   event_types        = ["OBJECT_FINALIZE"]
   object_name_prefix = each.key
