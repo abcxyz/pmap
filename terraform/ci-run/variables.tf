@@ -26,3 +26,8 @@ variable "retention_service_image" {
   description = "The service immage of retention service."
   type        = string
 }
+
+variable "ci_service_account" {
+  description = "CI service account."
+  type        = string
+}

@@ -21,6 +21,7 @@ module "mapping_service" {
   subscribe_to_topic_id = "projects/${var.project_id}/topics/mapping-gcs-notification"
   gcs_bucket_name       = "pmap"
   pmap_service_account  = "run-pmap-sa@${var.project_id}.iam.gserviceaccount.com"
+  ci_service_account    = var.ci_service_account
 }
 
 module "retention_service" {
@@ -28,8 +29,9 @@ module "retention_service" {
   service_name          = "retention"
   project_id            = var.project_id
   image                 = var.retention_service_image
-  publish_to_topic_id   = "projects/${var.project_id}/topics/retention"
-  subscribe_to_topic_id = "projects/${var.project_id}/topics/retention-gcs-notification"
+  publish_to_topic_id   = "projects/${var.project_id}/topics/policy"
+  subscribe_to_topic_id = "projects/${var.project_id}/topics/policy-gcs-notification"
   gcs_bucket_name       = "pmap"
   pmap_service_account  = "run-pmap-sa@${var.project_id}.iam.gserviceaccount.com"
+  ci_service_account    = var.ci_service_account
 }

@@ -15,7 +15,7 @@
 locals {
   github_slug              = "abcxyz/pmap"
   pubsub_svc_account_email = "service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
-  event_type               = toset(["mapping", "retention"])
+  event_type               = toset(["mapping", "policy"])
 }
 
 data "google_project" "project" {
@@ -147,7 +147,7 @@ resource "google_bigquery_dataset_iam_member" "viewer" {
   member     = "serviceAccount:${local.pubsub_svc_account_email}"
 }
 
-// Authoritatively grant the dataEditor role required for writting to BigQuery.
+// Exclusively grant the dataEditor role required for writting to BigQuery.
 // See link: https://cloud.google.com/pubsub/docs/create-subscription#assign_bigquery_service_account.
 resource "google_bigquery_dataset_iam_binding" "editors" {
   project    = var.project_id
@@ -179,12 +179,15 @@ resource "google_storage_bucket_iam_member" "object_creator" {
   member = module.github_ci_infra.service_account_member
 }
 
+// Create two notifications, one for mapping and one for policy.
 resource "google_storage_notification" "pmap" {
   for_each           = local.event_type
   bucket             = google_storage_bucket.pmap.name
   payload_format     = "JSON_API_V1"
   topic              = google_pubsub_topic.pmap_gcs_notification[each.key].id
   event_types        = ["OBJECT_FINALIZE"]
+  // Separate mapping and policy notifications by object name prefix.
+  // Mapping objects start with "mapping", whereas policy start with "policy".
   object_name_prefix = each.key
   depends_on         = [google_pubsub_topic_iam_binding.publishers]
 }
@@ -201,6 +204,7 @@ resource "google_pubsub_topic_iam_binding" "publishers" {
   members  = ["serviceAccount:${data.google_storage_project_service_account.gcs_account.email_address}"]
 }
 
+// Create two Pub/Sub topics for gcs notification, one for mapping and one for policy.
 resource "google_pubsub_topic" "pmap_gcs_notification" {
   for_each = local.event_type
   project  = var.project_id

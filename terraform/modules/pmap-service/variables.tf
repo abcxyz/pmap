@@ -46,3 +46,8 @@ variable "pmap_service_account" {
   description = "Service account for the pmap Cloud Run service to run as."
   type        = string
 }
+
+variable "ci_service_account" {
+  description = "CI service account."
+  type        = string
+}

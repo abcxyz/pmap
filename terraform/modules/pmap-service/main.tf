@@ -47,7 +47,7 @@ module "service" {
   name                  = var.service_name
   service_account_email = var.pmap_service_account
   image                 = var.image
-  service_iam           = { "roles/run.invoker" = ["serviceAccount:${var.pmap_service_account}"] }
+  service_iam           = { "roles/run.invoker" = ["serviceAccount:${var.ci_service_account}"] }
 }
 
 // Create push subscriptions with the pmap service push endpoint.
@@ -62,7 +62,7 @@ resource "google_pubsub_subscription" "pmap" {
   push_config {
     push_endpoint = module.service.url
     oidc_token {
-      service_account_email = var.pmap_service_account
+      service_account_email = var.ci_service_account
     }
   }
 }
