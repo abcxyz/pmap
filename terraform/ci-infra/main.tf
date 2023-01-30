@@ -138,7 +138,7 @@ resource "google_pubsub_subscription" "bigquery" {
   ]
 }
 
-// Grant metadataViewer role required for writting to BigQuery.
+// Add Pub/Sub service account to metadataViewer role required for writting to BigQuery.
 // See link: https://cloud.google.com/pubsub/docs/create-subscription#assign_bigquery_service_account.
 resource "google_bigquery_dataset_iam_member" "viewer" {
   project    = var.project_id
@@ -147,7 +147,7 @@ resource "google_bigquery_dataset_iam_member" "viewer" {
   member     = "serviceAccount:${local.pubsub_svc_account_email}"
 }
 
-// Exclusively grant the dataEditor role required for writting to BigQuery.
+// Overwrite the dataEditor role binding to Pub/Sub service account required for writting to BigQuery.
 // See link: https://cloud.google.com/pubsub/docs/create-subscription#assign_bigquery_service_account.
 resource "google_bigquery_dataset_iam_binding" "editors" {
   project    = var.project_id
@@ -181,11 +181,11 @@ resource "google_storage_bucket_iam_member" "object_creator" {
 
 // Create two notifications, one for mapping and one for policy.
 resource "google_storage_notification" "pmap" {
-  for_each           = local.event_type
-  bucket             = google_storage_bucket.pmap.name
-  payload_format     = "JSON_API_V1"
-  topic              = google_pubsub_topic.pmap_gcs_notification[each.key].id
-  event_types        = ["OBJECT_FINALIZE"]
+  for_each       = local.event_type
+  bucket         = google_storage_bucket.pmap.name
+  payload_format = "JSON_API_V1"
+  topic          = google_pubsub_topic.pmap_gcs_notification[each.key].id
+  event_types    = ["OBJECT_FINALIZE"]
   // Separate mapping and policy notifications by object name prefix.
   // Mapping objects start with "mapping", whereas policy start with "policy".
   object_name_prefix = each.key
