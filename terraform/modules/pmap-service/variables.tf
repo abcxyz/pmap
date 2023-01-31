@@ -27,12 +27,12 @@ variable "image" {
   type        = string
 }
 
-variable "publish_to_topic_id" {
+variable "downstream_pubsub_topic" {
   description = "The Pub/Sub topics to which the pmap service publishes the messages."
   type        = string
 }
 
-variable "subscribe_to_topic_id" {
+variable "upstream_pubsub_topic" {
   description = "The Pub/Sub topic for GCS bucket notifications."
   type        = string
 }

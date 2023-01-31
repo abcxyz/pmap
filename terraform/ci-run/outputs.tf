@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-output "retention_service_url" {
-  description = "Retention cloud run service URL."
-  value       = module.retention_service.pmap_service_url
+output "policy_service_url" {
+  description = "Policy cloud run service URL."
+  value       = module.policy_service.pmap_service_url
 }
 
 output "mapping_service_url" {
@@ -22,9 +22,9 @@ output "mapping_service_url" {
   value       = module.mapping_service.pmap_service_url
 }
 
-output "retention_gcs_subscription_id" {
-  description = "The Pub/Sub subscription ID for retention."
-  value       = module.retention_service.gcs_pubsub_subscription_id
+output "policy_gcs_subscription_id" {
+  description = "The Pub/Sub subscription ID for policy."
+  value       = module.policy_service.gcs_pubsub_subscription_id
 }
 
 output "mapping_gcs_subscription_id" {

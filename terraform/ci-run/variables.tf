@@ -18,12 +18,12 @@ variable "project_id" {
 }
 
 variable "mapping_service_image" {
-  description = "The service immage of mapping service."
+  description = "The service image of mapping service."
   type        = string
 }
 
-variable "retention_service_image" {
-  description = "The service immage of retention service."
+variable "policy_service_image" {
+  description = "The service image of policy service."
   type        = string
 }
 

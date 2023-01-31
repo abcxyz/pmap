@@ -54,7 +54,7 @@ module "service" {
 resource "google_pubsub_subscription" "pmap" {
   project = var.project_id
   name    = module.service.service_name
-  topic   = var.subscribe_to_topic_id
+  topic   = var.upstream_pubsub_topic
 
   // Required for Cloud Run, see https://cloud.google.com/run/docs/triggering/pubsub-push#ack-deadline.
   ack_deadline_seconds = 600
@@ -69,7 +69,7 @@ resource "google_pubsub_subscription" "pmap" {
 
 // Grant Pub/Sub publisher role of desired Pub/Sub topic to the pmap service account.
 resource "google_pubsub_topic_iam_member" "publisher" {
-  topic  = var.publish_to_topic_id
+  topic  = var.downstream_pubsub_topic
   role   = "roles/pubsub.publisher"
   member = "serviceAccount:${var.pmap_service_account}"
 }

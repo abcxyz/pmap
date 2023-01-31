@@ -111,7 +111,7 @@ EOF
 resource "google_pubsub_topic" "bigquery" {
   for_each = local.event_type
   project  = var.project_id
-  name     = each.key
+  name     = "${each.key}-bigquery"
 
   depends_on = [
     google_project_service.services["pubsub.googleapis.com"]
@@ -167,7 +167,7 @@ resource "google_storage_bucket" "pmap" {
       type = "Delete"
     }
     condition {
-      age = 2 // Delete in 30 days.
+      age = 2 // Delete in 2 days since we are in CI.
     }
   }
 }
@@ -188,7 +188,7 @@ resource "google_storage_notification" "pmap" {
   event_types    = ["OBJECT_FINALIZE"]
   // Separate mapping and policy notifications by object name prefix.
   // Mapping objects start with "mapping", whereas policy start with "policy".
-  object_name_prefix = each.key
+  object_name_prefix = "${each.key}/"
   depends_on         = [google_pubsub_topic_iam_binding.publishers]
 }
 
@@ -208,7 +208,7 @@ resource "google_pubsub_topic_iam_binding" "publishers" {
 resource "google_pubsub_topic" "pmap_gcs_notification" {
   for_each = local.event_type
   project  = var.project_id
-  name     = "${each.key}-gcs-notification"
+  name     = "${each.key}-gcs"
 
   depends_on = [
     google_project_service.services["pubsub.googleapis.com"]
