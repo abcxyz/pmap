@@ -156,8 +156,16 @@ resource "google_bigquery_dataset_iam_binding" "editors" {
   members    = ["serviceAccount:${local.pubsub_svc_account_email}"]
 }
 
+# Add CI service account to project level BigQuery job user role
+# to allow integration tests to read data.
+resource "google_project_iam_member" "ci_sa_bigquery_member" {
+  project = var.project_id
+  role    = "roles/bigquery.jobUser"
+  member  = module.github_ci_infra.service_account_member
+}
+
 resource "google_storage_bucket" "pmap" {
-  name                        = "pmap"
+  name                        = "pmap-ci"
   project                     = var.project_id
   location                    = "US"
   uniform_bucket_level_access = true
