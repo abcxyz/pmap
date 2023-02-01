@@ -22,15 +22,6 @@ data "google_project" "project" {
   project_id = var.project_id
 }
 
-// Create CI infrastructure resources including artifact repository, workload identity pool and provider,
-// and CI service account.
-module "github_ci_infra" {
-  source                 = "git::https://github.com/abcxyz/terraform-modules.git//modules/github_ci_infra?ref=main"
-  project_id             = var.project_id
-  name                   = "pmap"
-  github_repository_name = "pmap"
-}
-
 resource "google_project_service" "serviceusage" {
   project            = var.project_id
   service            = "serviceusage.googleapis.com"
@@ -156,8 +147,16 @@ resource "google_bigquery_dataset_iam_binding" "editors" {
   members    = ["serviceAccount:${local.pubsub_svc_account_email}"]
 }
 
+# Add CI service account to project level BigQuery job user role
+# to allow integration tests to read data.
+resource "google_project_iam_member" "ci_sa_bigquery_member" {
+  project = var.project_id
+  role    = "roles/bigquery.jobUser"
+  member  = "serviceAccount:${var.ci_service_account}"
+}
+
 resource "google_storage_bucket" "pmap" {
-  name                        = "pmap"
+  name                        = "pmap-ci"
   project                     = var.project_id
   location                    = "US"
   uniform_bucket_level_access = true
@@ -176,7 +175,7 @@ resource "google_storage_bucket" "pmap" {
 resource "google_storage_bucket_iam_member" "object_creator" {
   bucket = google_storage_bucket.pmap.name
   role   = "roles/storage.objectCreator"
-  member = module.github_ci_infra.service_account_member
+  member = "serviceAccount:${var.ci_service_account}"
 }
 
 // Create two notifications, one for mapping and one for policy.
@@ -215,13 +214,13 @@ resource "google_pubsub_topic" "pmap_gcs_notification" {
   ]
 }
 
-// Grant WIF service account subscriber permission to GCS notification topic.
+// Grant CI service account subscriber permission to GCS notification topic.
 resource "google_pubsub_topic_iam_member" "gcs_notification_subscriber" {
   for_each = local.event_type
   topic    = google_pubsub_topic.pmap_gcs_notification[each.key].id
   project  = var.project_id
   role     = "roles/pubsub.subscriber"
-  member   = module.github_ci_infra.service_account_member
+  member   = "serviceAccount:${var.ci_service_account}"
 }
 
 // Create a dedicated service account for pmap services to run as.
@@ -229,4 +228,13 @@ resource "google_service_account" "ci_run_service_account" {
   project      = var.project_id
   account_id   = "run-pmap-sa"
   display_name = "Cloud Run Service Account for pmap"
+}
+
+# Allow the CI service account to act as the Cloud Run service account
+# this allows the CI servie account to deploy new revisions for the
+# Cloud Run sevice.
+resource "google_service_account_iam_binding" "run_sa_ci_binding" {
+  service_account_id = google_service_account.ci_run_service_account.name
+  role               = "roles/iam.serviceAccountUser"
+  members            = ["serviceAccount:${var.ci_service_account}"]
 }
