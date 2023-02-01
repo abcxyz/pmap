@@ -47,7 +47,11 @@ module "service" {
   name                  = var.service_name
   service_account_email = var.pmap_service_account
   image                 = var.image
-  service_iam           = { "roles/run.invoker" = ["serviceAccount:${var.ci_service_account}"] }
+  service_iam = {
+    admins     = []
+    developers = []
+    invokers   = ["serviceAccount:${var.ci_service_account}"]
+  }
 }
 
 // Create push subscriptions with the pmap service push endpoint.
