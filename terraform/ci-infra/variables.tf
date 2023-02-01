@@ -16,3 +16,8 @@ variable "project_id" {
   description = "The GCP project that hosts the pmap infra resources for CI."
   type        = string
 }
+
+variable "ci_service_account" {
+  description = "CI service account."
+  type        = string
+}
