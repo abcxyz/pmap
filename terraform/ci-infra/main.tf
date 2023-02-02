@@ -172,10 +172,10 @@ resource "google_storage_bucket" "pmap" {
 }
 
 // Grant object creator role to GitHub access service account.
-resource "google_storage_bucket_iam_member" "object_creator" {
-  bucket = google_storage_bucket.pmap.name
-  role   = "roles/storage.objectCreator"
-  member = "serviceAccount:${var.ci_service_account}"
+resource "google_storage_bucket_iam_binding" "object_creator" {
+  bucket  = google_storage_bucket.pmap.name
+  role    = "roles/storage.objectCreator"
+  members = ["serviceAccount:${var.ci_service_account}"]
 }
 
 // Create two notifications, one for mapping and one for policy.
@@ -215,12 +215,12 @@ resource "google_pubsub_topic" "pmap_gcs_notification" {
 }
 
 // Grant CI service account subscriber permission to GCS notification topic.
-resource "google_pubsub_topic_iam_member" "gcs_notification_subscriber" {
+resource "google_pubsub_topic_iam_binding" "gcs_notification_subscriber" {
   for_each = local.event_type
   topic    = google_pubsub_topic.pmap_gcs_notification[each.key].id
   project  = var.project_id
   role     = "roles/pubsub.subscriber"
-  member   = "serviceAccount:${var.ci_service_account}"
+  members  = ["serviceAccount:${var.ci_service_account}"]
 }
 
 // Create a dedicated service account for pmap services to run as.
@@ -237,4 +237,19 @@ resource "google_service_account_iam_binding" "run_sa_ci_binding" {
   service_account_id = google_service_account.ci_run_service_account.name
   role               = "roles/iam.serviceAccountUser"
   members            = ["serviceAccount:${var.ci_service_account}"]
+}
+
+// Grant Pub/Sub publisher role of downstream Pub/Sub topics to the pmap service account.
+resource "google_pubsub_topic_iam_binding" "publisher" {
+  for_each = local.event_type
+  topic    = google_pubsub_topic.bigquery[each.key].id
+  role     = "roles/pubsub.publisher"
+  members  = [google_service_account.ci_run_service_account.member]
+}
+
+// Grant GCS object viewer permission to the pmap service account.
+resource "google_storage_bucket_iam_binding" "object_viewer" {
+  bucket  = google_storage_bucket.pmap.name
+  role    = "roles/storage.objectViewer"
+  members = [google_service_account.ci_run_service_account.member]
 }

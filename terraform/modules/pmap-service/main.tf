@@ -70,17 +70,3 @@ resource "google_pubsub_subscription" "pmap" {
     }
   }
 }
-
-// Grant Pub/Sub publisher role of desired Pub/Sub topic to the pmap service account.
-resource "google_pubsub_topic_iam_member" "publisher" {
-  topic  = var.downstream_pubsub_topic
-  role   = "roles/pubsub.publisher"
-  member = "serviceAccount:${var.pmap_service_account}"
-}
-
-// Grant GCS object viewer permission to the pmap service.
-resource "google_storage_bucket_iam_member" "objectViewer" {
-  bucket = var.gcs_bucket_name
-  role   = "roles/storage.objectViewer"
-  member = "serviceAccount:${var.pmap_service_account}"
-}

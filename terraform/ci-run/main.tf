@@ -13,25 +13,21 @@
 // limitations under the License.
 
 module "mapping_service" {
-  source                  = "../modules/pmap-service"
-  service_name            = "mapping"
-  project_id              = var.project_id
-  image                   = var.mapping_service_image
-  downstream_pubsub_topic = "projects/${var.project_id}/topics/mapping-bigquery"
-  upstream_pubsub_topic   = "projects/${var.project_id}/topics/mapping-gcs"
-  gcs_bucket_name         = "pmap-ci"
-  pmap_service_account    = "run-pmap-sa@${var.project_id}.iam.gserviceaccount.com"
-  ci_service_account      = var.ci_service_account
+  source                = "../modules/pmap-service"
+  service_name          = "mapping"
+  project_id            = var.project_id
+  image                 = var.mapping_service_image
+  upstream_pubsub_topic = "projects/${var.project_id}/topics/mapping-gcs"
+  pmap_service_account  = "run-pmap-sa@${var.project_id}.iam.gserviceaccount.com"
+  ci_service_account    = var.ci_service_account
 }
 
 module "policy_service" {
-  source                  = "../modules/pmap-service"
-  service_name            = "policy"
-  project_id              = var.project_id
-  image                   = var.policy_service_image
-  downstream_pubsub_topic = "projects/${var.project_id}/topics/policy-bigquery"
-  upstream_pubsub_topic   = "projects/${var.project_id}/topics/policy-gcs"
-  gcs_bucket_name         = "pmap-ci"
-  pmap_service_account    = "run-pmap-sa@${var.project_id}.iam.gserviceaccount.com"
-  ci_service_account      = var.ci_service_account
+  source                = "../modules/pmap-service"
+  service_name          = "policy"
+  project_id            = var.project_id
+  image                 = var.policy_service_image
+  upstream_pubsub_topic = "projects/${var.project_id}/topics/policy-gcs"
+  pmap_service_account  = "run-pmap-sa@${var.project_id}.iam.gserviceaccount.com"
+  ci_service_account    = var.ci_service_account
 }
