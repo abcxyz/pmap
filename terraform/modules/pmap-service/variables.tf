@@ -27,18 +27,8 @@ variable "image" {
   type        = string
 }
 
-variable "downstream_pubsub_topic" {
-  description = "The Pub/Sub topics to which the pmap service publishes the messages."
-  type        = string
-}
-
 variable "upstream_pubsub_topic" {
   description = "The Pub/Sub topic for GCS bucket notifications."
-  type        = string
-}
-
-variable "gcs_bucket_name" {
-  description = "The GCS bucket of all pmap events."
   type        = string
 }
 

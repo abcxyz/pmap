@@ -125,7 +125,7 @@ resource "google_pubsub_subscription" "bigquery" {
 
   depends_on = [
     google_bigquery_dataset_iam_member.viewer,
-    google_bigquery_dataset_iam_binding.editors
+    google_bigquery_dataset_iam_member.editors
   ]
 }
 
@@ -138,13 +138,13 @@ resource "google_bigquery_dataset_iam_member" "viewer" {
   member     = "serviceAccount:${local.pubsub_svc_account_email}"
 }
 
-// Overwrite the dataEditor role binding to Pub/Sub service account required for writting to BigQuery.
+// Grant roles to Pub/Sub service account required for writting to BigQuery.
 // See link: https://cloud.google.com/pubsub/docs/create-subscription#assign_bigquery_service_account.
-resource "google_bigquery_dataset_iam_binding" "editors" {
+resource "google_bigquery_dataset_iam_member" "editors" {
   project    = var.project_id
   dataset_id = google_bigquery_dataset.pmap.dataset_id
   role       = "roles/bigquery.dataEditor"
-  members    = ["serviceAccount:${local.pubsub_svc_account_email}"]
+  member     = "serviceAccount:${local.pubsub_svc_account_email}"
 }
 
 # Add CI service account to project level BigQuery job user role
@@ -188,7 +188,7 @@ resource "google_storage_notification" "pmap" {
   // Separate mapping and policy notifications by object name prefix.
   // Mapping objects start with "mapping", whereas policy start with "policy".
   object_name_prefix = "${each.key}/"
-  depends_on         = [google_pubsub_topic_iam_binding.publishers]
+  depends_on         = [google_pubsub_topic_iam_member.publishers]
 }
 
 // Enable notifications by giving the correct IAM permission to the unique service account.
@@ -196,11 +196,11 @@ data "google_storage_project_service_account" "gcs_account" {
   project = var.project_id
 }
 
-resource "google_pubsub_topic_iam_binding" "publishers" {
+resource "google_pubsub_topic_iam_member" "publishers" {
   for_each = local.event_type
   topic    = google_pubsub_topic.pmap_gcs_notification[each.key].id
   role     = "roles/pubsub.publisher"
-  members  = ["serviceAccount:${data.google_storage_project_service_account.gcs_account.email_address}"]
+  member   = "serviceAccount:${data.google_storage_project_service_account.gcs_account.email_address}"
 }
 
 // Create two Pub/Sub topics for gcs notification, one for mapping and one for policy.
@@ -233,8 +233,23 @@ resource "google_service_account" "ci_run_service_account" {
 # Allow the CI service account to act as the Cloud Run service account
 # this allows the CI servie account to deploy new revisions for the
 # Cloud Run sevice.
-resource "google_service_account_iam_binding" "run_sa_ci_binding" {
+resource "google_service_account_iam_member" "run_sa_ci_binding" {
   service_account_id = google_service_account.ci_run_service_account.name
   role               = "roles/iam.serviceAccountUser"
-  members            = ["serviceAccount:${var.ci_service_account}"]
+  member             = "serviceAccount:${var.ci_service_account}"
+}
+
+// Grant Pub/Sub publisher role of downstream Pub/Sub topics to the pmap service account.
+resource "google_pubsub_topic_iam_member" "publisher" {
+  for_each = local.event_type
+  topic    = google_pubsub_topic.bigquery[each.key].id
+  role     = "roles/pubsub.publisher"
+  member   = google_service_account.ci_run_service_account.member
+}
+
+// Grant GCS object viewer permission to the pmap service account.
+resource "google_storage_bucket_iam_member" "object_viewer" {
+  bucket = google_storage_bucket.pmap.name
+  role   = "roles/storage.objectViewer"
+  member = google_service_account.ci_run_service_account.member
 }
