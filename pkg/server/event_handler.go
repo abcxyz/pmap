@@ -68,7 +68,7 @@ func WithClient[T any, P ProtoWrapper[T]](client *storage.Client) Option[T, P] {
 //
 // For example, to create a handler than handles someProto with provided storageClient:
 //
-// h := NewHandler(ctx, []Processor[*someProto]{&someProcessor{}, &anotherProcessor{}},WithClient[someProto](storageClient))
+//	h := NewHandler(ctx, []Processor[*someProto]{&someProcessor{}, &anotherProcessor{}},WithClient[someProto](storageClient))
 func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P], opts ...Option[T, P]) (*EventHandler[T, P], error) {
 	h := &EventHandler[T, P]{
 		processors: ps,
@@ -101,8 +101,9 @@ type ProtoWrapper[T any] interface {
 // A generic interface for processing proto messages.
 // Any type that processes proto can implement this interface.
 //
-// For example someProcessor implements and processes
-// structpb.Struct is of type Process[*structpb.Struct].
+// For example, someProcessor implements
+// Process(context.Context, *structpb.Struct) is of type
+// Processor[*structpb.Struct].
 type Processor[P proto.Message] interface {
 	Process(context.Context, P) error
 }
@@ -171,28 +172,28 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, m PubSubMess
 	// Get bucket and object id from message attributes.
 	bucketID, found := m.Message.Attributes["bucketId"]
 	if !found {
-		return nil, fmt.Errorf("Bucket ID not found.")
+		return nil, fmt.Errorf("bucket ID not found")
 	}
 	objectID, found := m.Message.Attributes["objectId"]
 	if !found {
-		return nil, fmt.Errorf("Object ID not found.")
+		return nil, fmt.Errorf("object ID not found")
 	}
 
 	// Read the object from bucket.
 	rc, err := h.client.Bucket(bucketID).Object(objectID).NewReader(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create GCS object reader: %s", err)
+		return nil, fmt.Errorf("failed to create GCS object reader: %w", err)
 	}
 	defer rc.Close()
 	yb, err := io.ReadAll(io.LimitReader(rc, 25*mb))
 	if err != nil {
-		return nil, fmt.Errorf("failed to read object from GCS: %s", err)
+		return nil, fmt.Errorf("failed to read object from GCS: %w", err)
 	}
 
 	// Unmarshal the object yaml bytes into a proto message wrapper.
 	p := P(new(T))
 	if err := unmarshalYAML(yb, p); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal object yaml: %s", err)
+		return nil, fmt.Errorf("failed to unmarshal object yaml: %w", err)
 	}
 
 	return p, nil

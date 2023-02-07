@@ -19,18 +19,15 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"strings"
-
 	"net"
 	"net/http"
 	"net/http/httptest"
-
+	"strings"
 	"testing"
 
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/google/go-cmp/cmp"
-
 	"google.golang.org/api/option"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -129,8 +126,8 @@ func TestEventHandler_Handle(t *testing.T) {
 			t.Parallel()
 
 			// Setup fake storage client.
-			hc, close := newTestServer(handleObjectRead_Yaml)
-			defer close()
+			hc, done := newTestServer(handleObjectReadYaml(t))
+			defer done()
 			c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
 			if err != nil {
 				t.Fatalf("failed to creat GCS storage client %v", err)
@@ -235,12 +232,12 @@ func TestEventHandler_getGCSObjectProto(t *testing.T) {
 			// Create fake http client for storage client.
 			var fakeFunc func(w http.ResponseWriter, r *http.Request)
 			if tc.invalidYaml {
-				fakeFunc = handleObjectRead_InvalidYaml
+				fakeFunc = handleObjectReadInvalidYaml(t)
 			} else {
-				fakeFunc = handleObjectRead_Yaml
+				fakeFunc = handleObjectReadYaml(t)
 			}
-			hc, close := newTestServer(fakeFunc)
-			defer close()
+			hc, done := newTestServer(fakeFunc)
+			defer done()
 
 			// Setup test handler with fake storage client.
 			c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
@@ -313,6 +310,8 @@ isOK: true`),
 // Creates a fake http client.
 func newTestServer(handler func(w http.ResponseWriter, r *http.Request)) (*http.Client, func()) {
 	ts := httptest.NewTLSServer(http.HandlerFunc(handler))
+	// Need insecure TLS option for testing.
+	// #nosec G402
 	tlsConf := &tls.Config{InsecureSkipVerify: true}
 	tr := &http.Transport{
 		TLSClientConfig: tlsConf,
@@ -326,28 +325,42 @@ func newTestServer(handler func(w http.ResponseWriter, r *http.Request)) (*http.
 	}
 }
 
-// Fake http func that returns a valid yaml bytes.
-func handleObjectRead_Yaml(w http.ResponseWriter, r *http.Request) {
-	if r.URL.String() != "/foo/bar" {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-	}
-	w.Write([]byte(`foo: bar
+// Returns a fake http func that writes a valid yaml bytes in http response.
+func handleObjectReadYaml(t *testing.T) func(w http.ResponseWriter, r *http.Request) {
+	t.Helper()
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.String() != "/foo/bar" {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+		}
+		_, err := w.Write([]byte(`foo: bar
 isOK: true`))
+		if err != nil {
+			t.Fatalf("failed to write response: %v", err)
+		}
+	}
 }
 
-// Fake http func that returns a invalid yaml bytes.
-func handleObjectRead_InvalidYaml(w http.ResponseWriter, r *http.Request) {
-	if r.URL.String() != "/foo/bar" {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+// Returns a fake http func that writes an invalid yaml bytes in http response.
+func handleObjectReadInvalidYaml(t *testing.T) func(w http.ResponseWriter, r *http.Request) {
+	t.Helper()
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.String() != "/foo/bar" {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+		}
+		_, err := w.Write([]byte(`foo, bar,
+		isOK: true`))
+		if err != nil {
+			t.Fatalf("failed to write response: %v", err)
+		}
 	}
-	w.Write([]byte(`foo, bar,
-isOK: true`))
 }
 
 type failProcessor struct{}
 
 func (p *failProcessor) Process(_ context.Context, m *structpb.Struct) error {
-	return fmt.Errorf("Always fail.")
+	return fmt.Errorf("always fail")
 }
 
 type successProcessor struct{}
