@@ -30,14 +30,8 @@ import (
 )
 
 const (
-	// mb is used for conversion to megabytes.
-	mb = 1000000
-
-	successMessage          = "Ok"
-	errReadingMessage       = "Failed to read PubSub message."
-	errUnmarshallingMessage = "Failed to unmarshal PubSub message."
-	errGettingGCSObject     = "Failed to get GCS object."
-	errProcessingObject     = "Failed to process GCS object."
+	httpRequestSizeLimitInBytes = 256_000
+	gcsObjectSizeLimitInBytes   = 25_000_000
 )
 
 // EventHandler retrieves GCS objects upon receiving GCS notifications
@@ -47,7 +41,7 @@ const (
 // The GCS object could be any proto message type. But an instance of
 // Handler can only handle one type of proto message.
 //
-// TODO: passes the objects downstream.
+// TODO(#19): passes the objects downstream.
 type EventHandler[T any, P ProtoWrapper[T]] struct {
 	client     *storage.Client
 	processors []Processor[P]
@@ -118,63 +112,74 @@ type PubSubMessage struct {
 	Subscription string `json:"subscription"`
 }
 
-// Handle is the core logic of EventHandler, it retrieves GCS object upon notification,
-// calls a list of processor for processing, and passes it downstream.
+// Handle creates a http request handler, it wraps the realHandle function with
+// a context and information needed for handling pamp event.
 func (h *EventHandler[T, P]) Handle() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := logging.FromContext(ctx)
 
 		// Handle Pub/Sub http request which is a GCS notification message.
-		body, err := io.ReadAll(io.LimitReader(r.Body, 25*mb))
+		body, err := io.ReadAll(io.LimitReader(r.Body, httpRequestSizeLimitInBytes))
 		if err != nil {
-			logger.Errorw("failed to read the request body", "code", http.StatusBadRequest, "body", errReadingMessage, "error", err)
-			http.Error(w, errReadingMessage, http.StatusBadRequest)
+			logger.Errorw("failed to read the request body", "code", http.StatusBadRequest, "error", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		// Convert the GCS notification message into a PubSubMessage.
+		// See GCS notification fomat here: https://cloud.google.com/storage/docs/pubsub-notifications#format.
 		var m PubSubMessage
 		// Byte slice unmarshalling handles base64 decoding.
 		if err := json.Unmarshal(body, &m); err != nil {
-			logger.Errorw("failed to unmarshal the request body", "code", http.StatusBadRequest, "body", errUnmarshallingMessage, "error", err)
-			http.Error(w, errUnmarshallingMessage, http.StatusBadRequest)
+			logger.Errorw("failed to unmarshal the request body", "code", http.StatusBadRequest, "error", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		logger.Debug("%T: handling message from Pub/Sub subscription: %q", h, m.Subscription)
 
-		// Get the GCS object as a proto message given GCS notification information.
-		p, err := h.getGCSObjectProto(ctx, m)
+		err = h.realHandle(ctx, m.Message.Attributes)
 		if err != nil {
-			logger.Errorw("failed to get GCS object", "code", http.StatusInternalServerError, "body", errGettingGCSObject, "error", err)
-			http.Error(w, errGettingGCSObject, http.StatusInternalServerError)
+			logger.Errorw("failed to handle request", "code", http.StatusInternalServerError, "error", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		for _, processor := range h.processors {
-			if err := processor.Process(ctx, p); err != nil {
-				logger.Errorw("failed to process object", "code", http.StatusInternalServerError, "body", errProcessingObject, "error", err)
-				http.Error(w, errProcessingObject, http.StatusInternalServerError)
-				return
-			}
-		}
-
-		// TODO: pass object downstream...
-
 		w.WriteHeader(http.StatusCreated)
-		fmt.Fprint(w, successMessage)
+		fmt.Fprint(w, "Ok")
 	})
 }
 
-// getGCSObjectProto calls the GCS storage client with bucket and object id provided in the given
-// Pub/Sub message, and returns the object as a proto message.
-func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, m PubSubMessage) (P, error) {
+// realHandle is the core logic of EventHandler, it retrieves GCS object with object information,
+// calls a list of processor for processing, and passes it downstream.
+func (h *EventHandler[T, P]) realHandle(ctx context.Context, objAttrs map[string]string) error {
+
+	// Get the GCS object as a proto message given GCS notification information.
+	p, err := h.getGCSObjectProto(ctx, objAttrs)
+	if err != nil {
+		return fmt.Errorf("failed to get GCS object: %w", err)
+	}
+
+	for _, processor := range h.processors {
+		if err := processor.Process(ctx, p); err != nil {
+			return fmt.Errorf("failed to process object: %w", err)
+		}
+	}
+
+	// TODO(#19): Create pmap event and pass it downstream...
+	// TODO(#20): we need to have a way to differentiate retryable err vs. not.
+	// For non-retryable error, we need to have them enter a different BQ table per design.
+	return nil
+}
+
+// getGCSObjectProto calls the GCS storage client with objAttrs information, and returns the object as a proto message.
+func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map[string]string) (P, error) {
 	// Get bucket and object id from message attributes.
-	bucketID, found := m.Message.Attributes["bucketId"]
+	bucketID, found := objAttrs["bucketId"]
 	if !found {
 		return nil, fmt.Errorf("bucket ID not found")
 	}
-	objectID, found := m.Message.Attributes["objectId"]
+	objectID, found := objAttrs["objectId"]
 	if !found {
 		return nil, fmt.Errorf("object ID not found")
 	}
@@ -185,7 +190,7 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, m PubSubMess
 		return nil, fmt.Errorf("failed to create GCS object reader: %w", err)
 	}
 	defer rc.Close()
-	yb, err := io.ReadAll(io.LimitReader(rc, 25*mb))
+	yb, err := io.ReadAll(io.LimitReader(rc, gcsObjectSizeLimitInBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read object from GCS: %w", err)
 	}

@@ -40,11 +40,11 @@ func TestEventHandler_Handle(t *testing.T) {
 	ctx := context.Background()
 
 	cases := []struct {
-		name           string
-		requestBody    []byte
-		processors     []Processor[*structpb.Struct]
-		wantStatusCode int
-		wantRespBody   string
+		name               string
+		requestBody        []byte
+		processors         []Processor[*structpb.Struct]
+		wantStatusCode     int
+		wantRespBodySubstr string
 	}{
 		{
 			name: "success",
@@ -60,9 +60,9 @@ func TestEventHandler_Handle(t *testing.T) {
 				"subscription": "test_subscription"
 			}
 			`),
-			processors:     []Processor[*structpb.Struct]{&successProcessor{}},
-			wantStatusCode: http.StatusCreated,
-			wantRespBody:   successMessage,
+			processors:         []Processor[*structpb.Struct]{&successProcessor{}},
+			wantStatusCode:     http.StatusCreated,
+			wantRespBodySubstr: "Ok",
 		},
 		{
 			name: "invalid_request_body",
@@ -77,9 +77,9 @@ func TestEventHandler_Handle(t *testing.T) {
 				"subscription": "test_subscription"
 			}
 			`),
-			processors:     []Processor[*structpb.Struct]{},
-			wantStatusCode: http.StatusBadRequest,
-			wantRespBody:   errUnmarshallingMessage,
+			processors:         []Processor[*structpb.Struct]{},
+			wantStatusCode:     http.StatusBadRequest,
+			wantRespBodySubstr: "invalid character",
 		},
 		{
 			name: "failed_retrieve_gcs_object",
@@ -95,9 +95,9 @@ func TestEventHandler_Handle(t *testing.T) {
 				"subscription": "test_subscription"
 			}
 			`),
-			processors:     []Processor[*structpb.Struct]{},
-			wantStatusCode: http.StatusInternalServerError,
-			wantRespBody:   errGettingGCSObject,
+			processors:         []Processor[*structpb.Struct]{},
+			wantStatusCode:     http.StatusInternalServerError,
+			wantRespBodySubstr: "failed to get GCS object",
 		},
 		{
 			name: "failed_process_gcs_object",
@@ -113,9 +113,9 @@ func TestEventHandler_Handle(t *testing.T) {
 				"subscription": "test_subscription"
 			}
 			`),
-			processors:     []Processor[*structpb.Struct]{&failProcessor{}},
-			wantStatusCode: http.StatusInternalServerError,
-			wantRespBody:   errProcessingObject,
+			processors:         []Processor[*structpb.Struct]{&failProcessor{}},
+			wantStatusCode:     http.StatusInternalServerError,
+			wantRespBodySubstr: "failed to process object",
 		},
 	}
 
@@ -146,8 +146,8 @@ func TestEventHandler_Handle(t *testing.T) {
 				t.Errorf("Process %+v: StatusCode got: %d want: %d", tc.name, resp.Code, tc.wantStatusCode)
 			}
 
-			if strings.TrimSpace(resp.Body.String()) != tc.wantRespBody {
-				t.Errorf("Process %+v: ResponseBody got: %s want: %s", tc.name, resp.Body.String(), tc.wantRespBody)
+			if !strings.Contains(resp.Body.String(), tc.wantRespBodySubstr) {
+				t.Errorf("Process %+v: expect ResponseBody: %s to contain: %s", tc.name, resp.Body.String(), tc.wantRespBodySubstr)
 			}
 		})
 	}
@@ -161,60 +161,36 @@ func TestEventHandler_getGCSObjectProto(t *testing.T) {
 
 	cases := []struct {
 		name            string
-		message         PubSubMessage
+		objAttrs        map[string]string
 		invalidYaml     bool
 		wantObjectProto proto.Message
 		wantErrSubstr   string
 	}{
 		{
-			name: "success",
-			message: PubSubMessage{
-				Message: struct {
-					Attributes map[string]string "json:\"attributes\""
-				}{
-					Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
-				},
-			},
+			name:        "success",
+			objAttrs:    map[string]string{"bucketId": "foo", "objectId": "bar"},
 			invalidYaml: false,
 			wantObjectProto: &structpb.Struct{
 				Fields: map[string]*structpb.Value{"foo": structpb.NewStringValue("bar"), "isOK": structpb.NewBoolValue(true)},
 			},
 		},
 		{
-			name: "bucket_not_exist",
-			message: PubSubMessage{
-				Message: struct {
-					Attributes map[string]string "json:\"attributes\""
-				}{
-					Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar"},
-				},
-			},
+			name:            "bucket_not_exist",
+			objAttrs:        map[string]string{"bucketId": "foo2", "objectId": "bar"},
 			invalidYaml:     false,
 			wantObjectProto: nilStruct,
 			wantErrSubstr:   "failed to create GCS object reader",
 		},
 		{
-			name: "object_not_exist",
-			message: PubSubMessage{
-				Message: struct {
-					Attributes map[string]string "json:\"attributes\""
-				}{
-					Attributes: map[string]string{"bucketId": "foo", "objectId": "bar2"},
-				},
-			},
+			name:            "object_not_exist",
+			objAttrs:        map[string]string{"bucketId": "foo", "objectId": "bar2"},
 			invalidYaml:     false,
 			wantObjectProto: nilStruct,
 			wantErrSubstr:   "failed to create GCS object reader",
 		},
 		{
-			name: "invalid_yaml_format",
-			message: PubSubMessage{
-				Message: struct {
-					Attributes map[string]string "json:\"attributes\""
-				}{
-					Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
-				},
-			},
+			name:            "invalid_yaml_format",
+			objAttrs:        map[string]string{"bucketId": "foo", "objectId": "bar"},
 			invalidYaml:     true,
 			wantObjectProto: nilStruct,
 			wantErrSubstr:   "failed to unmarshal object yaml",
@@ -250,7 +226,7 @@ func TestEventHandler_getGCSObjectProto(t *testing.T) {
 			}
 
 			// Run test.
-			gotP, gotErr := h.getGCSObjectProto(ctx, tc.message)
+			gotP, gotErr := h.getGCSObjectProto(ctx, tc.objAttrs)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
 			}
