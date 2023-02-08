@@ -153,7 +153,6 @@ func (h *EventHandler[T, P]) Handle() http.Handler {
 // realHandle is the core logic of EventHandler, it retrieves GCS object with object information,
 // calls a list of processor for processing, and passes it downstream.
 func (h *EventHandler[T, P]) realHandle(ctx context.Context, objAttrs map[string]string) error {
-
 	// Get the GCS object as a proto message given GCS notification information.
 	p, err := h.getGCSObjectProto(ctx, objAttrs)
 	if err != nil {
