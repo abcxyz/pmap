@@ -112,9 +112,9 @@ type PubSubMessage struct {
 	Subscription string `json:"subscription"`
 }
 
-// Handle creates a http request handler, it wraps the realHandle function with
-// a context and information needed for handling pamp event.
-func (h *EventHandler[T, P]) Handle() http.Handler {
+// HTTPHandler respondes to http request, and it wraps the Handle function
+// with a context and information needed for handling pamp event.
+func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		logger := logging.FromContext(ctx)
@@ -128,7 +128,7 @@ func (h *EventHandler[T, P]) Handle() http.Handler {
 		}
 
 		// Convert the GCS notification message into a PubSubMessage.
-		// See GCS notification fomat here: https://cloud.google.com/storage/docs/pubsub-notifications#format.
+		// See GCS notification format here: https://cloud.google.com/storage/docs/pubsub-notifications#format.
 		var m PubSubMessage
 		// Byte slice unmarshalling handles base64 decoding.
 		if err := json.Unmarshal(body, &m); err != nil {
@@ -138,7 +138,7 @@ func (h *EventHandler[T, P]) Handle() http.Handler {
 		}
 		logger.Debug("%T: handling message from Pub/Sub subscription: %q", h, m.Subscription)
 
-		err = h.realHandle(ctx, m.Message.Attributes)
+		err = h.Handle(ctx, m.Message.Attributes)
 		if err != nil {
 			logger.Errorw("failed to handle request", "code", http.StatusInternalServerError, "error", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -150,9 +150,9 @@ func (h *EventHandler[T, P]) Handle() http.Handler {
 	})
 }
 
-// realHandle is the core logic of EventHandler, it retrieves GCS object with object information,
+// Handle is the core logic of EventHandler, it retrieves GCS object with object information,
 // calls a list of processor for processing, and passes it downstream.
-func (h *EventHandler[T, P]) realHandle(ctx context.Context, objAttrs map[string]string) error {
+func (h *EventHandler[T, P]) Handle(ctx context.Context, objAttrs map[string]string) error {
 	// Get the GCS object as a proto message given GCS notification information.
 	p, err := h.getGCSObjectProto(ctx, objAttrs)
 	if err != nil {

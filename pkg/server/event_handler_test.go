@@ -34,7 +34,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func TestEventHandler_Handle(t *testing.T) {
+func TestEventHandler_HttpHandler(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -140,7 +140,7 @@ func TestEventHandler_Handle(t *testing.T) {
 
 			req := httptest.NewRequest(http.MethodPost, "/test", bytes.NewReader(tc.requestBody))
 			resp := httptest.NewRecorder()
-			h.Handle().ServeHTTP(resp, req)
+			h.HTTPHandler().ServeHTTP(resp, req)
 
 			if resp.Code != tc.wantStatusCode {
 				t.Errorf("Process %+v: StatusCode got: %d want: %d", tc.name, resp.Code, tc.wantStatusCode)
