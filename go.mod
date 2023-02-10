@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	cloud.google.com/go/asset v1.11.0
-	github.com/abcxyz/pkg v0.1.2-0.20230124181009-b0837f3d7cf8
+	github.com/abcxyz/pkg v0.1.2-0.20230210171106-ffe3fe77144d
 	github.com/google/go-cmp v0.5.9
 	google.golang.org/api v0.106.0
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f
@@ -15,6 +15,7 @@ require (
 require (
 	github.com/google/uuid v1.3.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
 require (
@@ -49,5 +50,4 @@ require (
 	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8 // indirect
 	golang.org/x/text v0.5.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	gopkg.in/yaml.v3 v3.0.1
 )

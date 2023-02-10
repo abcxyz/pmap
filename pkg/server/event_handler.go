@@ -24,9 +24,8 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pkg/logging"
-	"google.golang.org/protobuf/encoding/protojson"
+	"github.com/abcxyz/pkg/protoutil"
 	"google.golang.org/protobuf/proto"
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -102,9 +101,9 @@ type Processor[P proto.Message] interface {
 	Process(context.Context, P) error
 }
 
-// PubSubMessage is the payload of a Pub/Sub event.
-// See the documentation for more details:
-// https://cloud.google.com/pubsub/docs/reference/rest/v1/PubsubMessage
+// PubSubMessage is the payload of a [Pub/Sub message].
+//
+// [Pub/Sub message]: https://cloud.google.com/pubsub/docs/reference/rest/v1/PubsubMessage
 type PubSubMessage struct {
 	Message struct {
 		Attributes map[string]string `json:"attributes"`
@@ -112,8 +111,12 @@ type PubSubMessage struct {
 	Subscription string `json:"subscription"`
 }
 
-// HTTPHandler respondes to http request, and it wraps the Handle function
-// with a context and information needed for handling pamp event.
+// HTTPHandler provides an [http.Handler] that accepts [GCS notifications]
+// in HTTP requests and calls [Handle] to handle the events.
+//
+// [http.Handler]: https://pkg.go.dev/net/http#Handler
+// [GCS notifications]: https://cloud.google.com/storage/docs/pubsub-notifications#format
+// [Handle]: https://pkg.go.dev/github.com/abcxyz/pmap/pkg/server#EventHandler.Handle
 func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -128,9 +131,8 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 		}
 
 		// Convert the GCS notification message into a PubSubMessage.
-		// See GCS notification format here: https://cloud.google.com/storage/docs/pubsub-notifications#format.
 		var m PubSubMessage
-		// Byte slice unmarshalling handles base64 decoding.
+		// Message body is base64-encoded, byte slice unmarshalling handles the decoding.
 		if err := json.Unmarshal(body, &m); err != nil {
 			logger.Errorw("failed to unmarshal the request body", "code", http.StatusBadRequest, "error", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -138,23 +140,24 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 		}
 		logger.Debug("%T: handling message from Pub/Sub subscription: %q", h, m.Subscription)
 
-		err = h.Handle(ctx, m.Message.Attributes)
-		if err != nil {
+		if err := h.Handle(ctx, m); err != nil {
 			logger.Errorw("failed to handle request", "code", http.StatusInternalServerError, "error", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		w.WriteHeader(http.StatusCreated)
-		fmt.Fprint(w, "Ok")
+		fmt.Fprint(w, "OK")
 	})
 }
 
-// Handle is the core logic of EventHandler, it retrieves GCS object with object information,
-// calls a list of processor for processing, and passes it downstream.
-func (h *EventHandler[T, P]) Handle(ctx context.Context, objAttrs map[string]string) error {
+// Handle retrieves a GCS object with the given [GCS notification],
+// processes the object with the list of processors, and passes it downstream.
+//
+// [GCS notification]: https://cloud.google.com/storage/docs/pubsub-notifications#format
+func (h *EventHandler[T, P]) Handle(ctx context.Context, m PubSubMessage) error {
 	// Get the GCS object as a proto message given GCS notification information.
-	p, err := h.getGCSObjectProto(ctx, objAttrs)
+	p, err := h.getGCSObjectProto(ctx, m.Message.Attributes)
 	if err != nil {
 		return fmt.Errorf("failed to get GCS object: %w", err)
 	}
@@ -165,7 +168,8 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, objAttrs map[string]str
 		}
 	}
 
-	// TODO(#19): Create pmap event and pass it downstream...
+	// TODO(#19): Create pmap event and pass it downstream.
+	// TODO(#21): Add additional metadata to pmap event.
 	// TODO(#20): we need to have a way to differentiate retryable err vs. not.
 	// For non-retryable error, we need to have them enter a different BQ table per design.
 	return nil
@@ -196,26 +200,8 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 
 	// Unmarshal the object yaml bytes into a proto message wrapper.
 	p := P(new(T))
-	if err := unmarshalYAML(yb, p); err != nil {
+	if err := protoutil.UnmarshalYAML(yb, p); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal object yaml: %w", err)
 	}
-
 	return p, nil
-}
-
-// General func to umarshal yaml bytes to proto.
-func unmarshalYAML(b []byte, v proto.Message) error {
-	tmp := map[string]any{}
-	if err := yaml.Unmarshal(b, tmp); err != nil {
-		return fmt.Errorf("failed to unmarshal yaml: %w", err)
-	}
-	jb, err := json.Marshal(tmp)
-	if err != nil {
-		return fmt.Errorf("failed to marshal json: %w", err)
-	}
-
-	if err := protojson.Unmarshal(jb, v); err != nil {
-		return fmt.Errorf("failed to unmarshal proto: %w", err)
-	}
-	return nil
 }
