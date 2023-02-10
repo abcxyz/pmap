@@ -48,7 +48,6 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 			requestBody: []byte(`
 			{
 				"message": {
-					"data": "some_data",
 					"attributes": {
 						"bucketId": "foo",
 						"objectId": "bar"
@@ -74,7 +73,6 @@ isOK: true`),
 			requestBody: []byte(`
 			{
 				"message": {
-					"data": "some_data",
 					"attributes": {
 						"bucketId": "foo",
 						"objectId": "bar2"
@@ -136,6 +134,7 @@ func TestEventHandler_Handle(t *testing.T) {
 			name: "success",
 			message: PubSubMessage{
 				Message: struct {
+					Data []byte "json:\"data,omitempty\""
 					Attributes map[string]string "json:\"attributes\""
 				}{
 					Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
@@ -149,6 +148,7 @@ isOK: true`),
 			name: "missing_bucket_id",
 			message: PubSubMessage{
 				Message: struct {
+					Data []byte "json:\"data,omitempty\""
 					Attributes map[string]string "json:\"attributes\""
 				}{
 					Attributes: map[string]string{"objectId": "bar"},
@@ -160,6 +160,7 @@ isOK: true`),
 			name: "missing_object_id",
 			message: PubSubMessage{
 				Message: struct {
+					Data []byte "json:\"data,omitempty\""
 					Attributes map[string]string "json:\"attributes\""
 				}{
 					Attributes: map[string]string{"bucketId": "foo"},
@@ -171,6 +172,7 @@ isOK: true`),
 			name: "bucket_not_exist",
 			message: PubSubMessage{
 				Message: struct {
+					Data []byte "json:\"data,omitempty\""
 					Attributes map[string]string "json:\"attributes\""
 				}{
 					Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar"},
@@ -182,6 +184,7 @@ isOK: true`),
 			name: "object_not_exist",
 			message: PubSubMessage{
 				Message: struct {
+					Data []byte "json:\"data,omitempty\""
 					Attributes map[string]string "json:\"attributes\""
 				}{
 					Attributes: map[string]string{"bucketId": "foo", "objectId": "bar2"},
@@ -193,6 +196,7 @@ isOK: true`),
 			name: "invalid_yaml_format",
 			message: PubSubMessage{
 				Message: struct {
+					Data []byte "json:\"data,omitempty\""
 					Attributes map[string]string "json:\"attributes\""
 				}{
 					Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
@@ -205,6 +209,7 @@ isOK: true`),
 			name: "failed_process",
 			message: PubSubMessage{
 				Message: struct {
+					Data []byte "json:\"data,omitempty\""
 					Attributes map[string]string "json:\"attributes\""
 				}{
 					Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},

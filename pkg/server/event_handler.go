@@ -106,6 +106,7 @@ type Processor[P proto.Message] interface {
 // [Pub/Sub message]: https://cloud.google.com/pubsub/docs/reference/rest/v1/PubsubMessage
 type PubSubMessage struct {
 	Message struct {
+		Data       []byte            `json:"data,omitempty"`
 		Attributes map[string]string `json:"attributes"`
 	} `json:"message"`
 	Subscription string `json:"subscription"`
