@@ -46,32 +46,40 @@ type EventHandler[T any, P ProtoWrapper[T]] struct {
 	processors []Processor[P]
 }
 
-// Option is the option to set up a EventHandler.
-type Option[T any, P ProtoWrapper[T]] func(p *EventHandler[T, P]) (*EventHandler[T, P], error)
+type HandlerOpts struct {
+	client *storage.Client
+}
 
-// WithClient provides a GCS storage client to the EventHandler.
-func WithClient[T any, P ProtoWrapper[T]](client *storage.Client) Option[T, P] {
-	return func(p *EventHandler[T, P]) (*EventHandler[T, P], error) {
-		p.client = client
-		return p, nil
+// Define your option to change HandlerOpts
+type Option func(context.Context, *HandlerOpts) (*HandlerOpts, error)
+
+func WithStorageClient(client *storage.Client) Option {
+	return func(_ context.Context, opts *HandlerOpts) (*HandlerOpts, error) {
+		opts.client = client
+		return opts, nil
 	}
 }
 
 // Create a new Handler with the given processors and handler options.
 //
-// For example, to create a handler than handles someProto with provided storageClient:
-//
-//	h := NewHandler(ctx, []Processor[*someProto]{&someProcessor{}, &anotherProcessor{}},WithClient[someProto](storageClient))
-func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P], opts ...Option[T, P]) (*EventHandler[T, P], error) {
+//	// Assume you have processor to handle structpb.Struct.
+//	type MyProcessor struct {}
+//	func (p *MyProcessor) Process(context.Context, *structpb.Struct) error { return nil }
+//	// You can create a handler for that type of processors.
+//	h := NewHandler(ctx, []Processor[*structpb.Struct]{&MyProcessor{}})
+func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P], opts ...Option) (*EventHandler[T, P], error) {
 	h := &EventHandler[T, P]{
 		processors: ps,
 	}
+	handlerOpt := &HandlerOpts{}
 	for _, opt := range opts {
-		var err error
-		h, err = opt(h)
+		_, err := opt(ctx, handlerOpt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to apply handler options: %w", err)
 		}
+	}
+	if handlerOpt != nil {
+		h.client = handlerOpt.client
 	}
 
 	if h.client == nil {
@@ -133,7 +141,7 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 
 		// Convert the GCS notification message into a PubSubMessage.
 		var m PubSubMessage
-		// Message body is base64-encoded, byte slice unmarshalling handles the decoding.
+		// Handle message body(base64-encoded) decoding.
 		if err := json.Unmarshal(body, &m); err != nil {
 			logger.Errorw("failed to unmarshal the request body", "code", http.StatusBadRequest, "error", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -141,7 +149,12 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 		}
 		logger.Debug("%T: handling message from Pub/Sub subscription: %q", h, m.Subscription)
 
-		if err := h.Handle(ctx, m); err != nil {
+		// Extract out notification information.
+		n := pubsub.Message{
+			Data:       m.Message.Data, // Notification payload.
+			Attributes: m.Message.Attributes,
+		}
+		if err := h.Handle(ctx, n); err != nil {
 			logger.Errorw("failed to handle request", "code", http.StatusInternalServerError, "error", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -156,9 +169,9 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 // processes the object with the list of processors, and passes it downstream.
 //
 // [GCS notification]: https://cloud.google.com/storage/docs/pubsub-notifications#format
-func (h *EventHandler[T, P]) Handle(ctx context.Context, m PubSubMessage) error {
+func (h *EventHandler[T, P]) Handle(ctx context.Context, n pubsub.Message) error {
 	// Get the GCS object as a proto message given GCS notification information.
-	p, err := h.getGCSObjectProto(ctx, m.Message.Attributes)
+	p, err := h.getGCSObjectProto(ctx, n.Attributes)
 	if err != nil {
 		return fmt.Errorf("failed to get GCS object: %w", err)
 	}

@@ -38,14 +38,14 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 
 	cases := []struct {
 		name               string
-		requestBody        []byte
-		responseData       []byte
+		pubsubMessageBytes []byte
+		gcsObjectBytes     []byte
 		wantStatusCode     int
 		wantRespBodySubstr string
 	}{
 		{
 			name: "success",
-			requestBody: []byte(`
+			pubsubMessageBytes: []byte(`
 			{
 				"message": {
 					"attributes": {
@@ -56,21 +56,21 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 				"subscription": "test_subscription"
 			}
 			`),
-			responseData: []byte(`foo: bar
+			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
 			wantStatusCode:     http.StatusCreated,
 			wantRespBodySubstr: "OK",
 		},
 		{
 			name:               "invalid_request_body",
-			requestBody:        []byte(`}`),
-			responseData:       nil,
+			pubsubMessageBytes: []byte(`}`),
+			gcsObjectBytes:     nil,
 			wantStatusCode:     http.StatusBadRequest,
 			wantRespBodySubstr: "invalid character",
 		},
 		{
 			name: "failed_handle_event",
-			requestBody: []byte(`
+			pubsubMessageBytes: []byte(`
 			{
 				"message": {
 					"attributes": {
@@ -93,19 +93,19 @@ isOK: true`),
 			t.Parallel()
 
 			// Setup fake storage client.
-			hc, done := newTestServer(handleObjectRead(t, tc.responseData))
+			hc, done := newTestServer(handleObjectRead(t, tc.gcsObjectBytes))
 			defer done()
 			c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
 			if err != nil {
 				t.Fatalf("failed to creat GCS storage client %v", err)
 			}
 
-			h, err := NewHandler(ctx, []Processor[*structpb.Struct]{&successProcessor{}}, WithClient[structpb.Struct](c))
+			h, err := NewHandler(ctx, []Processor[*structpb.Struct]{&successProcessor{}}, WithStorageClient(c))
 			if err != nil {
 				t.Fatalf("failed to create event handler %v", err)
 			}
 
-			req := httptest.NewRequest(http.MethodPost, "/test", bytes.NewReader(tc.requestBody))
+			req := httptest.NewRequest(http.MethodPost, "/test", bytes.NewReader(tc.pubsubMessageBytes))
 			resp := httptest.NewRecorder()
 			h.HTTPHandler().ServeHTTP(resp, req)
 
@@ -124,98 +124,56 @@ func TestEventHandler_Handle(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name          string
-		message       PubSubMessage
-		responseData  []byte
-		processors    []Processor[*structpb.Struct]
-		wantErrSubstr string
+		name           string
+		notification   pubsub.Message
+		gcsObjectBytes []byte
+		processors     []Processor[*structpb.Struct]
+		wantErrSubstr  string
 	}{
 		{
 			name: "success",
-			message: PubSubMessage{
-				Message: struct {
-					Data []byte "json:\"data,omitempty\""
-					Attributes map[string]string "json:\"attributes\""
-				}{
-					Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
-				},
+			notification: pubsub.Message{
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
 			},
-			responseData: []byte(`foo: bar
+			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
 			processors: []Processor[*structpb.Struct]{&successProcessor{}},
 		},
 		{
 			name: "missing_bucket_id",
-			message: PubSubMessage{
-				Message: struct {
-					Data []byte "json:\"data,omitempty\""
-					Attributes map[string]string "json:\"attributes\""
-				}{
-					Attributes: map[string]string{"objectId": "bar"},
-				},
+			notification: pubsub.Message{
+				Attributes: map[string]string{"objectId": "bar"},
 			},
 			wantErrSubstr: "bucket ID not found",
 		},
 		{
 			name: "missing_object_id",
-			message: PubSubMessage{
-				Message: struct {
-					Data []byte "json:\"data,omitempty\""
-					Attributes map[string]string "json:\"attributes\""
-				}{
-					Attributes: map[string]string{"bucketId": "foo"},
-				},
+			notification: pubsub.Message{
+				Attributes: map[string]string{"bucketId": "foo"},
 			},
 			wantErrSubstr: "object ID not found",
 		},
 		{
 			name: "bucket_not_exist",
-			message: PubSubMessage{
-				Message: struct {
-					Data []byte "json:\"data,omitempty\""
-					Attributes map[string]string "json:\"attributes\""
-				}{
-					Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar"},
-				},
-			},
-			wantErrSubstr: "failed to create GCS object reader",
-		},
-		{
-			name: "object_not_exist",
-			message: PubSubMessage{
-				Message: struct {
-					Data []byte "json:\"data,omitempty\""
-					Attributes map[string]string "json:\"attributes\""
-				}{
-					Attributes: map[string]string{"bucketId": "foo", "objectId": "bar2"},
-				},
+			notification: pubsub.Message{
+				Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar"},
 			},
 			wantErrSubstr: "failed to create GCS object reader",
 		},
 		{
 			name: "invalid_yaml_format",
-			message: PubSubMessage{
-				Message: struct {
-					Data []byte "json:\"data,omitempty\""
-					Attributes map[string]string "json:\"attributes\""
-				}{
-					Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
-				},
+			notification: pubsub.Message{
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
 			},
-			responseData:  []byte(`foo, bar`),
-			wantErrSubstr: "failed to unmarshal object yaml",
+			gcsObjectBytes: []byte(`foo, bar`),
+			wantErrSubstr:  "failed to unmarshal object yaml",
 		},
 		{
 			name: "failed_process",
-			message: PubSubMessage{
-				Message: struct {
-					Data []byte "json:\"data,omitempty\""
-					Attributes map[string]string "json:\"attributes\""
-				}{
-					Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
-				},
+			notification: pubsub.Message{
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
 			},
-			responseData: []byte(`foo: bar
+			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
 			processors:    []Processor[*structpb.Struct]{&failProcessor{}},
 			wantErrSubstr: "failed to process object",
@@ -231,7 +189,7 @@ isOK: true`),
 			ctx := context.Background()
 
 			// Create fake http client for storage client.
-			hc, done := newTestServer(handleObjectRead(t, tc.responseData))
+			hc, done := newTestServer(handleObjectRead(t, tc.gcsObjectBytes))
 			defer done()
 
 			// Setup test handler with fake storage client.
@@ -239,13 +197,13 @@ isOK: true`),
 			if err != nil {
 				t.Fatalf("failed to creat GCS storage client %v", err)
 			}
-			h, err := NewHandler(ctx, tc.processors, WithClient[structpb.Struct](c))
+			h, err := NewHandler(ctx, tc.processors, WithStorageClient(c))
 			if err != nil {
 				t.Fatalf("failed to create event handler %v", err)
 			}
 
 			// Run test.
-			gotErr := h.Handle(ctx, tc.message)
+			gotErr := h.Handle(ctx, tc.notification)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
 			}
