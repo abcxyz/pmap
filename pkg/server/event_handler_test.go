@@ -125,15 +125,20 @@ func TestEventHandler_Handle(t *testing.T) {
 
 	cases := []struct {
 		name           string
-		notification   pubsub.Message
+		message       PubSubMessage
 		gcsObjectBytes []byte
 		processors     []Processor[*structpb.Struct]
 		wantErrSubstr  string
 	}{
 		{
 			name: "success",
-			notification: pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+			message: PubSubMessage{
+				Message: struct {
+					Data []byte "json:\"data,omitempty\""
+					Attributes map[string]string "json:\"attributes\""
+				}{
+					Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+				},
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
@@ -141,37 +146,62 @@ isOK: true`),
 		},
 		{
 			name: "missing_bucket_id",
-			notification: pubsub.Message{
-				Attributes: map[string]string{"objectId": "bar"},
+			message: PubSubMessage{
+				Message: struct {
+					Data []byte "json:\"data,omitempty\""
+					Attributes map[string]string "json:\"attributes\""
+				}{
+					Attributes: map[string]string{"objectId": "bar"},
+				},
 			},
 			wantErrSubstr: "bucket ID not found",
 		},
 		{
 			name: "missing_object_id",
-			notification: pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo"},
+			message: PubSubMessage{
+				Message: struct {
+					Data []byte "json:\"data,omitempty\""
+					Attributes map[string]string "json:\"attributes\""
+				}{
+					Attributes: map[string]string{"bucketId": "foo"},
+				},
 			},
 			wantErrSubstr: "object ID not found",
 		},
 		{
 			name: "bucket_not_exist",
-			notification: pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar"},
+			message: PubSubMessage{
+				Message: struct {
+					Data []byte "json:\"data,omitempty\""
+					Attributes map[string]string "json:\"attributes\""
+				}{
+					Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar"},
+				},
 			},
 			wantErrSubstr: "failed to create GCS object reader",
 		},
 		{
 			name: "invalid_yaml_format",
-			notification: pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+			message: PubSubMessage{
+				Message: struct {
+					Data []byte "json:\"data,omitempty\""
+					Attributes map[string]string "json:\"attributes\""
+				}{
+					Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+				},
 			},
 			gcsObjectBytes: []byte(`foo, bar`),
 			wantErrSubstr:  "failed to unmarshal object yaml",
 		},
 		{
 			name: "failed_process",
-			notification: pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+			message: PubSubMessage{
+				Message: struct {
+					Data []byte "json:\"data,omitempty\""
+					Attributes map[string]string "json:\"attributes\""
+				}{
+					Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+				},
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
@@ -203,7 +233,7 @@ isOK: true`),
 			}
 
 			// Run test.
-			gotErr := h.Handle(ctx, tc.notification)
+			gotErr := h.Handle(ctx, tc.message)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
 			}
