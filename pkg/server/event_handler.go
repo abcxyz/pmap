@@ -47,11 +47,12 @@ type EventHandler[T any, P ProtoWrapper[T]] struct {
 	processors []Processor[P]
 }
 
+// HandlerOpts available when creating an EventHandler such as GCS storage client.
 type HandlerOpts struct {
 	client *storage.Client
 }
 
-// Define your option to change HandlerOpts
+// Define your option to change HandlerOpts.
 type Option func(context.Context, *HandlerOpts) (*HandlerOpts, error)
 
 func WithStorageClient(client *storage.Client) Option {
