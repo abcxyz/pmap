@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 
+	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/protoutil"
@@ -78,7 +79,7 @@ func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P]
 			return nil, fmt.Errorf("failed to apply handler options: %w", err)
 		}
 	}
-	if handlerOpt != nil {
+	if handlerOpt.client != nil {
 		h.client = handlerOpt.client
 	}
 
@@ -123,9 +124,7 @@ type PubSubMessage struct {
 // HTTPHandler provides an [http.Handler] that accepts [GCS notifications]
 // in HTTP requests and calls [Handle] to handle the events.
 //
-// [http.Handler]: https://pkg.go.dev/net/http#Handler
 // [GCS notifications]: https://cloud.google.com/storage/docs/pubsub-notifications#format
-// [Handle]: https://pkg.go.dev/github.com/abcxyz/pmap/pkg/server#EventHandler.Handle
 func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -149,7 +148,12 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 		}
 		logger.Debug("%T: handling message from Pub/Sub subscription: %q", h, m.Subscription)
 
-		if err := h.Handle(ctx, m); err != nil {
+		// Extract out notification information.
+		n := pubsub.Message{
+			Data:       m.Message.Data, // Notification payload.
+			Attributes: m.Message.Attributes,
+		}
+		if err := h.Handle(ctx, n); err != nil {
 			logger.Errorw("failed to handle request", "code", http.StatusInternalServerError, "error", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -164,9 +168,9 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 // processes the object with the list of processors, and passes it downstream.
 //
 // [GCS notification]: https://cloud.google.com/storage/docs/pubsub-notifications#format
-func (h *EventHandler[T, P]) Handle(ctx context.Context, m PubSubMessage) error {
+func (h *EventHandler[T, P]) Handle(ctx context.Context, n pubsub.Message) error {
 	// Get the GCS object as a proto message given GCS notification information.
-	p, err := h.getGCSObjectProto(ctx, m.Message.Attributes)
+	p, err := h.getGCSObjectProto(ctx, n.Attributes)
 	if err != nil {
 		return fmt.Errorf("failed to get GCS object: %w", err)
 	}

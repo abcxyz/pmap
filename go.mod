@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	cloud.google.com/go/asset v1.11.0
+	cloud.google.com/go/pubsub v1.27.1
 	github.com/abcxyz/pkg v0.1.2-0.20230210171106-ffe3fe77144d
 	github.com/google/go-cmp v0.5.9
 	google.golang.org/api v0.106.0
@@ -17,13 +18,14 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	go.uber.org/goleak v1.2.0 // indirect
+	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
 require (
-	cloud.google.com/go v0.107.0
+	cloud.google.com/go v0.107.0 // indirect
 	cloud.google.com/go/accesscontextmanager v1.4.0 // indirect
 	cloud.google.com/go/compute v1.14.0 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
