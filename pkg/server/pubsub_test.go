@@ -39,21 +39,20 @@ func TestPubSubMessenger_Send(t *testing.T) {
 	ctx := context.Background()
 
 	cases := []struct {
-		name          string
-		pubSubClient  *pubsub.Client
-		message       []byte
-		wantErrSubstr string
+		name               string
+		pubSubServerOption pstest.ServerReactorOption
+		message            []byte
+		wantErrSubstr      string
 	}{
 		{
-			name:         "success",
-			pubSubClient: newTestPubSubClient(ctx, t),
-			message:      []byte("test"),
+			name:    "success",
+			message: []byte("test"),
 		},
 		{
-			name:          "error_send_message",
-			pubSubClient:  newTestPubSubClient(ctx, t, pstest.WithErrorInjection("Publish", codes.NotFound, injectedPublishError)),
-			message:       []byte("test"),
-			wantErrSubstr: injectedPublishError,
+			name:               "error_send_message",
+			pubSubServerOption: pstest.WithErrorInjection("Publish", codes.NotFound, injectedPublishError),
+			message:            []byte("test"),
+			wantErrSubstr:      injectedPublishError,
 		},
 	}
 
@@ -62,8 +61,9 @@ func TestPubSubMessenger_Send(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
-			msger, err := NewPubSubMessenger(ctx, serverProjectID, serverTopicID, WithClient(tc.pubSubClient))
+			
+			pubSubClient := newTestPubSubClient(ctx, t, tc.pubSubServerOption)
+			msger, err := NewPubSubMessenger(ctx, serverProjectID, serverTopicID, WithClient(pubSubClient))
 			if err != nil {
 				t.Fatalf("failed to create new PubSubMessenger: %v", err)
 			}
@@ -85,6 +85,11 @@ func newTestPubSubClient(ctx context.Context, t *testing.T, opts ...pstest.Serve
 
 	// Create PubSub test server.
 	svr := pstest.NewServer(opts...)
+	t.Cleanup(func() {
+		if err := svr.Close(); err != nil {
+			t.Fatalf("failed to cleanup test PubSub server: %v", err)
+		}
+	})
 
 	// Connect to the server without using TLS.
 	conn, err := grpc.DialContext(ctx, svr.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -102,12 +107,6 @@ func newTestPubSubClient(ctx context.Context, t *testing.T, opts ...pstest.Serve
 	if _, err := client.CreateTopic(ctx, serverTopicID); err != nil {
 		t.Fatalf("failed to create test PubSub topic: %v", err)
 	}
-
-	t.Cleanup(func() {
-		if err := svr.Close(); err != nil {
-			t.Fatalf("failed to cleanup test PubSub server: %v", err)
-		}
-	})
 
 	return client
 }

@@ -39,6 +39,7 @@ func WithClient(client *pubsub.Client) MessengerOption {
 }
 
 // NewPubSubMessenger creates a new instance of the PubSubMessenger.
+// The project ID will be used to create a PubSub client if a client is not provided.
 func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...MessengerOption) (*PubSubMessenger, error) {
 	p := &PubSubMessenger{}
 	for _, opt := range opts {
