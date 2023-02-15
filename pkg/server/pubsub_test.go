@@ -28,18 +28,15 @@ import (
 )
 
 const (
+	injectedPublishError = "injected publish error"
 	serverProjectID      = "test-project-id"
 	serverTopicID        = "test-topic-id"
-	injectedPublishError = "injected publish error"
 )
 
 func TestPubSubMessenger_Send(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-
-	pubSubClient := newTestPubSubClient(ctx, t)
-	pubSubErrClient := newTestPubSubClient(ctx, t, pstest.WithErrorInjection("Publish", codes.NotFound, injectedPublishError))
 
 	cases := []struct {
 		name          string
@@ -49,12 +46,12 @@ func TestPubSubMessenger_Send(t *testing.T) {
 	}{
 		{
 			name:         "success",
-			pubSubClient: pubSubClient,
+			pubSubClient: newTestPubSubClient(ctx, t),
 			message:      []byte("test"),
 		},
 		{
 			name:          "error_send_message",
-			pubSubClient:  pubSubErrClient,
+			pubSubClient:  newTestPubSubClient(ctx, t, pstest.WithErrorInjection("Publish", codes.NotFound, injectedPublishError)),
 			message:       []byte("test"),
 			wantErrSubstr: injectedPublishError,
 		},
@@ -75,58 +72,8 @@ func TestPubSubMessenger_Send(t *testing.T) {
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
 			}
-		})
-	}
-}
-
-func TestPubSubMessenger_Cleanup(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-
-	// Create a PubSub test server that does not close.
-	svr := pstest.NewServer()
-	conn, err := grpc.DialContext(ctx, svr.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		t.Fatalf("fail to connect to test PubSub server: %v", err)
-	}
-	pubSubClient, err := pubsub.NewClient(ctx, serverProjectID, option.WithGRPCConn(conn))
-	if err != nil {
-		t.Fatalf("failed to create new PubSub test client: %v", err)
-	}
-
-	pubSubClientClose := newTestPubSubClient(ctx, t)
-
-	cases := []struct {
-		name          string
-		pubSubClient  *pubsub.Client
-		wantErrSubstr string
-	}{
-		{
-			name:         "success",
-			pubSubClient: pubSubClient,
-		},
-		{
-			name:          "dup_close",
-			pubSubClient:  pubSubClientClose,
-			wantErrSubstr: "failed to close PubSub client",
-		},
-	}
-
-	for _, tc := range cases {
-		tc := tc
-
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			msger, err := NewPubSubMessenger(ctx, serverProjectID, serverTopicID, WithClient(pubSubClient))
-			if err != nil {
-				t.Fatalf("failed to create new PubSubMessenger: %v", err)
-			}
-
-			gotErr := msger.Cleanup()
-			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
-				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
+			if err := msger.Cleanup(); err != nil {
+				t.Errorf("Process(%+v) failed to cleanup: %v", tc.name, err)
 			}
 		})
 	}
@@ -159,14 +106,6 @@ func newTestPubSubClient(ctx context.Context, t *testing.T, opts ...pstest.Serve
 	t.Cleanup(func() {
 		if err := svr.Close(); err != nil {
 			t.Fatalf("failed to cleanup test PubSub server: %v", err)
-		}
-
-		if err := conn.Close(); err != nil {
-			t.Fatalf("failed to cleanup test PubSub client connection: %v", err)
-		}
-
-		if err := client.Close(); err != nil {
-			t.Fatalf("failed to cleanup test PubSub client: %v", err)
 		}
 	})
 

@@ -38,14 +38,6 @@ func WithClient(client *pubsub.Client) MessengerOption {
 	}
 }
 
-// WithTopic provides a PubSub topic to the PubSubMessenger.
-func WithTopic(topic *pubsub.Topic) MessengerOption {
-	return func(p *PubSubMessenger) (*PubSubMessenger, error) {
-		p.topic = topic
-		return p, nil
-	}
-}
-
 // NewPubSubMessenger creates a new instance of the PubSubMessenger.
 func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...MessengerOption) (*PubSubMessenger, error) {
 	p := &PubSubMessenger{}
@@ -64,9 +56,7 @@ func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...
 		p.client = client
 	}
 
-	if p.topic == nil {
-		p.topic = p.client.Topic(topicID)
-	}
+	p.topic = p.client.Topic(topicID)
 
 	return p, nil
 }
@@ -78,7 +68,7 @@ func (p *PubSubMessenger) Send(ctx context.Context, msg []byte) error {
 	})
 
 	if _, err := result.Get(ctx); err != nil {
-		return fmt.Errorf("pubsub: failed to get result: %w", err)
+		return fmt.Errorf("pubsub: failed to get result returned from publish : %w", err)
 	}
 	return nil
 }
