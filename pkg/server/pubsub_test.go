@@ -61,9 +61,8 @@ func TestPubSubMessenger_Send(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			
-			pubSubClient := newTestPubSubClient(ctx, t, tc.pubSubServerOption)
-			msger, err := NewPubSubMessenger(ctx, serverProjectID, serverTopicID, WithClient(pubSubClient))
+
+			msger, err := NewPubSubMessenger(ctx, serverProjectID, serverTopicID, WithClient(newTestPubSubClient(ctx, t, tc.pubSubServerOption)))
 			if err != nil {
 				t.Fatalf("failed to create new PubSubMessenger: %v", err)
 			}
