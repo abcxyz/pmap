@@ -101,7 +101,12 @@ isOK: true`),
 				t.Fatalf("failed to creat GCS storage client %v", err)
 			}
 
-			h, err := NewHandler(ctx, []Processor[*structpb.Struct]{&successProcessor{}}, WithStorageClient(c))
+			opts := []Option{
+				WithStorageClient(c),
+				WithSuccessEventMessenger(&fakeMessenger{}),
+			}
+
+			h, err := NewHandler(ctx, []Processor[*structpb.Struct]{&successProcessor{}}, opts...)
 			if err != nil {
 				t.Fatalf("failed to create event handler %v", err)
 			}
@@ -125,11 +130,13 @@ func TestEventHandler_Handle(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name           string
-		notification   pubsub.Message
-		gcsObjectBytes []byte
-		processors     []Processor[*structpb.Struct]
-		wantErrSubstr  string
+		name                  string
+		notification          pubsub.Message
+		gcsObjectBytes        []byte
+		processors            []Processor[*structpb.Struct]
+		successEventMessenger Messenger
+		failureEventMessenger Messenger
+		wantErrSubstr         string
 	}{
 		{
 			name: "success",
@@ -138,7 +145,8 @@ func TestEventHandler_Handle(t *testing.T) {
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors: []Processor[*structpb.Struct]{&successProcessor{}},
+			processors:            []Processor[*structpb.Struct]{&successProcessor{}},
+			successEventMessenger: &fakeMessenger{},
 		},
 		{
 			name: "missing_bucket_id",
@@ -176,8 +184,9 @@ isOK: true`),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors:    []Processor[*structpb.Struct]{&failProcessor{}},
-			wantErrSubstr: "failed to process object",
+			processors:            []Processor[*structpb.Struct]{&failProcessor{}},
+			failureEventMessenger: &fakeMessenger{},
+			wantErrSubstr:         "failed to process object",
 		},
 	}
 
@@ -198,7 +207,12 @@ isOK: true`),
 			if err != nil {
 				t.Fatalf("failed to creat GCS storage client %v", err)
 			}
-			h, err := NewHandler(ctx, tc.processors, WithStorageClient(c))
+			opts := []Option{
+				WithStorageClient(c),
+				WithSuccessEventMessenger(tc.successEventMessenger),
+				WithFailureEventMessenger(tc.failureEventMessenger),
+			}
+			h, err := NewHandler(ctx, tc.processors, opts...)
 			if err != nil {
 				t.Fatalf("failed to create event handler %v", err)
 			}
@@ -255,5 +269,11 @@ type successProcessor struct{}
 
 func (p *successProcessor) Process(_ context.Context, m *structpb.Struct) error {
 	m.Fields["processed"] = structpb.NewBoolValue(true)
+	return nil
+}
+
+type fakeMessenger struct{}
+
+func (m *fakeMessenger) Send(_ context.Context, _ []byte) error {
 	return nil
 }

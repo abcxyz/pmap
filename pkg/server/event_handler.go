@@ -26,7 +26,10 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/protoutil"
+	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const (
@@ -36,20 +39,24 @@ const (
 
 // EventHandler retrieves GCS objects upon receiving GCS notifications
 // via Pub/Sub, calls a list of processors to process the objects, and
-// lastly passes the objects downstream.
+// lastly passes the objects downstream. The successEventMessenger only
+// handles successfully processed objects, the failureEventMessenger
+// will handle failure events if provided.
 //
 // The GCS object could be any proto message type. But an instance of
 // Handler can only handle one type of proto message.
-//
-// TODO(#19): passes the objects downstream.
 type EventHandler[T any, P ProtoWrapper[T]] struct {
-	client     *storage.Client
-	processors []Processor[P]
+	client                *storage.Client
+	processors            []Processor[P]
+	successEventMessenger Messenger
+	failureEventMessenger Messenger
 }
 
 // HandlerOpts available when creating an EventHandler such as GCS storage client.
 type HandlerOpts struct {
-	client *storage.Client
+	client                *storage.Client
+	successEventMessenger Messenger
+	failureEventMessenger Messenger
 }
 
 // Define your option to change HandlerOpts.
@@ -58,6 +65,20 @@ type Option func(context.Context, *HandlerOpts) (*HandlerOpts, error)
 func WithStorageClient(client *storage.Client) Option {
 	return func(_ context.Context, opts *HandlerOpts) (*HandlerOpts, error) {
 		opts.client = client
+		return opts, nil
+	}
+}
+
+func WithSuccessEventMessenger(msger Messenger) Option {
+	return func(_ context.Context, opts *HandlerOpts) (*HandlerOpts, error) {
+		opts.successEventMessenger = msger
+		return opts, nil
+	}
+}
+
+func WithFailureEventMessenger(msger Messenger) Option {
+	return func(_ context.Context, opts *HandlerOpts) (*HandlerOpts, error) {
+		opts.failureEventMessenger = msger
 		return opts, nil
 	}
 }
@@ -80,9 +101,9 @@ func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P]
 			return nil, fmt.Errorf("failed to apply handler options: %w", err)
 		}
 	}
-	if handlerOpt.client != nil {
-		h.client = handlerOpt.client
-	}
+	h.client = handlerOpt.client
+	h.successEventMessenger = handlerOpt.successEventMessenger
+	h.failureEventMessenger = handlerOpt.failureEventMessenger
 
 	if h.client == nil {
 		client, err := storage.NewClient(ctx)
@@ -109,6 +130,11 @@ type ProtoWrapper[T any] interface {
 // Processor[*structpb.Struct].
 type Processor[P proto.Message] interface {
 	Process(context.Context, P) error
+}
+
+// An interface for sending pmap event downstream.
+type Messenger interface {
+	Send(context.Context, []byte) error
 }
 
 // PubSubMessage is the payload of a [Pub/Sub message].
@@ -169,23 +195,52 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 // processes the object with the list of processors, and passes it downstream.
 //
 // [GCS notification]: https://cloud.google.com/storage/docs/pubsub-notifications#format
-func (h *EventHandler[T, P]) Handle(ctx context.Context, n pubsub.Message) error {
+func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error {
 	// Get the GCS object as a proto message given GCS notification information.
-	p, err := h.getGCSObjectProto(ctx, n.Attributes)
+	p, err := h.getGCSObjectProto(ctx, m.Attributes)
 	if err != nil {
 		return fmt.Errorf("failed to get GCS object: %w", err)
 	}
 
-	for _, processor := range h.processors {
-		if err := processor.Process(ctx, p); err != nil {
-			return fmt.Errorf("failed to process object: %w", err)
-		}
-	}
-
-	// TODO(#19): Create pmap event and pass it downstream.
-	// TODO(#21): Add additional metadata to pmap event.
 	// TODO(#20): we need to have a way to differentiate retryable err vs. not.
 	// For non-retryable error, we need to have them enter a different BQ table per design.
+	// Currently all error events are sent to downstream if failureEventMessenger is provided
+	// including those retried events.
+	var processErr error
+	for _, processor := range h.processors {
+		if err := processor.Process(ctx, p); err != nil {
+			processErr = fmt.Errorf("failed to process object: %w", err)
+
+			// Skip handling failure event if failureEventMessenger is not provided.
+			if h.failureEventMessenger == nil {
+				return processErr
+			}
+			break
+		}
+	}
+	payload, err := anypb.New(p)
+	if err != nil {
+		return fmt.Errorf("failed to convert object to pmap event payload: %w", err)
+	}
+	// TODO(#21): Add additional metadata to pmap event.
+	event := &v1alpha1.PmapEvent{
+		Payload: payload,
+	}
+
+	eventBytes, err := protojson.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("failed to marshal event json: %w", err)
+	}
+
+	if processErr != nil {
+		if err := h.failureEventMessenger.Send(ctx, eventBytes); err != nil {
+			return fmt.Errorf("failed to send failure event downstream: %w", err)
+		}
+		return processErr
+	}
+	if err := h.successEventMessenger.Send(ctx, eventBytes); err != nil {
+		return fmt.Errorf("failed to send succuss event downstream: %w", err)
+	}
 	return nil
 }
 
