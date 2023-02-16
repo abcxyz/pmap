@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/pubsub"
+	"google.golang.org/api/option"
 )
 
 // PubSubMessenger implements the Messenger interface for Google Cloud PubSub.
@@ -27,40 +28,16 @@ type PubSubMessenger struct {
 	topic  *pubsub.Topic
 }
 
-// MessengerOption is the option to set up a PubSubMessenger.
-type MessengerOption func(p *PubSubMessenger) (*PubSubMessenger, error)
-
-// WithClient provides a PubSub client to the PubSubMessenger.
-func WithClient(client *pubsub.Client) MessengerOption {
-	return func(p *PubSubMessenger) (*PubSubMessenger, error) {
-		p.client = client
-		return p, nil
-	}
-}
-
 // NewPubSubMessenger creates a new instance of the PubSubMessenger.
-// The project ID will be used to create a PubSub client if a client is not provided.
-// The topic ID is the PubSub topic name in the client's project.
-func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...MessengerOption) (*PubSubMessenger, error) {
-	p := &PubSubMessenger{}
-	for _, opt := range opts {
-		var err error
-		p, err = opt(p)
-		if err != nil {
-			return nil, fmt.Errorf("failed to apply messenger options: %w", err)
-		}
-	}
-	if p.client == nil {
-		client, err := pubsub.NewClient(ctx, projectID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create new PubSub client: %w", err)
-		}
-		p.client = client
+func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...option.ClientOption) (*PubSubMessenger, error) {
+	client, err := pubsub.NewClient(ctx, projectID, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create new pubsub client: %w", err)
 	}
 
-	p.topic = p.client.Topic(topicID)
+	topic := client.Topic(topicID)
 
-	return p, nil
+	return &PubSubMessenger{client: client, topic: topic}, nil
 }
 
 // Send sends a message to a Google Cloud PubSub topic.

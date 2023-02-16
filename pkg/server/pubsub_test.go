@@ -18,7 +18,6 @@ import (
 	"context"
 	"testing"
 
-	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/pubsub/pstest"
 	"github.com/abcxyz/pkg/testutil"
 	"google.golang.org/api/option"
@@ -62,9 +61,15 @@ func TestPubSubMessenger_Send(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			msger, err := NewPubSubMessenger(ctx, serverProjectID, serverTopicID, WithClient(newTestPubSubClient(ctx, t, tc.pubSubServerOption)))
+			conn := newTestPubSubGrpcConn(ctx, t, tc.pubSubServerOption)
+			msger, err := NewPubSubMessenger(ctx, serverProjectID, serverTopicID, option.WithGRPCConn(conn))
 			if err != nil {
 				t.Fatalf("failed to create new PubSubMessenger: %v", err)
+			}
+
+			// Create the test topic.
+			if _, err := msger.client.CreateTopic(ctx, serverTopicID); err != nil {
+				t.Fatalf("failed to create test PubSub topic: %v", err)
 			}
 
 			gotErr := msger.Send(ctx, tc.message)
@@ -78,8 +83,8 @@ func TestPubSubMessenger_Send(t *testing.T) {
 	}
 }
 
-// Creates a fake PubSub client.
-func newTestPubSubClient(ctx context.Context, t *testing.T, opts ...pstest.ServerReactorOption) *pubsub.Client {
+// Creates a grpc connection with PubSub test server.
+func newTestPubSubGrpcConn(ctx context.Context, t *testing.T, opts ...pstest.ServerReactorOption) *grpc.ClientConn {
 	t.Helper()
 
 	// Create PubSub test server.
@@ -96,16 +101,5 @@ func newTestPubSubClient(ctx context.Context, t *testing.T, opts ...pstest.Serve
 		t.Fatalf("fail to connect to test PubSub server: %v", err)
 	}
 
-	// Create PubSub test client.
-	client, err := pubsub.NewClient(ctx, serverProjectID, option.WithGRPCConn(conn))
-	if err != nil {
-		t.Fatalf("failed to create new PubSub test client: %v", err)
-	}
-
-	// Create the test topic.
-	if _, err := client.CreateTopic(ctx, serverTopicID); err != nil {
-		t.Fatalf("failed to create test PubSub topic: %v", err)
-	}
-
-	return client
+	return conn
 }
