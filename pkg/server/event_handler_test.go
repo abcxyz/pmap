@@ -28,6 +28,7 @@ import (
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pkg/testutil"
+	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"google.golang.org/api/option"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -104,6 +105,7 @@ isOK: true`),
 			opts := []Option{
 				WithStorageClient(c),
 				WithSuccessEventMessenger(&successMessenger{}),
+				WithFailureEventMessenger(&successMessenger{}),
 			}
 
 			h, err := NewHandler(ctx, []Processor[*structpb.Struct]{&successProcessor{}}, opts...)
@@ -297,13 +299,13 @@ func (p *successProcessor) Process(_ context.Context, m *structpb.Struct) error 
 // failMessenger Send always fail.
 type failMessenger struct{}
 
-func (m *failMessenger) Send(_ context.Context, _ []byte) error {
+func (m *failMessenger) Send(_ context.Context, _ *v1alpha1.PmapEvent) error {
 	return fmt.Errorf("always fail")
 }
 
 // successMessenger Send always success.
 type successMessenger struct{}
 
-func (m *successMessenger) Send(_ context.Context, _ []byte) error {
+func (m *successMessenger) Send(_ context.Context, _ *v1alpha1.PmapEvent) error {
 	return nil
 }

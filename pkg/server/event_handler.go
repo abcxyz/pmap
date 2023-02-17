@@ -27,7 +27,6 @@ import (
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/protoutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -41,7 +40,7 @@ const (
 // via Pub/Sub, calls a list of processors to process the objects, and
 // lastly passes the objects downstream. The successEventMessenger only
 // handles successfully processed objects, the failureEventMessenger
-// will handle failure events if provided.
+// handles failure events.
 //
 // The GCS object could be any proto message type. But an instance of
 // Handler can only handle one type of proto message.
@@ -89,7 +88,7 @@ func WithFailureEventMessenger(msger Messenger) Option {
 //	type MyProcessor struct {}
 //	func (p *MyProcessor) Process(context.Context, *structpb.Struct) error { return nil }
 //	// You can create a handler for that type of processors.
-//	h := NewHandler(ctx, []Processor[*structpb.Struct]{&MyProcessor{}})
+//	h := NewHandler(ctx, []Processor[*structpb.Struct]{&MyProcessor{}}, opts...)
 func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P], opts ...Option) (*EventHandler[T, P], error) {
 	h := &EventHandler[T, P]{
 		processors: ps,
@@ -134,7 +133,7 @@ type Processor[P proto.Message] interface {
 
 // An interface for sending pmap event downstream.
 type Messenger interface {
-	Send(context.Context, []byte) error
+	Send(context.Context, *v1alpha1.PmapEvent) error
 }
 
 // PubSubMessage is the payload of a [Pub/Sub message].
@@ -210,11 +209,6 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 	for _, processor := range h.processors {
 		if err := processor.Process(ctx, p); err != nil {
 			processErr = fmt.Errorf("failed to process object: %w", err)
-
-			// Skip handling failure event if failureEventMessenger is not provided.
-			if h.failureEventMessenger == nil {
-				return processErr
-			}
 			break
 		}
 	}
@@ -227,18 +221,13 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 		Payload: payload,
 	}
 
-	eventBytes, err := protojson.Marshal(event)
-	if err != nil {
-		return fmt.Errorf("failed to marshal event json: %w", err)
-	}
-
 	if processErr != nil {
-		if err := h.failureEventMessenger.Send(ctx, eventBytes); err != nil {
+		if err := h.failureEventMessenger.Send(ctx, event); err != nil {
 			return fmt.Errorf("failed to send failure event downstream: %w", err)
 		}
 		return processErr
 	}
-	if err := h.successEventMessenger.Send(ctx, eventBytes); err != nil {
+	if err := h.successEventMessenger.Send(ctx, event); err != nil {
 		return fmt.Errorf("failed to send succuss event downstream: %w", err)
 	}
 	return nil
