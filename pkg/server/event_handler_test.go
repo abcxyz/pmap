@@ -349,3 +349,7 @@ type failMessenger struct{}
 func (m *failMessenger) Send(_ context.Context, _ *v1alpha1.PmapEvent) error {
 	return fmt.Errorf("always fail")
 }
+
+func (m *failMessenger) Cleanup() error {
+	return nil
+}
