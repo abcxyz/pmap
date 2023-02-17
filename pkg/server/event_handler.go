@@ -36,6 +36,28 @@ const (
 	gcsObjectSizeLimitInBytes   = 25_000_000
 )
 
+// Wrap the proto message interface.
+// This helps to use generics to initialize proto messages without knowing their types.
+type ProtoWrapper[T any] interface {
+	proto.Message
+	*T
+}
+
+// A generic interface for processing proto messages.
+// Any type that processes proto can implement this interface.
+//
+// For example, someProcessor implements
+// Process(context.Context, *structpb.Struct) is of type
+// Processor[*structpb.Struct].
+type Processor[P proto.Message] interface {
+	Process(context.Context, P) error
+}
+
+// An interface for sending pmap event downstream.
+type Messenger interface {
+	Send(context.Context, *v1alpha1.PmapEvent) error
+}
+
 // EventHandler retrieves GCS objects upon receiving GCS notifications
 // via Pub/Sub, calls a list of processors to process the objects, and
 // lastly passes the objects downstream. The successEventMessenger only
@@ -61,6 +83,8 @@ type HandlerOpts struct {
 // Define your option to change HandlerOpts.
 type Option func(context.Context, *HandlerOpts) (*HandlerOpts, error)
 
+// WithStorageClient returns an option to set the GCS storage client when creating
+// an EventHandler.
 func WithStorageClient(client *storage.Client) Option {
 	return func(_ context.Context, opts *HandlerOpts) (*HandlerOpts, error) {
 		opts.client = client
@@ -68,6 +92,8 @@ func WithStorageClient(client *storage.Client) Option {
 	}
 }
 
+// WithSuccessEventMessenger returns an option to set the Messenger for successfully
+// processed pmap event when creating an EventHandler.
 func WithSuccessEventMessenger(msger Messenger) Option {
 	return func(_ context.Context, opts *HandlerOpts) (*HandlerOpts, error) {
 		opts.successEventMessenger = msger
@@ -75,6 +101,8 @@ func WithSuccessEventMessenger(msger Messenger) Option {
 	}
 }
 
+// WithFailureEventMessenger returns an option to set the Messenger for unsuccessfully
+// processed pmap event when creating an EventHandler.
 func WithFailureEventMessenger(msger Messenger) Option {
 	return func(_ context.Context, opts *HandlerOpts) (*HandlerOpts, error) {
 		opts.failureEventMessenger = msger
@@ -83,6 +111,7 @@ func WithFailureEventMessenger(msger Messenger) Option {
 }
 
 // Create a new Handler with the given processors and handler options.
+// successEventMessenger must be provided, and failureEventMessenger must be provided when processors are given.
 //
 //	// Assume you have processor to handle structpb.Struct.
 //	type MyProcessor struct {}
@@ -104,6 +133,14 @@ func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P]
 	h.successEventMessenger = handlerOpt.successEventMessenger
 	h.failureEventMessenger = handlerOpt.failureEventMessenger
 
+	if h.successEventMessenger == nil {
+		return nil, fmt.Errorf("successEventMessenger cannot be nil")
+	}
+
+	if h.failureEventMessenger == nil && len(h.processors) > 0 {
+		return nil, fmt.Errorf("failureEventMessenger cannot be nil when processors are given")
+	}
+
 	if h.client == nil {
 		client, err := storage.NewClient(ctx)
 		if err != nil {
@@ -112,28 +149,6 @@ func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P]
 		h.client = client
 	}
 	return h, nil
-}
-
-// Wrap the proto message interface.
-// This helps to use generics to initialize proto messages without knowing their types.
-type ProtoWrapper[T any] interface {
-	proto.Message
-	*T
-}
-
-// A generic interface for processing proto messages.
-// Any type that processes proto can implement this interface.
-//
-// For example, someProcessor implements
-// Process(context.Context, *structpb.Struct) is of type
-// Processor[*structpb.Struct].
-type Processor[P proto.Message] interface {
-	Process(context.Context, P) error
-}
-
-// An interface for sending pmap event downstream.
-type Messenger interface {
-	Send(context.Context, *v1alpha1.PmapEvent) error
 }
 
 // PubSubMessage is the payload of a [Pub/Sub message].

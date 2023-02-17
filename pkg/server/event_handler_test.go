@@ -33,6 +33,75 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+func TestEventHandler_NewHandler(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Setup fake storage client.
+	hc, done := newTestServer(handleObjectRead(t, []byte("test")))
+	defer done()
+	c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
+	if err != nil {
+		t.Fatalf("failed to creat GCS storage client %v", err)
+	}
+
+	cases := []struct {
+		name       string
+		opts       []Option
+		processors []Processor[*structpb.Struct]
+		wantErr    string
+	}{
+		{
+			name: "success",
+			opts: []Option{
+				WithStorageClient(c),
+				WithFailureEventMessenger(&successMessenger{}),
+				WithSuccessEventMessenger(&successMessenger{}),
+			},
+			processors: []Processor[*structpb.Struct]{&successProcessor{}},
+		},
+		{
+			name: "success_without_failure_event_messenger",
+			opts: []Option{
+				WithStorageClient(c),
+				WithSuccessEventMessenger(&successMessenger{}),
+			},
+		},
+		{
+			name: "missing_success_event_messenger",
+			opts: []Option{
+				WithStorageClient(c),
+				WithFailureEventMessenger(&successMessenger{}),
+			},
+			wantErr: "successEventMessenger cannot be nil",
+		},
+		{
+			name: "missing_failure_event_messenger",
+			opts: []Option{
+				WithStorageClient(c),
+				WithSuccessEventMessenger(&successMessenger{}),
+			},
+			wantErr:    "failureEventMessenger cannot be nil when processors are given",
+			processors: []Processor[*structpb.Struct]{&successProcessor{}},
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, gotErr := NewHandler(ctx, tc.processors, tc.opts...)
+
+			if diff := testutil.DiffErrString(gotErr, tc.wantErr); diff != "" {
+				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
+			}
+		})
+	}
+}
+
 func TestEventHandler_HttpHandler(t *testing.T) {
 	t.Parallel()
 
@@ -149,6 +218,7 @@ func TestEventHandler_Handle(t *testing.T) {
 isOK: true`),
 			processors:            []Processor[*structpb.Struct]{&successProcessor{}},
 			successEventMessenger: &successMessenger{},
+			failureEventMessenger: &successMessenger{},
 		},
 		{
 			name: "failed_send_downstream",
@@ -159,6 +229,7 @@ isOK: true`),
 isOK: true`),
 			processors:            []Processor[*structpb.Struct]{&successProcessor{}},
 			successEventMessenger: &failMessenger{},
+			failureEventMessenger: &successMessenger{},
 			wantErrSubstr:         "failed to send succuss event downstream",
 		},
 		{
@@ -166,29 +237,33 @@ isOK: true`),
 			notification: pubsub.Message{
 				Attributes: map[string]string{"objectId": "bar"},
 			},
-			wantErrSubstr: "bucket ID not found",
+			successEventMessenger: &successMessenger{},
+			wantErrSubstr:         "bucket ID not found",
 		},
 		{
 			name: "missing_object_id",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo"},
 			},
-			wantErrSubstr: "object ID not found",
+			successEventMessenger: &successMessenger{},
+			wantErrSubstr:         "object ID not found",
 		},
 		{
 			name: "bucket_not_exist",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar"},
 			},
-			wantErrSubstr: "failed to create GCS object reader",
+			successEventMessenger: &successMessenger{},
+			wantErrSubstr:         "failed to create GCS object reader",
 		},
 		{
 			name: "invalid_yaml_format",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
 			},
-			gcsObjectBytes: []byte(`foo, bar`),
-			wantErrSubstr:  "failed to unmarshal object yaml",
+			gcsObjectBytes:        []byte(`foo, bar`),
+			successEventMessenger: &successMessenger{},
+			wantErrSubstr:         "failed to unmarshal object yaml",
 		},
 		{
 			name: "failed_process",
@@ -198,6 +273,7 @@ isOK: true`),
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
 			processors:            []Processor[*structpb.Struct]{&failProcessor{}},
+			successEventMessenger: &successMessenger{},
 			failureEventMessenger: &successMessenger{},
 			wantErrSubstr:         "failed to process object",
 		},
@@ -209,6 +285,7 @@ isOK: true`),
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
 			processors:            []Processor[*structpb.Struct]{&failProcessor{}},
+			successEventMessenger: &successMessenger{},
 			failureEventMessenger: &failMessenger{},
 			wantErrSubstr:         "failed to send failure event downstream",
 		},
