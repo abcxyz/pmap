@@ -103,7 +103,7 @@ isOK: true`),
 
 			opts := []Option{
 				WithStorageClient(c),
-				WithSuccessEventMessenger(&fakeMessenger{}),
+				WithSuccessEventMessenger(&successMessenger{}),
 			}
 
 			h, err := NewHandler(ctx, []Processor[*structpb.Struct]{&successProcessor{}}, opts...)
@@ -146,7 +146,18 @@ func TestEventHandler_Handle(t *testing.T) {
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
 			processors:            []Processor[*structpb.Struct]{&successProcessor{}},
-			successEventMessenger: &fakeMessenger{},
+			successEventMessenger: &successMessenger{},
+		},
+		{
+			name: "failed_send_downstream",
+			notification: pubsub.Message{
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+			},
+			gcsObjectBytes: []byte(`foo: bar
+isOK: true`),
+			processors:            []Processor[*structpb.Struct]{&successProcessor{}},
+			successEventMessenger: &failMessenger{},
+			wantErrSubstr:         "failed to send succuss event downstream",
 		},
 		{
 			name: "missing_bucket_id",
@@ -185,8 +196,19 @@ isOK: true`),
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
 			processors:            []Processor[*structpb.Struct]{&failProcessor{}},
-			failureEventMessenger: &fakeMessenger{},
+			failureEventMessenger: &successMessenger{},
 			wantErrSubstr:         "failed to process object",
+		},
+		{
+			name: "failed_process_and_send",
+			notification: pubsub.Message{
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+			},
+			gcsObjectBytes: []byte(`foo: bar
+isOK: true`),
+			processors:            []Processor[*structpb.Struct]{&failProcessor{}},
+			failureEventMessenger: &failMessenger{},
+			wantErrSubstr:         "failed to send failure event downstream",
 		},
 	}
 
@@ -272,8 +294,16 @@ func (p *successProcessor) Process(_ context.Context, m *structpb.Struct) error 
 	return nil
 }
 
-type fakeMessenger struct{}
+// failMessenger Send always fail.
+type failMessenger struct{}
 
-func (m *fakeMessenger) Send(_ context.Context, _ []byte) error {
+func (m *failMessenger) Send(_ context.Context, _ []byte) error {
+	return fmt.Errorf("always fail")
+}
+
+// successMessenger Send always success.
+type successMessenger struct{}
+
+func (m *successMessenger) Send(_ context.Context, _ []byte) error {
 	return nil
 }
