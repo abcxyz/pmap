@@ -247,7 +247,6 @@ isOK: true`),
 isOK: true`),
 			processors:       []Processor[*structpb.Struct]{&failProcessor{}},
 			successMessenger: &NoopMessenger{},
-			wantErrSubstr:    "failed to process object",
 		},
 		{
 			name: "failed_process_and_send",

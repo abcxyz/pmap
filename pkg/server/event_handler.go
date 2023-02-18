@@ -202,6 +202,7 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 //
 // [GCS notification]: https://cloud.google.com/storage/docs/pubsub-notifications#format
 func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error {
+	logger := logging.FromContext(ctx)
 	// Get the GCS object as a proto message given GCS notification information.
 	p, err := h.getGCSObjectProto(ctx, m.Attributes)
 	if err != nil {
@@ -229,10 +230,10 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 	}
 
 	if processErr != nil {
+		logger.Errorw(processErr.Error(), "bucketId", m.Attributes["bucketId"], "objectId", m.Attributes["objectId"])
 		if err := h.failureMessenger.Send(ctx, event); err != nil {
 			return fmt.Errorf("failed to send failure event downstream: %w", err)
 		}
-		return processErr
 	}
 	if err := h.successMessenger.Send(ctx, event); err != nil {
 		return fmt.Errorf("failed to send succuss event downstream: %w", err)
