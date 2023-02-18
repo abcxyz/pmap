@@ -107,7 +107,7 @@ func WithFailureMessenger(msger Messenger) Option {
 //	type MyProcessor struct {}
 //	func (p *MyProcessor) Process(context.Context, *structpb.Struct) error { return nil }
 //	// You can create a handler for that type of processors.
-//	h := NewHandler(ctx, []Processor[*structpb.Struct]{&MyProcessor{}}, opts...)
+//	h := NewHandler(ctx, []Processor[*structpb.Struct]{&MyProcessor{}}, msgr, opts...)
 func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P], successMessenger Messenger, opts ...Option) (*EventHandler[T, P], error) {
 	h := &EventHandler[T, P]{
 		processors:       ps,
