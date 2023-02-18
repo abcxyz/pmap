@@ -26,73 +26,15 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/protoutil"
+	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const (
 	httpRequestSizeLimitInBytes = 256_000
 	gcsObjectSizeLimitInBytes   = 25_000_000
 )
-
-// EventHandler retrieves GCS objects upon receiving GCS notifications
-// via Pub/Sub, calls a list of processors to process the objects, and
-// lastly passes the objects downstream.
-//
-// The GCS object could be any proto message type. But an instance of
-// Handler can only handle one type of proto message.
-//
-// TODO(#19): passes the objects downstream.
-type EventHandler[T any, P ProtoWrapper[T]] struct {
-	client     *storage.Client
-	processors []Processor[P]
-}
-
-// HandlerOpts available when creating an EventHandler such as GCS storage client.
-type HandlerOpts struct {
-	client *storage.Client
-}
-
-// Define your option to change HandlerOpts.
-type Option func(context.Context, *HandlerOpts) (*HandlerOpts, error)
-
-func WithStorageClient(client *storage.Client) Option {
-	return func(_ context.Context, opts *HandlerOpts) (*HandlerOpts, error) {
-		opts.client = client
-		return opts, nil
-	}
-}
-
-// Create a new Handler with the given processors and handler options.
-//
-//	// Assume you have processor to handle structpb.Struct.
-//	type MyProcessor struct {}
-//	func (p *MyProcessor) Process(context.Context, *structpb.Struct) error { return nil }
-//	// You can create a handler for that type of processors.
-//	h := NewHandler(ctx, []Processor[*structpb.Struct]{&MyProcessor{}})
-func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P], opts ...Option) (*EventHandler[T, P], error) {
-	h := &EventHandler[T, P]{
-		processors: ps,
-	}
-	handlerOpt := &HandlerOpts{}
-	for _, opt := range opts {
-		_, err := opt(ctx, handlerOpt)
-		if err != nil {
-			return nil, fmt.Errorf("failed to apply handler options: %w", err)
-		}
-	}
-	if handlerOpt.client != nil {
-		h.client = handlerOpt.client
-	}
-
-	if h.client == nil {
-		client, err := storage.NewClient(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create the GCS storage client: %w", err)
-		}
-		h.client = client
-	}
-	return h, nil
-}
 
 // Wrap the proto message interface.
 // This helps to use generics to initialize proto messages without knowing their types.
@@ -109,6 +51,95 @@ type ProtoWrapper[T any] interface {
 // Processor[*structpb.Struct].
 type Processor[P proto.Message] interface {
 	Process(context.Context, P) error
+}
+
+// An interface for sending pmap event downstream.
+type Messenger interface {
+	Send(context.Context, *v1alpha1.PmapEvent) error
+}
+
+// EventHandler retrieves GCS objects upon receiving GCS notifications
+// via Pub/Sub, calls a list of processors to process the objects, and
+// lastly passes the objects downstream. The successMessenger handles
+// successfully processed objects, the failureMessenger handles failure
+// events.
+//
+// The GCS object could be any proto message type. But an instance of
+// Handler can only handle one type of proto message.
+type EventHandler[T any, P ProtoWrapper[T]] struct {
+	client           *storage.Client
+	processors       []Processor[P]
+	successMessenger Messenger
+	failureMessenger Messenger
+}
+
+// HandlerOpts available when creating an EventHandler such as GCS storage client.
+type HandlerOpts struct {
+	client           *storage.Client
+	failureMessenger Messenger
+}
+
+// Define your option to change HandlerOpts.
+type Option func(context.Context, *HandlerOpts) (*HandlerOpts, error)
+
+// WithStorageClient returns an option to set the GCS storage client when creating
+// an EventHandler.
+func WithStorageClient(client *storage.Client) Option {
+	return func(_ context.Context, opts *HandlerOpts) (*HandlerOpts, error) {
+		opts.client = client
+		return opts, nil
+	}
+}
+
+// WithFailureMessenger returns an option to set the Messenger for unsuccessfully
+// processed pmap event when creating an EventHandler.
+func WithFailureMessenger(msger Messenger) Option {
+	return func(_ context.Context, opts *HandlerOpts) (*HandlerOpts, error) {
+		opts.failureMessenger = msger
+		return opts, nil
+	}
+}
+
+// Create a new Handler with the given processors, successMessenger, and handler options.
+// failureMessenger will default to NoopMessenger if not provided.
+//
+//	// Assume you have processor to handle structpb.Struct.
+//	type MyProcessor struct {}
+//	func (p *MyProcessor) Process(context.Context, *structpb.Struct) error { return nil }
+//	// You can create a handler for that type of processors.
+//	h := NewHandler(ctx, []Processor[*structpb.Struct]{&MyProcessor{}}, msgr, opts...)
+func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P], successMessenger Messenger, opts ...Option) (*EventHandler[T, P], error) {
+	h := &EventHandler[T, P]{
+		processors:       ps,
+		successMessenger: successMessenger,
+	}
+	handlerOpt := &HandlerOpts{}
+	for _, opt := range opts {
+		_, err := opt(ctx, handlerOpt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to apply handler options: %w", err)
+		}
+	}
+	h.client = handlerOpt.client
+	h.failureMessenger = handlerOpt.failureMessenger
+
+	if h.successMessenger == nil {
+		return nil, fmt.Errorf("successMessenger cannot be nil")
+	}
+
+	// Default to no-op Messenger.
+	if h.failureMessenger == nil {
+		h.failureMessenger = &NoopMessenger{}
+	}
+
+	if h.client == nil {
+		client, err := storage.NewClient(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create the GCS storage client: %w", err)
+		}
+		h.client = client
+	}
+	return h, nil
 }
 
 // PubSubMessage is the payload of a [Pub/Sub message].
@@ -155,7 +186,8 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 			Attributes: m.Message.Attributes,
 		}
 		if err := h.Handle(ctx, n); err != nil {
-			logger.Errorw("failed to handle request", "code", http.StatusInternalServerError, "error", err)
+			logger.Errorw("failed to handle request", "code", http.StatusInternalServerError,
+				"error", err, "bucketId", n.Attributes["bucketId"], "objectId", n.Attributes["objectId"])
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -169,23 +201,43 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 // processes the object with the list of processors, and passes it downstream.
 //
 // [GCS notification]: https://cloud.google.com/storage/docs/pubsub-notifications#format
-func (h *EventHandler[T, P]) Handle(ctx context.Context, n pubsub.Message) error {
+func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error {
+	logger := logging.FromContext(ctx)
 	// Get the GCS object as a proto message given GCS notification information.
-	p, err := h.getGCSObjectProto(ctx, n.Attributes)
+	p, err := h.getGCSObjectProto(ctx, m.Attributes)
 	if err != nil {
 		return fmt.Errorf("failed to get GCS object: %w", err)
 	}
 
-	for _, processor := range h.processors {
-		if err := processor.Process(ctx, p); err != nil {
-			return fmt.Errorf("failed to process object: %w", err)
-		}
-	}
-
-	// TODO(#19): Create pmap event and pass it downstream.
-	// TODO(#21): Add additional metadata to pmap event.
 	// TODO(#20): we need to have a way to differentiate retryable err vs. not.
 	// For non-retryable error, we need to have them enter a different BQ table per design.
+	// Currently all error events are sent to downstream if failureMessenger is provided
+	// including those retried events.
+	var processErr error
+	for _, processor := range h.processors {
+		if err := processor.Process(ctx, p); err != nil {
+			processErr = fmt.Errorf("failed to process object: %w", err)
+			break
+		}
+	}
+	payload, err := anypb.New(p)
+	if err != nil {
+		return fmt.Errorf("failed to convert object to pmap event payload: %w", err)
+	}
+	// TODO(#21): Add additional metadata to pmap event.
+	event := &v1alpha1.PmapEvent{
+		Payload: payload,
+	}
+
+	if processErr != nil {
+		logger.Errorw(processErr.Error(), "bucketId", m.Attributes["bucketId"], "objectId", m.Attributes["objectId"])
+		if err := h.failureMessenger.Send(ctx, event); err != nil {
+			return fmt.Errorf("failed to send failure event downstream: %w", err)
+		}
+	}
+	if err := h.successMessenger.Send(ctx, event); err != nil {
+		return fmt.Errorf("failed to send succuss event downstream: %w", err)
+	}
 	return nil
 }
 
@@ -218,4 +270,11 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 		return nil, fmt.Errorf("failed to unmarshal object yaml: %w", err)
 	}
 	return p, nil
+}
+
+// NoopMessenger is a no-op implementation of Messenger interface.
+type NoopMessenger struct{}
+
+func (m *NoopMessenger) Send(_ context.Context, _ *v1alpha1.PmapEvent) error {
+	return nil
 }

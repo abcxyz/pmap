@@ -28,9 +28,60 @@ import (
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pkg/testutil"
+	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"google.golang.org/api/option"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func TestEventHandler_NewHandler(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	// Setup fake storage client.
+	hc, done := newTestServer(handleObjectRead(t, []byte("test")))
+	defer done()
+	c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
+	if err != nil {
+		t.Fatalf("failed to creat GCS storage client %v", err)
+	}
+
+	cases := []struct {
+		name             string
+		opts             []Option
+		successMessenger Messenger
+		failureMessenger Messenger
+		wantErr          string
+	}{
+		{
+			name:             "success",
+			successMessenger: &NoopMessenger{},
+			failureMessenger: &NoopMessenger{},
+		},
+		{
+			name:             "success_without_failure_event_messenger",
+			successMessenger: &NoopMessenger{},
+		},
+		{
+			name:    "missing_success_event_messenger",
+			wantErr: "successMessenger cannot be nil",
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, gotErr := NewHandler(ctx, []Processor[*structpb.Struct]{}, tc.successMessenger, WithStorageClient(c))
+
+			if diff := testutil.DiffErrString(gotErr, tc.wantErr); diff != "" {
+				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
+			}
+		})
+	}
+}
 
 func TestEventHandler_HttpHandler(t *testing.T) {
 	t.Parallel()
@@ -101,7 +152,7 @@ isOK: true`),
 				t.Fatalf("failed to creat GCS storage client %v", err)
 			}
 
-			h, err := NewHandler(ctx, []Processor[*structpb.Struct]{&successProcessor{}}, WithStorageClient(c))
+			h, err := NewHandler(ctx, []Processor[*structpb.Struct]{&successProcessor{}}, &NoopMessenger{}, WithStorageClient(c))
 			if err != nil {
 				t.Fatalf("failed to create event handler %v", err)
 			}
@@ -125,11 +176,13 @@ func TestEventHandler_Handle(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name           string
-		notification   pubsub.Message
-		gcsObjectBytes []byte
-		processors     []Processor[*structpb.Struct]
-		wantErrSubstr  string
+		name             string
+		notification     pubsub.Message
+		gcsObjectBytes   []byte
+		processors       []Processor[*structpb.Struct]
+		successMessenger Messenger
+		failureMessenger Messenger
+		wantErrSubstr    string
 	}{
 		{
 			name: "success",
@@ -138,36 +191,52 @@ func TestEventHandler_Handle(t *testing.T) {
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors: []Processor[*structpb.Struct]{&successProcessor{}},
+			processors:       []Processor[*structpb.Struct]{&successProcessor{}},
+			successMessenger: &NoopMessenger{},
+		},
+		{
+			name: "failed_send_downstream",
+			notification: pubsub.Message{
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+			},
+			gcsObjectBytes: []byte(`foo: bar
+isOK: true`),
+			processors:       []Processor[*structpb.Struct]{&successProcessor{}},
+			successMessenger: &failMessenger{},
+			wantErrSubstr:    "failed to send succuss event downstream",
 		},
 		{
 			name: "missing_bucket_id",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"objectId": "bar"},
 			},
-			wantErrSubstr: "bucket ID not found",
+			successMessenger: &NoopMessenger{},
+			wantErrSubstr:    "bucket ID not found",
 		},
 		{
 			name: "missing_object_id",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo"},
 			},
-			wantErrSubstr: "object ID not found",
+			successMessenger: &NoopMessenger{},
+			wantErrSubstr:    "object ID not found",
 		},
 		{
 			name: "bucket_not_exist",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar"},
 			},
-			wantErrSubstr: "failed to create GCS object reader",
+			successMessenger: &NoopMessenger{},
+			wantErrSubstr:    "failed to create GCS object reader",
 		},
 		{
 			name: "invalid_yaml_format",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
 			},
-			gcsObjectBytes: []byte(`foo, bar`),
-			wantErrSubstr:  "failed to unmarshal object yaml",
+			gcsObjectBytes:   []byte(`foo, bar`),
+			successMessenger: &NoopMessenger{},
+			wantErrSubstr:    "failed to unmarshal object yaml",
 		},
 		{
 			name: "failed_process",
@@ -176,8 +245,20 @@ isOK: true`),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors:    []Processor[*structpb.Struct]{&failProcessor{}},
-			wantErrSubstr: "failed to process object",
+			processors:       []Processor[*structpb.Struct]{&failProcessor{}},
+			successMessenger: &NoopMessenger{},
+		},
+		{
+			name: "failed_process_and_send",
+			notification: pubsub.Message{
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+			},
+			gcsObjectBytes: []byte(`foo: bar
+isOK: true`),
+			processors:       []Processor[*structpb.Struct]{&failProcessor{}},
+			successMessenger: &NoopMessenger{},
+			failureMessenger: &failMessenger{},
+			wantErrSubstr:    "failed to send failure event downstream",
 		},
 	}
 
@@ -198,7 +279,11 @@ isOK: true`),
 			if err != nil {
 				t.Fatalf("failed to creat GCS storage client %v", err)
 			}
-			h, err := NewHandler(ctx, tc.processors, WithStorageClient(c))
+			opts := []Option{
+				WithStorageClient(c),
+				WithFailureMessenger(tc.failureMessenger),
+			}
+			h, err := NewHandler(ctx, tc.processors, tc.successMessenger, opts...)
 			if err != nil {
 				t.Fatalf("failed to create event handler %v", err)
 			}
@@ -256,4 +341,11 @@ type successProcessor struct{}
 func (p *successProcessor) Process(_ context.Context, m *structpb.Struct) error {
 	m.Fields["processed"] = structpb.NewBoolValue(true)
 	return nil
+}
+
+// failMessenger Send always fail.
+type failMessenger struct{}
+
+func (m *failMessenger) Send(_ context.Context, _ *v1alpha1.PmapEvent) error {
+	return fmt.Errorf("always fail")
 }
