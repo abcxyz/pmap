@@ -60,24 +60,23 @@ type Messenger interface {
 
 // EventHandler retrieves GCS objects upon receiving GCS notifications
 // via Pub/Sub, calls a list of processors to process the objects, and
-// lastly passes the objects downstream. The successEventMessenger only
-// handles successfully processed objects, the failureEventMessenger
-// handles failure events.
+// lastly passes the objects downstream. The successMessenger handles
+// successfully processed objects, the failureMessenger handles failure
+// events.
 //
 // The GCS object could be any proto message type. But an instance of
 // Handler can only handle one type of proto message.
 type EventHandler[T any, P ProtoWrapper[T]] struct {
-	client                *storage.Client
-	processors            []Processor[P]
-	successEventMessenger Messenger
-	failureEventMessenger Messenger
+	client           *storage.Client
+	processors       []Processor[P]
+	successMessenger Messenger
+	failureMessenger Messenger
 }
 
 // HandlerOpts available when creating an EventHandler such as GCS storage client.
 type HandlerOpts struct {
-	client                *storage.Client
-	successEventMessenger Messenger
-	failureEventMessenger Messenger
+	client           *storage.Client
+	failureMessenger Messenger
 }
 
 // Define your option to change HandlerOpts.
@@ -92,35 +91,27 @@ func WithStorageClient(client *storage.Client) Option {
 	}
 }
 
-// WithSuccessEventMessenger returns an option to set the Messenger for successfully
+// WithFailureMessenger returns an option to set the Messenger for unsuccessfully
 // processed pmap event when creating an EventHandler.
-func WithSuccessEventMessenger(msger Messenger) Option {
+func WithFailureMessenger(msger Messenger) Option {
 	return func(_ context.Context, opts *HandlerOpts) (*HandlerOpts, error) {
-		opts.successEventMessenger = msger
+		opts.failureMessenger = msger
 		return opts, nil
 	}
 }
 
-// WithFailureEventMessenger returns an option to set the Messenger for unsuccessfully
-// processed pmap event when creating an EventHandler.
-func WithFailureEventMessenger(msger Messenger) Option {
-	return func(_ context.Context, opts *HandlerOpts) (*HandlerOpts, error) {
-		opts.failureEventMessenger = msger
-		return opts, nil
-	}
-}
-
-// Create a new Handler with the given processors and handler options.
-// successEventMessenger must be provided, and failureEventMessenger must be provided when processors are given.
+// Create a new Handler with the given processors, successMessenger, and handler options.
+// failureMessenger will default to NoopMessenger if not provided.
 //
 //	// Assume you have processor to handle structpb.Struct.
 //	type MyProcessor struct {}
 //	func (p *MyProcessor) Process(context.Context, *structpb.Struct) error { return nil }
 //	// You can create a handler for that type of processors.
 //	h := NewHandler(ctx, []Processor[*structpb.Struct]{&MyProcessor{}}, opts...)
-func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P], opts ...Option) (*EventHandler[T, P], error) {
+func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P], successMessenger Messenger, opts ...Option) (*EventHandler[T, P], error) {
 	h := &EventHandler[T, P]{
-		processors: ps,
+		processors:       ps,
+		successMessenger: successMessenger,
 	}
 	handlerOpt := &HandlerOpts{}
 	for _, opt := range opts {
@@ -130,15 +121,15 @@ func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P]
 		}
 	}
 	h.client = handlerOpt.client
-	h.successEventMessenger = handlerOpt.successEventMessenger
-	h.failureEventMessenger = handlerOpt.failureEventMessenger
+	h.failureMessenger = handlerOpt.failureMessenger
 
-	if h.successEventMessenger == nil {
-		return nil, fmt.Errorf("successEventMessenger cannot be nil")
+	if h.successMessenger == nil {
+		return nil, fmt.Errorf("successMessenger cannot be nil")
 	}
 
-	if h.failureEventMessenger == nil && len(h.processors) > 0 {
-		return nil, fmt.Errorf("failureEventMessenger cannot be nil when processors are given")
+	// Default to no-op Messenger.
+	if h.failureMessenger == nil {
+		h.failureMessenger = &NoopMessenger{}
 	}
 
 	if h.client == nil {
@@ -195,7 +186,8 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 			Attributes: m.Message.Attributes,
 		}
 		if err := h.Handle(ctx, n); err != nil {
-			logger.Errorw("failed to handle request", "code", http.StatusInternalServerError, "error", err)
+			logger.Errorw("failed to handle request", "code", http.StatusInternalServerError,
+				"error", err, "bucketId", n.Attributes["bucketId"], "objectId", n.Attributes["objectId"])
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -218,7 +210,7 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 
 	// TODO(#20): we need to have a way to differentiate retryable err vs. not.
 	// For non-retryable error, we need to have them enter a different BQ table per design.
-	// Currently all error events are sent to downstream if failureEventMessenger is provided
+	// Currently all error events are sent to downstream if failureMessenger is provided
 	// including those retried events.
 	var processErr error
 	for _, processor := range h.processors {
@@ -237,12 +229,12 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 	}
 
 	if processErr != nil {
-		if err := h.failureEventMessenger.Send(ctx, event); err != nil {
+		if err := h.failureMessenger.Send(ctx, event); err != nil {
 			return fmt.Errorf("failed to send failure event downstream: %w", err)
 		}
 		return processErr
 	}
-	if err := h.successEventMessenger.Send(ctx, event); err != nil {
+	if err := h.successMessenger.Send(ctx, event); err != nil {
 		return fmt.Errorf("failed to send succuss event downstream: %w", err)
 	}
 	return nil
@@ -277,4 +269,11 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 		return nil, fmt.Errorf("failed to unmarshal object yaml: %w", err)
 	}
 	return p, nil
+}
+
+// NoopMessenger is a no-op implementation of Messenger interface.
+type NoopMessenger struct{}
+
+func (m *NoopMessenger) Send(_ context.Context, _ *v1alpha1.PmapEvent) error {
+	return nil
 }

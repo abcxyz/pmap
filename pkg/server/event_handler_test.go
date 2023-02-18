@@ -47,43 +47,24 @@ func TestEventHandler_NewHandler(t *testing.T) {
 	}
 
 	cases := []struct {
-		name       string
-		opts       []Option
-		processors []Processor[*structpb.Struct]
-		wantErr    string
+		name             string
+		opts             []Option
+		successMessenger Messenger
+		failureMessenger Messenger
+		wantErr          string
 	}{
 		{
-			name: "success",
-			opts: []Option{
-				WithStorageClient(c),
-				WithFailureEventMessenger(&successMessenger{}),
-				WithSuccessEventMessenger(&successMessenger{}),
-			},
-			processors: []Processor[*structpb.Struct]{&successProcessor{}},
+			name:             "success",
+			successMessenger: &NoopMessenger{},
+			failureMessenger: &NoopMessenger{},
 		},
 		{
-			name: "success_without_failure_event_messenger",
-			opts: []Option{
-				WithStorageClient(c),
-				WithSuccessEventMessenger(&successMessenger{}),
-			},
+			name:             "success_without_failure_event_messenger",
+			successMessenger: &NoopMessenger{},
 		},
 		{
-			name: "missing_success_event_messenger",
-			opts: []Option{
-				WithStorageClient(c),
-				WithFailureEventMessenger(&successMessenger{}),
-			},
-			wantErr: "successEventMessenger cannot be nil",
-		},
-		{
-			name: "missing_failure_event_messenger",
-			opts: []Option{
-				WithStorageClient(c),
-				WithSuccessEventMessenger(&successMessenger{}),
-			},
-			wantErr:    "failureEventMessenger cannot be nil when processors are given",
-			processors: []Processor[*structpb.Struct]{&successProcessor{}},
+			name:    "missing_success_event_messenger",
+			wantErr: "successMessenger cannot be nil",
 		},
 	}
 
@@ -93,7 +74,7 @@ func TestEventHandler_NewHandler(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			_, gotErr := NewHandler(ctx, tc.processors, tc.opts...)
+			_, gotErr := NewHandler(ctx, []Processor[*structpb.Struct]{}, tc.successMessenger, WithStorageClient(c))
 
 			if diff := testutil.DiffErrString(gotErr, tc.wantErr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
@@ -171,13 +152,7 @@ isOK: true`),
 				t.Fatalf("failed to creat GCS storage client %v", err)
 			}
 
-			opts := []Option{
-				WithStorageClient(c),
-				WithSuccessEventMessenger(&successMessenger{}),
-				WithFailureEventMessenger(&successMessenger{}),
-			}
-
-			h, err := NewHandler(ctx, []Processor[*structpb.Struct]{&successProcessor{}}, opts...)
+			h, err := NewHandler(ctx, []Processor[*structpb.Struct]{&successProcessor{}}, &NoopMessenger{}, WithStorageClient(c))
 			if err != nil {
 				t.Fatalf("failed to create event handler %v", err)
 			}
@@ -201,13 +176,13 @@ func TestEventHandler_Handle(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name                  string
-		notification          pubsub.Message
-		gcsObjectBytes        []byte
-		processors            []Processor[*structpb.Struct]
-		successEventMessenger Messenger
-		failureEventMessenger Messenger
-		wantErrSubstr         string
+		name             string
+		notification     pubsub.Message
+		gcsObjectBytes   []byte
+		processors       []Processor[*structpb.Struct]
+		successMessenger Messenger
+		failureMessenger Messenger
+		wantErrSubstr    string
 	}{
 		{
 			name: "success",
@@ -216,9 +191,8 @@ func TestEventHandler_Handle(t *testing.T) {
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors:            []Processor[*structpb.Struct]{&successProcessor{}},
-			successEventMessenger: &successMessenger{},
-			failureEventMessenger: &successMessenger{},
+			processors:       []Processor[*structpb.Struct]{&successProcessor{}},
+			successMessenger: &NoopMessenger{},
 		},
 		{
 			name: "failed_send_downstream",
@@ -227,43 +201,42 @@ isOK: true`),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors:            []Processor[*structpb.Struct]{&successProcessor{}},
-			successEventMessenger: &failMessenger{},
-			failureEventMessenger: &successMessenger{},
-			wantErrSubstr:         "failed to send succuss event downstream",
+			processors:       []Processor[*structpb.Struct]{&successProcessor{}},
+			successMessenger: &failMessenger{},
+			wantErrSubstr:    "failed to send succuss event downstream",
 		},
 		{
 			name: "missing_bucket_id",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"objectId": "bar"},
 			},
-			successEventMessenger: &successMessenger{},
-			wantErrSubstr:         "bucket ID not found",
+			successMessenger: &NoopMessenger{},
+			wantErrSubstr:    "bucket ID not found",
 		},
 		{
 			name: "missing_object_id",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo"},
 			},
-			successEventMessenger: &successMessenger{},
-			wantErrSubstr:         "object ID not found",
+			successMessenger: &NoopMessenger{},
+			wantErrSubstr:    "object ID not found",
 		},
 		{
 			name: "bucket_not_exist",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar"},
 			},
-			successEventMessenger: &successMessenger{},
-			wantErrSubstr:         "failed to create GCS object reader",
+			successMessenger: &NoopMessenger{},
+			wantErrSubstr:    "failed to create GCS object reader",
 		},
 		{
 			name: "invalid_yaml_format",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
 			},
-			gcsObjectBytes:        []byte(`foo, bar`),
-			successEventMessenger: &successMessenger{},
-			wantErrSubstr:         "failed to unmarshal object yaml",
+			gcsObjectBytes:   []byte(`foo, bar`),
+			successMessenger: &NoopMessenger{},
+			wantErrSubstr:    "failed to unmarshal object yaml",
 		},
 		{
 			name: "failed_process",
@@ -272,10 +245,9 @@ isOK: true`),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors:            []Processor[*structpb.Struct]{&failProcessor{}},
-			successEventMessenger: &successMessenger{},
-			failureEventMessenger: &successMessenger{},
-			wantErrSubstr:         "failed to process object",
+			processors:       []Processor[*structpb.Struct]{&failProcessor{}},
+			successMessenger: &NoopMessenger{},
+			wantErrSubstr:    "failed to process object",
 		},
 		{
 			name: "failed_process_and_send",
@@ -284,10 +256,10 @@ isOK: true`),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors:            []Processor[*structpb.Struct]{&failProcessor{}},
-			successEventMessenger: &successMessenger{},
-			failureEventMessenger: &failMessenger{},
-			wantErrSubstr:         "failed to send failure event downstream",
+			processors:       []Processor[*structpb.Struct]{&failProcessor{}},
+			successMessenger: &NoopMessenger{},
+			failureMessenger: &failMessenger{},
+			wantErrSubstr:    "failed to send failure event downstream",
 		},
 	}
 
@@ -310,10 +282,9 @@ isOK: true`),
 			}
 			opts := []Option{
 				WithStorageClient(c),
-				WithSuccessEventMessenger(tc.successEventMessenger),
-				WithFailureEventMessenger(tc.failureEventMessenger),
+				WithFailureMessenger(tc.failureMessenger),
 			}
-			h, err := NewHandler(ctx, tc.processors, opts...)
+			h, err := NewHandler(ctx, tc.processors, tc.successMessenger, opts...)
 			if err != nil {
 				t.Fatalf("failed to create event handler %v", err)
 			}
@@ -378,11 +349,4 @@ type failMessenger struct{}
 
 func (m *failMessenger) Send(_ context.Context, _ *v1alpha1.PmapEvent) error {
 	return fmt.Errorf("always fail")
-}
-
-// successMessenger Send always success.
-type successMessenger struct{}
-
-func (m *successMessenger) Send(_ context.Context, _ *v1alpha1.PmapEvent) error {
-	return nil
 }
