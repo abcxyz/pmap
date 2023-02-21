@@ -20,6 +20,7 @@ import (
 
 	"cloud.google.com/go/pubsub/pstest"
 	"github.com/abcxyz/pkg/testutil"
+	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -40,17 +41,17 @@ func TestPubSubMessenger_Send(t *testing.T) {
 	cases := []struct {
 		name               string
 		pubSubServerOption pstest.ServerReactorOption
-		message            []byte
+		event              *v1alpha1.PmapEvent
 		wantErrSubstr      string
 	}{
 		{
-			name:    "success",
-			message: []byte("test"),
+			name:  "success",
+			event: &v1alpha1.PmapEvent{},
 		},
 		{
-			name:               "error_send_message",
+			name:               "error_send_event",
 			pubSubServerOption: pstest.WithErrorInjection("Publish", codes.NotFound, injectedPublishError),
-			message:            []byte("test"),
+			event:              &v1alpha1.PmapEvent{},
 			wantErrSubstr:      injectedPublishError,
 		},
 	}
@@ -72,7 +73,7 @@ func TestPubSubMessenger_Send(t *testing.T) {
 				t.Fatalf("failed to create test PubSub topic: %v", err)
 			}
 
-			gotErr := msger.Send(ctx, tc.message)
+			gotErr := msger.Send(ctx, tc.event)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
 			}
