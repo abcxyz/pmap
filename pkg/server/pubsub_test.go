@@ -19,12 +19,12 @@ import (
 	"testing"
 
 	"cloud.google.com/go/pubsub/pstest"
+	"github.com/abcxyz/pkg/testutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
-	"github.com/abcxyz/pmap/pkg/testutil"
 	"google.golang.org/api/option"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-
-	pkgtestutil "github.com/abcxyz/pkg/testutil"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -62,7 +62,7 @@ func TestPubSubMessenger_Send(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			conn := testutil.TestPubSubGrpcConn(ctx, t, tc.pubSubServerOption)
+			conn := testPubSubGrpcConn(ctx, t, tc.pubSubServerOption)
 			msger, err := NewPubSubMessenger(ctx, serverProjectID, serverTopicID, option.WithGRPCConn(conn))
 			if err != nil {
 				t.Fatalf("failed to create new PubSubMessenger: %v", err)
@@ -74,7 +74,7 @@ func TestPubSubMessenger_Send(t *testing.T) {
 			}
 
 			gotErr := msger.Send(ctx, tc.event)
-			if diff := pkgtestutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
+			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
 			}
 			if err := msger.Cleanup(); err != nil {
@@ -82,4 +82,27 @@ func TestPubSubMessenger_Send(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Creates a GRPC connection with PubSub test server. Note that the GRPC connection is not closed at the end because
+// it is duplicative if the PubSub client is also closing. Please remember to close the connection if the PubSub client
+// will not close.
+func testPubSubGrpcConn(ctx context.Context, t *testing.T, opts ...pstest.ServerReactorOption) *grpc.ClientConn {
+	t.Helper()
+
+	// Create PubSub test server.
+	svr := pstest.NewServer(opts...)
+	t.Cleanup(func() {
+		if err := svr.Close(); err != nil {
+			t.Fatalf("failed to cleanup test PubSub server: %v", err)
+		}
+	})
+
+	// Connect to the server without using TLS.
+	conn, err := grpc.DialContext(ctx, svr.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatalf("fail to connect to test PubSub server: %v", err)
+	}
+
+	return conn
 }
