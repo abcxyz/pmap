@@ -18,6 +18,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -245,11 +246,17 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 
 // Cleanup handles the graceful shutdown of the EventHandler.
 func (h *EventHandler[T, P]) Cleanup() error {
-	if err := h.successMessenger.Cleanup(); err != nil {
-		return fmt.Errorf("failed to close success event messenger: %w", err)
+	errS := h.successMessenger.Cleanup()
+	errF := h.failureMessenger.Cleanup()
+
+	if errS != nil && errF != nil {
+		return fmt.Errorf("failed to close success and failure event messenger: %w", errors.Join(errS, errF))
 	}
-	if err := h.failureMessenger.Cleanup(); err != nil {
-		return fmt.Errorf("failed to close failure event messenger: %w", err)
+	if errS != nil {
+		return fmt.Errorf("failed to close success event messenger: %w", errS)
+	}
+	if errF != nil {
+		return fmt.Errorf("failed to close failure event messenger: %w", errF)
 	}
 	return nil
 }

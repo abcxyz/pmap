@@ -34,11 +34,11 @@ type HandlerConfig struct {
 
 // Validate validates the handler config after load.
 func (s *HandlerConfig) Validate() error {
-	if len(s.ProjectID) == 0 {
+	if s.ProjectID == "" {
 		return fmt.Errorf("PROJECT_ID is empty and requires a value")
 	}
 
-	if len(s.SuccessTopicID) == 0 {
+	if s.SuccessTopicID == "" {
 		return fmt.Errorf("SUCCESS_TOPIC_ID is empty and requires a value")
 	}
 
@@ -65,7 +65,7 @@ func FromConfig(cfg *HandlerConfig, opts ...option.ClientOption) Option {
 			return nil, fmt.Errorf("invalid configuration: %w", err)
 		}
 
-		if len(cfg.FailureTopicID) > 0 {
+		if cfg.FailureTopicID != "" {
 			failureMessenger, err := NewPubSubMessenger(ctx, cfg.ProjectID, cfg.FailureTopicID, opts...)
 			if err != nil {
 				return nil, fmt.Errorf("failed to create failure event messenger: %w", err)

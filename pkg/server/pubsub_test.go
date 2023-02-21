@@ -62,7 +62,7 @@ func TestPubSubMessenger_Send(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			conn := testPubSubGrpcConn(ctx, t, tc.pubSubServerOption)
+			conn := newTestPubSubGrpcConn(ctx, t, tc.pubSubServerOption)
 			msger, err := NewPubSubMessenger(ctx, serverProjectID, serverTopicID, option.WithGRPCConn(conn))
 			if err != nil {
 				t.Fatalf("failed to create new PubSubMessenger: %v", err)
@@ -87,7 +87,7 @@ func TestPubSubMessenger_Send(t *testing.T) {
 // Creates a GRPC connection with PubSub test server. Note that the GRPC connection is not closed at the end because
 // it is duplicative if the PubSub client is also closing. Please remember to close the connection if the PubSub client
 // will not close.
-func testPubSubGrpcConn(ctx context.Context, t *testing.T, opts ...pstest.ServerReactorOption) *grpc.ClientConn {
+func newTestPubSubGrpcConn(ctx context.Context, t *testing.T, opts ...pstest.ServerReactorOption) *grpc.ClientConn {
 	t.Helper()
 
 	// Create PubSub test server.

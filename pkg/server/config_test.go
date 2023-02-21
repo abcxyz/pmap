@@ -39,7 +39,7 @@ func TestConfig_Validate(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name: "no_error",
+			name: "success",
 			cfg: &HandlerConfig{
 				Port:           "8080",
 				ProjectID:      testProjectID,
@@ -115,8 +115,8 @@ func TestConfig_FromConfig(t *testing.T) {
 			ctx := context.Background()
 
 			// Use fake PubSub grpc connection to create the messengers.
-			o := FromConfig(tc.cfg, option.WithGRPCConn(testPubSubGrpcConn(ctx, t)))
-			msger, err := NewPubSubMessenger(ctx, testProjectID, testSuccessTopicID, option.WithGRPCConn(testPubSubGrpcConn(ctx, t)))
+			o := FromConfig(tc.cfg, option.WithGRPCConn(newTestPubSubGrpcConn(ctx, t)))
+			msger, err := NewPubSubMessenger(ctx, testProjectID, testSuccessTopicID, option.WithGRPCConn(newTestPubSubGrpcConn(ctx, t)))
 			if err != nil {
 				t.Fatalf("failed to create new PubSubMessenger: %v", err)
 			}
@@ -179,7 +179,7 @@ func TestConfig_CreateSuccessMessenger(t *testing.T) {
 			ctx := context.Background()
 
 			// Use fake PubSub grpc connection to create the messenger.
-			msger, err := CreateSuccessMessenger(ctx, tc.cfg, option.WithGRPCConn(testPubSubGrpcConn(ctx, t)))
+			msger, err := CreateSuccessMessenger(ctx, tc.cfg, option.WithGRPCConn(newTestPubSubGrpcConn(ctx, t)))
 			if diff := testutil.DiffErrString(err, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
 			}
