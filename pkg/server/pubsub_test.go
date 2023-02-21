@@ -19,8 +19,8 @@ import (
 	"testing"
 
 	"cloud.google.com/go/pubsub/pstest"
-	"github.com/abcxyz/pmap/pkg/testutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/abcxyz/pmap/pkg/testutil"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc/codes"
 
