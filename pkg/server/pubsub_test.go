@@ -84,7 +84,9 @@ func TestPubSubMessenger_Send(t *testing.T) {
 	}
 }
 
-// Creates a grpc connection with PubSub test server.
+// Creates a GRPC connection with PubSub test server. Note that the GRPC connection is not closed at the end because
+// it is duplicative if the PubSub client is also closing. Please remember to close the connection if the PubSub client
+// will not close.
 func newTestPubSubGrpcConn(ctx context.Context, t *testing.T, opts ...pstest.ServerReactorOption) *grpc.ClientConn {
 	t.Helper()
 

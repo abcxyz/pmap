@@ -1,12 +1,13 @@
 module github.com/abcxyz/pmap
 
-go 1.19
+go 1.20
 
 require (
 	cloud.google.com/go/asset v1.11.0
 	cloud.google.com/go/pubsub v1.27.1
 	github.com/abcxyz/pkg v0.1.2-0.20230210171106-ffe3fe77144d
 	github.com/google/go-cmp v0.5.9
+	github.com/sethvargo/go-envconfig v0.8.2
 	google.golang.org/api v0.106.0
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f
 	google.golang.org/grpc v1.51.0

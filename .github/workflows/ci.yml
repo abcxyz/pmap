@@ -18,8 +18,8 @@ jobs:
   go_lint:
     uses: 'abcxyz/pkg/.github/workflows/go-lint.yml@main' # ratchet:exclude
     with:
-      go_version: '1.19'
-      
+      go_version: '1.20'
+
   terraform_lint:
     uses: 'abcxyz/pkg/.github/workflows/terraform-lint.yml@main' # ratchet:exclude
     with:
@@ -30,7 +30,7 @@ jobs:
   go_test:
     uses: 'abcxyz/pkg/.github/workflows/go-test.yml@main' # ratchet:exclude
     with:
-      go_version: '1.19'
+      go_version: '1.20'
 
   # lint_and_unit is a virtual job that is used as dependencies for later jobs.
   lint_and_unit:
