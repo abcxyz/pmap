@@ -18,6 +18,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -56,6 +57,7 @@ type Processor[P proto.Message] interface {
 // An interface for sending pmap event downstream.
 type Messenger interface {
 	Send(context.Context, *v1alpha1.PmapEvent) error
+	Cleanup() error
 }
 
 // EventHandler retrieves GCS objects upon receiving GCS notifications
@@ -73,7 +75,8 @@ type EventHandler[T any, P ProtoWrapper[T]] struct {
 	failureMessenger Messenger
 }
 
-// HandlerOpts available when creating an EventHandler such as GCS storage client.
+// HandlerOpts available when creating an EventHandler such as GCS storage client
+// and Messenger for failure events.
 type HandlerOpts struct {
 	client           *storage.Client
 	failureMessenger Messenger
@@ -241,6 +244,18 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 	return nil
 }
 
+// Cleanup handles the graceful shutdown of the EventHandler.
+func (h *EventHandler[T, P]) Cleanup() error {
+	var err error
+	if errS := h.successMessenger.Cleanup(); errS != nil {
+		err = errors.Join(fmt.Errorf("failed to close success event messenger, %w", errS))
+	}
+	if errF := h.failureMessenger.Cleanup(); errF != nil {
+		err = errors.Join(err, fmt.Errorf("failed to close failure event messenger, %w", errF))
+	}
+	return err
+}
+
 // getGCSObjectProto calls the GCS storage client with objAttrs information, and returns the object as a proto message.
 func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map[string]string) (P, error) {
 	// Get bucket and object id from message attributes.
@@ -276,5 +291,9 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 type NoopMessenger struct{}
 
 func (m *NoopMessenger) Send(_ context.Context, _ *v1alpha1.PmapEvent) error {
+	return nil
+}
+
+func (m *NoopMessenger) Cleanup() error {
 	return nil
 }
