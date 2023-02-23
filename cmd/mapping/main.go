@@ -17,15 +17,13 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/abcxyz/pmap/cmd/util"
 	"github.com/abcxyz/pmap/internal/version"
 	"github.com/abcxyz/pmap/pkg/mapping/processors"
 	"github.com/abcxyz/pmap/pkg/server"
@@ -48,9 +46,6 @@ func main() {
 
 // realMain creates an HTTP server to receive GCS notifications
 // via PubSub push messages.
-// This server supports graceful stopping and cancellation by:
-//   - using a cancellable context
-//   - listening to incoming requests in a goroutine
 func realMain(ctx context.Context) error {
 	logger := logging.FromContext(ctx)
 	logger.Debugw("server starting",
@@ -62,6 +57,7 @@ func realMain(ctx context.Context) error {
 		return fmt.Errorf("server.NewConfig: %w", err)
 	}
 
+	// Create GCS notification handler.
 	opt := server.FromConfig(cfg)
 	successMessenger, err := server.CreateSuccessMessenger(ctx, cfg)
 	if err != nil {
@@ -79,40 +75,9 @@ func realMain(ctx context.Context) error {
 		return fmt.Errorf("server.NewHandler: %w", err)
 	}
 
-	// Create the server and listen in a goroutine.
-	server := &http.Server{
-		Addr:        ":" + cfg.Port,
-		Handler:     handler.HTTPHandler(),
-		ReadTimeout: 2 * time.Second,
+	// Run the http server with the handler.
+	if err := util.Run(ctx, cfg.Port, handler); err != nil {
+		return fmt.Errorf("failed to run server: %w", err)
 	}
-	serverErrCh := make(chan error, 1)
-	go func() {
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			select {
-			case serverErrCh <- err:
-			default:
-			}
-		}
-	}()
-
-	// Wait for shutdown signal or error from the listener.
-	select {
-	case err := <-serverErrCh:
-		return fmt.Errorf("error from server listener: %w", err)
-	case <-ctx.Done():
-	}
-
-	// Gracefully shut down the server.
-	shutdownCtx, done := context.WithTimeout(context.Background(), 5*time.Second)
-	defer done()
-
-	if err := handler.Cleanup(); err != nil {
-		return fmt.Errorf("failed to cleanup event handler: %w", err)
-	}
-
-	if err := server.Shutdown(shutdownCtx); err != nil {
-		return fmt.Errorf("failed to shutdown server: %w", err)
-	}
-
 	return nil
 }
