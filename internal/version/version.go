@@ -15,6 +15,7 @@
 package version
 
 import (
+	"fmt"
 	"runtime"
 	"runtime/debug"
 )
@@ -41,8 +42,8 @@ var (
 	}()
 
 	// OSArch is the operating system and architecture combination.
-	OSArch = runtime.GOOS + "/" + runtime.GOARCH
+	OSArch = fmt.Sprint(runtime.GOOS, "/", runtime.GOARCH)
 
 	// HumanVersion is the compiled version.
-	HumanVersion = Name + " " + Version + " (" + Commit + ", " + OSArch + ")"
+	HumanVersion = fmt.Sprint(Name, " ", Version, " (", Commit, ", ", OSArch, ")")
 )
