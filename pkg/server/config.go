@@ -20,7 +20,6 @@ import (
 
 	"github.com/abcxyz/pkg/cfgloader"
 	"github.com/sethvargo/go-envconfig"
-	"google.golang.org/api/option"
 )
 
 // HandlerConfig defines the set over environment variables required
@@ -53,29 +52,4 @@ func NewConfig(ctx context.Context) (*HandlerConfig, error) {
 		return nil, fmt.Errorf("failed to parse server config: %w", err)
 	}
 	return &cfg, nil
-}
-
-// CreateSuccessMessenger creates a success messenger with given context, config, and Google API client options.
-func CreateSuccessMessenger(ctx context.Context, cfg *HandlerConfig, opts ...option.ClientOption) (Messenger, error) {
-	if cfg == nil {
-		return nil, fmt.Errorf("nil config")
-	}
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid configuration: %w", err)
-	}
-	return NewPubSubMessenger(ctx, cfg.ProjectID, cfg.SuccessTopicID, opts...)
-}
-
-// CreateFailureMessenger creates a failure messenger with given context, config, and Google API client options.
-func CreateFailureMessenger(ctx context.Context, cfg *HandlerConfig, opts ...option.ClientOption) (Messenger, error) {
-	if cfg == nil {
-		return nil, fmt.Errorf("nil config")
-	}
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid configuration: %w", err)
-	}
-	if cfg.FailureTopicID == "" {
-		return nil, fmt.Errorf("FAILURE_TOPIC_ID is empty and requires a value")
-	}
-	return NewPubSubMessenger(ctx, cfg.ProjectID, cfg.FailureTopicID, opts...)
 }

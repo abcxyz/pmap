@@ -15,11 +15,9 @@
 package server
 
 import (
-	"context"
 	"testing"
 
 	"github.com/abcxyz/pkg/testutil"
-	"google.golang.org/api/option"
 )
 
 const (
@@ -70,115 +68,6 @@ func TestConfig_Validate(t *testing.T) {
 			err := tc.cfg.Validate()
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
-			}
-		})
-	}
-}
-
-func TestConfig_CreateSuccessMessenger(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name          string
-		cfg           *HandlerConfig
-		wantErrSubstr string
-	}{
-		{
-			name: "success",
-			cfg: &HandlerConfig{
-				ProjectID:      testProjectID,
-				SuccessTopicID: testSuccessTopicID,
-			},
-		},
-		{
-			name:          "nil_config",
-			wantErrSubstr: "nil config",
-		},
-		{
-			name: "invalid_config",
-			cfg: &HandlerConfig{
-				SuccessTopicID: "test_topic",
-			},
-			wantErrSubstr: "invalid configuration",
-		},
-	}
-
-	for _, tc := range tests {
-		tc := tc
-
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			ctx := context.Background()
-
-			// Use fake PubSub grpc connection to create the messenger.
-			msger, err := CreateSuccessMessenger(ctx, tc.cfg, option.WithGRPCConn(newTestPubSubGrpcConn(ctx, t)))
-			if diff := testutil.DiffErrString(err, tc.wantErrSubstr); diff != "" {
-				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
-			}
-			if msger != nil {
-				if err := msger.Cleanup(); err != nil {
-					t.Fatalf("Process(%+v) failed to cleanup: %v", tc.name, err)
-				}
-			}
-		})
-	}
-}
-
-func TestConfig_CreateFailureMessenger(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name          string
-		cfg           *HandlerConfig
-		wantErrSubstr string
-	}{
-		{
-			name: "success",
-			cfg: &HandlerConfig{
-				ProjectID:      testProjectID,
-				SuccessTopicID: testSuccessTopicID,
-				FailureTopicID: testFailureTopicID,
-			},
-		},
-		{
-			name:          "nil_config",
-			wantErrSubstr: "nil config",
-		},
-		{
-			name: "invalid_config",
-			cfg: &HandlerConfig{
-				SuccessTopicID: testSuccessTopicID,
-			},
-			wantErrSubstr: "invalid configuration",
-		},
-		{
-			name: "missing_failure_topic",
-			cfg: &HandlerConfig{
-				ProjectID:      testProjectID,
-				SuccessTopicID: testSuccessTopicID,
-			},
-			wantErrSubstr: "FAILURE_TOPIC_ID is empty and requires a value",
-		},
-	}
-
-	for _, tc := range tests {
-		tc := tc
-
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			ctx := context.Background()
-
-			// Use fake PubSub grpc connection to create the messenger.
-			msger, err := CreateFailureMessenger(ctx, tc.cfg, option.WithGRPCConn(newTestPubSubGrpcConn(ctx, t)))
-			if diff := testutil.DiffErrString(err, tc.wantErrSubstr); diff != "" {
-				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
-			}
-			if msger != nil {
-				if err := msger.Cleanup(); err != nil {
-					t.Fatalf("Process(%+v) failed to cleanup: %v", tc.name, err)
-				}
 			}
 		})
 	}

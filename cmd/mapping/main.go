@@ -62,11 +62,14 @@ func realMain(ctx context.Context) error {
 		return fmt.Errorf("server.NewConfig: %w", err)
 	}
 
-	successMessenger, err := server.CreateSuccessMessenger(ctx, cfg)
+	successMessenger, err := server.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.SuccessTopicID)
 	if err != nil {
 		return fmt.Errorf("failed to create success event messenger: %w", err)
 	}
-	failureMessenger, err := server.CreateFailureMessenger(ctx, cfg)
+	if cfg.FailureTopicID == "" {
+		return fmt.Errorf("missing FAILURE_TOPIC_ID in config")
+	}
+	failureMessenger, err := server.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.FailureTopicID)
 	if err != nil {
 		return fmt.Errorf("failed to create failure event messenger: %w", err)
 	}
