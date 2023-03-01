@@ -29,7 +29,6 @@ resource "google_project_service" "serviceusage" {
 }
 
 resource "google_project_service" "services" {
-  project = var.project_id
   for_each = toset([
     "cloudresourcemanager.googleapis.com",
     "pubsub.googleapis.com",
@@ -37,6 +36,8 @@ resource "google_project_service" "services" {
     "bigquery.googleapis.com",
     "storage.googleapis.com"
   ])
+
+  project            = var.project_id
   service            = each.value
   disable_on_destroy = false
 
@@ -56,7 +57,7 @@ resource "google_bigquery_dataset" "pmap" {
   default_partition_expiration_ms = 172800000 // 2 days.
 }
 
-// Create PubSub topics, BigQuery subcriptions, and BigQuery tables for successlly and unsuccessfully processed mapping event.
+// Create PubSub topics, BigQuery subcriptions, and BigQuery tables for successfully and unsuccessfully processed mapping event.
 module "mapping_bigquery" {
   source                 = "../modules/pubsub-bigquery"
   project_id             = var.project_id

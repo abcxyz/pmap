@@ -12,10 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-data "google_project" "project" {
-  project_id = var.project_id
-}
-
 resource "google_project_service" "serviceusage" {
   project            = var.project_id
   service            = "serviceusage.googleapis.com"
@@ -23,13 +19,14 @@ resource "google_project_service" "serviceusage" {
 }
 
 resource "google_project_service" "services" {
-  project = var.project_id
   for_each = toset([
     "cloudresourcemanager.googleapis.com",
     "pubsub.googleapis.com",
     "iam.googleapis.com",
     "bigquery.googleapis.com"
   ])
+
+  project            = var.project_id
   service            = each.value
   disable_on_destroy = false
 
@@ -39,7 +36,8 @@ resource "google_project_service" "services" {
 }
 
 resource "google_bigquery_table" "pmap" {
-  for_each            = toset(var.destination_tables)
+  for_each = toset(var.destination_tables)
+
   project             = var.project_id
   dataset_id          = var.dataset_id
   table_id            = each.key
@@ -83,8 +81,9 @@ EOF
 
 resource "google_pubsub_topic" "bigquery" {
   for_each = toset(var.destination_tables)
-  project  = var.project_id
-  name     = "${each.key}-bigquery"
+
+  project = var.project_id
+  name    = "${each.key}-bigquery"
 
   depends_on = [
     google_project_service.services["pubsub.googleapis.com"]
@@ -93,9 +92,10 @@ resource "google_pubsub_topic" "bigquery" {
 
 resource "google_pubsub_subscription" "bigquery" {
   for_each = toset(var.destination_tables)
-  project  = var.project_id
-  name     = "${each.key}-bigquery"
-  topic    = google_pubsub_topic.bigquery[each.key].name
+
+  project = var.project_id
+  name    = "${each.key}-bigquery"
+  topic   = google_pubsub_topic.bigquery[each.key].name
 
   expiration_policy {
     ttl = "" // Subscription never expires.
@@ -109,7 +109,8 @@ resource "google_pubsub_subscription" "bigquery" {
 // Grant Pub/Sub publisher role of downstream Pub/Sub topics to the pmap service account.
 resource "google_pubsub_topic_iam_member" "publisher" {
   for_each = toset(var.destination_tables)
-  topic    = google_pubsub_topic.bigquery[each.key].id
-  role     = "roles/pubsub.publisher"
-  member   = "serviceAccount:${var.ci_run_service_account}"
+
+  topic  = google_pubsub_topic.bigquery[each.key].id
+  role   = "roles/pubsub.publisher"
+  member = "serviceAccount:${var.ci_run_service_account}"
 }
