@@ -27,13 +27,9 @@ variable "event" {
   type        = string
 }
 
-variable "failure_event_handling" {
-  description = <<EOT
-        Whether failure event handling is needed. When enabled, a table with name
-        '<event>-failure' will be created to store all failure events.
-    EOT
-  type        = bool
-  default     = false
+variable "destination_tables" {
+  description = "List of destination BigQuery table IDs to be created."
+  type        = list(string)
 }
 
 variable "ci_run_service_account" {

@@ -63,7 +63,7 @@ module "mapping_bigquery" {
   dataset_id             = google_bigquery_dataset.pmap.dataset_id
   event                  = "mapping"
   ci_run_service_account = google_service_account.ci_run_service_account.email
-  failure_event_handling = true
+  destination_tables     = ["mapping", "mapping-failure"]
 
   depends_on = [
     google_bigquery_dataset_iam_member.viewer,
@@ -78,7 +78,7 @@ module "policy_bigquery" {
   dataset_id             = google_bigquery_dataset.pmap.dataset_id
   event                  = "policy"
   ci_run_service_account = google_service_account.ci_run_service_account.email
-  failure_event_handling = false
+  destination_tables     = ["policy"]
 
   depends_on = [
     google_bigquery_dataset_iam_member.viewer,
