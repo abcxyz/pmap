@@ -33,12 +33,12 @@ type HandlerConfig struct {
 }
 
 // Validate validates the handler config after load.
-func (s *HandlerConfig) Validate() error {
-	if s.ProjectID == "" {
+func (cfg *HandlerConfig) Validate() error {
+	if cfg.ProjectID == "" {
 		return fmt.Errorf("PROJECT_ID is empty and requires a value")
 	}
 
-	if s.SuccessTopicID == "" {
+	if cfg.SuccessTopicID == "" {
 		return fmt.Errorf("SUCCESS_TOPIC_ID is empty and requires a value")
 	}
 
@@ -55,30 +55,6 @@ func NewConfig(ctx context.Context) (*HandlerConfig, error) {
 	return &cfg, nil
 }
 
-// FromConfig creates an option that setup failure messenger from the given configuration.
-func FromConfig(cfg *HandlerConfig, opts ...option.ClientOption) Option {
-	return func(ctx context.Context, o *HandlerOpts) (*HandlerOpts, error) {
-		if cfg == nil {
-			return nil, fmt.Errorf("nil config")
-		}
-		if err := cfg.Validate(); err != nil {
-			return nil, fmt.Errorf("invalid configuration: %w", err)
-		}
-
-		if cfg.FailureTopicID != "" {
-			failureMessenger, err := NewPubSubMessenger(ctx, cfg.ProjectID, cfg.FailureTopicID, opts...)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create failure event messenger: %w", err)
-			}
-
-			if _, err := WithFailureMessenger(failureMessenger)(ctx, o); err != nil {
-				return nil, err
-			}
-		}
-		return o, nil
-	}
-}
-
 // CreateSuccessMessenger creates a success messenger with given context, config, and Google API client options.
 func CreateSuccessMessenger(ctx context.Context, cfg *HandlerConfig, opts ...option.ClientOption) (Messenger, error) {
 	if cfg == nil {
@@ -88,4 +64,18 @@ func CreateSuccessMessenger(ctx context.Context, cfg *HandlerConfig, opts ...opt
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 	return NewPubSubMessenger(ctx, cfg.ProjectID, cfg.SuccessTopicID, opts...)
+}
+
+// CreateFailureMessenger creates a failure messenger with given context, config, and Google API client options.
+func CreateFailureMessenger(ctx context.Context, cfg *HandlerConfig, opts ...option.ClientOption) (Messenger, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("nil config")
+	}
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+	if cfg.FailureTopicID == "" {
+		return nil, fmt.Errorf("FAILURE_TOPIC_ID is empty and requires a value")
+	}
+	return NewPubSubMessenger(ctx, cfg.ProjectID, cfg.FailureTopicID, opts...)
 }
