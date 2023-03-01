@@ -1,5 +1,5 @@
 # Default fallback
 *    @abcxyz/breakglass
 
-# spc-wg owns all files
-*    @abcxyz/compliance-tooling
+# infrastructure owns all files
+*    @abcxyz/infrastructure-team
