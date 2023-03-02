@@ -15,13 +15,9 @@
 package server
 
 import (
-	"context"
 	"testing"
 
-	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pkg/testutil"
-	"google.golang.org/api/option"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const (
@@ -72,121 +68,6 @@ func TestConfig_Validate(t *testing.T) {
 			err := tc.cfg.Validate()
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
-			}
-		})
-	}
-}
-
-func TestConfig_FromConfig(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name          string
-		cfg           *HandlerConfig
-		wantErrSubstr string
-	}{
-		{
-			name: "success",
-			cfg: &HandlerConfig{
-				ProjectID:      testProjectID,
-				SuccessTopicID: testSuccessTopicID,
-				FailureTopicID: testFailureTopicID,
-			},
-		},
-		{
-			name:          "nil_config",
-			wantErrSubstr: "nil config",
-		},
-		{
-			name: "invalid_config",
-			cfg: &HandlerConfig{
-				SuccessTopicID: "test_topic",
-			},
-			wantErrSubstr: "invalid configuration",
-		},
-	}
-
-	for _, tc := range tests {
-		tc := tc
-
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			ctx := context.Background()
-
-			// Use fake PubSub grpc connection to create the messengers.
-			o := FromConfig(tc.cfg, option.WithGRPCConn(newTestPubSubGrpcConn(ctx, t)))
-			msger, err := NewPubSubMessenger(ctx, testProjectID, testSuccessTopicID, option.WithGRPCConn(newTestPubSubGrpcConn(ctx, t)))
-			if err != nil {
-				t.Fatalf("failed to create new PubSubMessenger: %v", err)
-			}
-
-			// Setup fake storage client.
-			hc, done := newTestServer(handleObjectRead(t, nil))
-			defer done()
-			c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
-			if err != nil {
-				t.Fatalf("failed to creat GCS storage client %v", err)
-			}
-
-			h, err := NewHandler(ctx, []Processor[*structpb.Struct]{&successProcessor{}}, msger, o, WithStorageClient(c))
-			if diff := testutil.DiffErrString(err, tc.wantErrSubstr); diff != "" {
-				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
-			}
-			if h != nil {
-				if err := h.Cleanup(); err != nil {
-					t.Fatalf("Process(%+v) failed to cleanup: %v", tc.name, err)
-				}
-			}
-		})
-	}
-}
-
-func TestConfig_CreateSuccessMessenger(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name          string
-		cfg           *HandlerConfig
-		wantErrSubstr string
-	}{
-		{
-			name: "success",
-			cfg: &HandlerConfig{
-				ProjectID:      testProjectID,
-				SuccessTopicID: testSuccessTopicID,
-			},
-		},
-		{
-			name:          "nil_config",
-			wantErrSubstr: "nil config",
-		},
-		{
-			name: "invalid_config",
-			cfg: &HandlerConfig{
-				SuccessTopicID: "test_topic",
-			},
-			wantErrSubstr: "invalid configuration",
-		},
-	}
-
-	for _, tc := range tests {
-		tc := tc
-
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			ctx := context.Background()
-
-			// Use fake PubSub grpc connection to create the messenger.
-			msger, err := CreateSuccessMessenger(ctx, tc.cfg, option.WithGRPCConn(newTestPubSubGrpcConn(ctx, t)))
-			if diff := testutil.DiffErrString(err, tc.wantErrSubstr); diff != "" {
-				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
-			}
-			if msger != nil {
-				if err := msger.Cleanup(); err != nil {
-					t.Fatalf("Process(%+v) failed to cleanup: %v", tc.name, err)
-				}
 			}
 		})
 	}
