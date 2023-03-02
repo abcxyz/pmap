@@ -29,7 +29,6 @@ resource "google_project_service" "serviceusage" {
 }
 
 resource "google_project_service" "services" {
-  project = var.project_id
   for_each = toset([
     "cloudresourcemanager.googleapis.com",
     "pubsub.googleapis.com",
@@ -37,6 +36,8 @@ resource "google_project_service" "services" {
     "bigquery.googleapis.com",
     "storage.googleapis.com"
   ])
+
+  project            = var.project_id
   service            = each.value
   disable_on_destroy = false
 
@@ -56,72 +57,29 @@ resource "google_bigquery_dataset" "pmap" {
   default_partition_expiration_ms = 172800000 // 2 days.
 }
 
-resource "google_bigquery_table" "pmap" {
-  for_each            = local.event_type
-  project             = var.project_id
-  dataset_id          = google_bigquery_dataset.pmap.dataset_id
-  table_id            = each.key
-  deletion_protection = true
-
-  time_partitioning {
-    type  = "DAY"
-    field = "publish_time"
-  }
-
-  schema = <<EOF
-[
-  {
-    "name": "data",
-    "type": "JSON",
-    "mode": "REQUIRED"
-  },
-  {
-    "name": "subscription_name",
-    "type": "STRING",
-    "mode": "REQUIRED"
-  },
-  {
-    "name": "message_id",
-    "type": "STRING",
-    "mode": "REQUIRED"
-  },
-  {
-    "name": "publish_time",
-    "type": "TIMESTAMP",
-    "mode": "REQUIRED"
-  },
-  {
-    "name": "attributes",
-    "type": "JSON",
-    "mode": "REQUIRED"
-  }
-]
-EOF
-}
-
-resource "google_pubsub_topic" "bigquery" {
-  for_each = local.event_type
-  project  = var.project_id
-  name     = "${each.key}-bigquery"
+// Create PubSub topics, BigQuery subcriptions, and BigQuery tables for successfully and unsuccessfully processed mapping event.
+module "mapping_bigquery" {
+  source                 = "../modules/pubsub-bigquery"
+  project_id             = var.project_id
+  dataset_id             = google_bigquery_dataset.pmap.dataset_id
+  event                  = "mapping"
+  ci_run_service_account = google_service_account.ci_run_service_account.email
+  destination_tables     = ["mapping", "mapping-failure"]
 
   depends_on = [
-    google_project_service.services["pubsub.googleapis.com"]
+    google_bigquery_dataset_iam_member.viewer,
+    google_bigquery_dataset_iam_member.editors
   ]
 }
 
-resource "google_pubsub_subscription" "bigquery" {
-  for_each = local.event_type
-  project  = var.project_id
-  name     = "${each.key}-bigquery"
-  topic    = google_pubsub_topic.bigquery[each.key].name
-
-  expiration_policy {
-    ttl = "" // Subscription never expires.
-  }
-  bigquery_config {
-    table          = "${var.project_id}.${google_bigquery_dataset.pmap.dataset_id}.${google_bigquery_table.pmap[each.key].table_id}"
-    write_metadata = true
-  }
+// Create a PubSub topic, a BigQuery subcription, and a BigQuery table for policy event.
+module "policy_bigquery" {
+  source                 = "../modules/pubsub-bigquery"
+  project_id             = var.project_id
+  dataset_id             = google_bigquery_dataset.pmap.dataset_id
+  event                  = "policy"
+  ci_run_service_account = google_service_account.ci_run_service_account.email
+  destination_tables     = ["policy"]
 
   depends_on = [
     google_bigquery_dataset_iam_member.viewer,
@@ -147,8 +105,8 @@ resource "google_bigquery_dataset_iam_member" "editors" {
   member     = "serviceAccount:${local.pubsub_svc_account_email}"
 }
 
-# Add CI service account to project level BigQuery job user role
-# to allow integration tests to read data.
+// Add CI service account to project level BigQuery job user role
+// to allow integration tests to read data.
 resource "google_project_iam_member" "ci_sa_bigquery_member" {
   project = var.project_id
   role    = "roles/bigquery.jobUser"
@@ -156,7 +114,7 @@ resource "google_project_iam_member" "ci_sa_bigquery_member" {
 }
 
 resource "google_storage_bucket" "pmap" {
-  name                        = "pmap-ci"
+  name                        = var.gcs_bucket_name
   project                     = var.project_id
   location                    = "US"
   uniform_bucket_level_access = true
@@ -230,21 +188,13 @@ resource "google_service_account" "ci_run_service_account" {
   display_name = "Cloud Run Service Account for pmap"
 }
 
-# Allow the CI service account to act as the Cloud Run service account
-# this allows the CI servie account to deploy new revisions for the
-# Cloud Run sevice.
+// Allow the CI service account to act as the Cloud Run service account
+// this allows the CI servie account to deploy new revisions for the
+// Cloud Run sevice.
 resource "google_service_account_iam_member" "run_sa_ci_binding" {
   service_account_id = google_service_account.ci_run_service_account.name
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${var.ci_service_account}"
-}
-
-// Grant Pub/Sub publisher role of downstream Pub/Sub topics to the pmap service account.
-resource "google_pubsub_topic_iam_member" "publisher" {
-  for_each = local.event_type
-  topic    = google_pubsub_topic.bigquery[each.key].id
-  role     = "roles/pubsub.publisher"
-  member   = google_service_account.ci_run_service_account.member
 }
 
 // Grant GCS object viewer permission to the pmap service account.

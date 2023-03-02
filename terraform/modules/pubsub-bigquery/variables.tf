@@ -17,12 +17,22 @@ variable "project_id" {
   type        = string
 }
 
-variable "gcs_bucket_name" {
-  description = "Globally unique GCS bucket name."
+variable "dataset_id" {
+  description = "The name of the BigQuery dataset ."
   type        = string
 }
 
-variable "ci_service_account" {
-  description = "CI service account."
+variable "event" {
+  description = "The pmap event type such as mapping and policy."
+  type        = string
+}
+
+variable "destination_tables" {
+  description = "List of destination BigQuery table IDs to be created."
+  type        = list(string)
+}
+
+variable "ci_run_service_account" {
+  description = "The service account that the Cloud Run service run as."
   type        = string
 }
