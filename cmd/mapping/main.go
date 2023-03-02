@@ -73,7 +73,7 @@ func realMain(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create failure event messenger: %w", err)
 	}
-	processor, err := processors.NewProcessor(ctx, fmt.Sprintf("projects/%s", cfg.ProjectID))
+	processor, err := processors.NewAssetInventoryProcessor(ctx, fmt.Sprintf("projects/%s", cfg.ProjectID))
 	if err != nil {
 		return fmt.Errorf("failed to create asset inventory processor: %w", err)
 	}
