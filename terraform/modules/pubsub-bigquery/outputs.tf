@@ -12,22 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-output "policy_service_url" {
-  description = "Policy cloud run service URL."
-  value       = module.policy_service.pmap_service_url
+output "bigquery_tables" {
+  description = "BigQuery tables that store the pmap events."
+  value       = [for table in google_bigquery_table.pmap : table.table_id]
 }
 
-output "mapping_service_url" {
-  description = "Mapping cloud run service URL."
-  value       = module.mapping_service.pmap_service_url
-}
-
-output "policy_gcs_subscription_id" {
-  description = "The Pub/Sub subscription ID for policy."
-  value       = module.policy_service.gcs_pubsub_subscription_id
-}
-
-output "mapping_gcs_subscription_id" {
-  description = "The Pub/Sub subscription ID for mapping."
-  value       = module.mapping_service.gcs_pubsub_subscription_id
+output "pubsub_topics" {
+  description = "PubSub topics that the BigQuery tables listen to."
+  value       = google_pubsub_topic.bigquery
 }

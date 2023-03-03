@@ -32,12 +32,30 @@ variable "upstream_pubsub_topic" {
   type        = string
 }
 
+variable "downstream_pubsub_topic" {
+  description = "The downstream Pub/Sub topic."
+  type        = string
+  default     = null
+}
+
+variable "downstream_failure_pubsub_topic" {
+  description = "The downstream Pub/Sub topic for failure events."
+  type        = string
+  default     = null
+}
+
 variable "pmap_service_account" {
   description = "Service account for the pmap Cloud Run service to run as."
   type        = string
 }
 
-variable "ci_service_account" {
-  description = "CI service account."
+variable "oidc_service_account" {
+  description = "Service Account used for generating the OIDC tokens."
   type        = string
+}
+
+variable "filter" {
+  description = "Optional subscription filter, for example `attributes.objectID=\"<object_id>\"`"
+  type        = string
+  default     = null
 }

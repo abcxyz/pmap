@@ -31,3 +31,8 @@ variable "ci_service_account" {
   description = "CI service account."
   type        = string
 }
+
+variable "gcs_bucket_name" {
+  description = "Globally unique GCS bucket name."
+  type        = string
+}

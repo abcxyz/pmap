@@ -50,7 +50,13 @@ module "service" {
   service_iam = {
     admins     = []
     developers = []
-    invokers   = ["serviceAccount:${var.ci_service_account}"]
+    invokers   = ["serviceAccount:${var.oidc_service_account}"]
+  }
+
+  envvars = {
+    "PROJECT_ID" : var.project_id,
+    "SUCCESS_TOPIC_ID" : var.downstream_pubsub_topic,
+    "FAILURE_TOPIC_ID" : var.downstream_failure_pubsub_topic
   }
 }
 
@@ -59,6 +65,7 @@ resource "google_pubsub_subscription" "pmap" {
   project = var.project_id
   name    = module.service.service_name
   topic   = var.upstream_pubsub_topic
+  filter  = var.filter
 
   // Required for Cloud Run, see https://cloud.google.com/run/docs/triggering/pubsub-push#ack-deadline.
   ack_deadline_seconds = 600
@@ -66,7 +73,7 @@ resource "google_pubsub_subscription" "pmap" {
   push_config {
     push_endpoint = module.service.url
     oidc_token {
-      service_account_email = var.ci_service_account
+      service_account_email = var.oidc_service_account
     }
   }
 }

@@ -59,7 +59,7 @@ resource "google_bigquery_dataset" "pmap" {
 
 // Create PubSub topics, BigQuery subcriptions, and BigQuery tables for successfully and unsuccessfully processed mapping event.
 module "mapping_bigquery" {
-  source                 = "../modules/pubsub-bigquery"
+  source                 = "../pubsub-bigquery"
   project_id             = var.project_id
   dataset_id             = google_bigquery_dataset.pmap.dataset_id
   event                  = "mapping"
@@ -74,7 +74,7 @@ module "mapping_bigquery" {
 
 // Create a PubSub topic, a BigQuery subcription, and a BigQuery table for policy event.
 module "policy_bigquery" {
-  source                 = "../modules/pubsub-bigquery"
+  source                 = "../pubsub-bigquery"
   project_id             = var.project_id
   dataset_id             = google_bigquery_dataset.pmap.dataset_id
   event                  = "policy"
@@ -163,9 +163,9 @@ resource "google_pubsub_topic_iam_member" "publishers" {
 
 // Create two Pub/Sub topics for gcs notification, one for mapping and one for policy.
 resource "google_pubsub_topic" "pmap_gcs_notification" {
-  for_each = local.event_type
+  for_each = { for event in local.event_type : event => event }
   project  = var.project_id
-  name     = "${each.key}-gcs"
+  name     = "${each.value}-gcs"
 
   depends_on = [
     google_project_service.services["pubsub.googleapis.com"]
@@ -202,4 +202,11 @@ resource "google_storage_bucket_iam_member" "object_viewer" {
   bucket = google_storage_bucket.pmap.name
   role   = "roles/storage.objectViewer"
   member = google_service_account.ci_run_service_account.member
+}
+
+// Create a dedicated service account for generating the OIDC tokens.
+resource "google_service_account" "oidc_service_account" {
+  project      = var.project_id
+  account_id   = "pmap-oidc"
+  display_name = "Service Account used for generating the OIDC tokens"
 }
