@@ -25,8 +25,8 @@ module "common_infra" {
 
 module "mapping_service" {
   source                          = "../modules/pmap-service"
-  service_name                    = local.mapping_service_name
   project_id                      = var.project_id
+  service_name                    = local.mapping_service_name
   image                           = var.mapping_service_image
   upstream_pubsub_topic           = module.common_infra.gcs_pubsub_topic[local.mapping_service_name].name
   downstream_pubsub_topic         = module.common_infra.mapping_downstream_pubsub_topics[local.mapping_service_name].name
@@ -37,8 +37,8 @@ module "mapping_service" {
 
 module "policy_service" {
   source                  = "../modules/pmap-service"
-  service_name            = local.policy_service_name
   project_id              = var.project_id
+  service_name            = local.policy_service_name
   image                   = var.policy_service_image
   upstream_pubsub_topic   = module.common_infra.gcs_pubsub_topic[local.policy_service_name].name
   downstream_pubsub_topic = module.common_infra.policy_downstream_pubsub_topics[local.policy_service_name].name

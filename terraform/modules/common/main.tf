@@ -163,7 +163,7 @@ resource "google_pubsub_topic_iam_member" "publishers" {
 
 // Create two Pub/Sub topics for gcs notification, one for mapping and one for policy.
 resource "google_pubsub_topic" "pmap_gcs_notification" {
-  for_each = { for event in local.event_type : event => event }
+  for_each = local.event_type
   project  = var.project_id
   name     = "${each.value}-gcs"
 
@@ -204,7 +204,9 @@ resource "google_storage_bucket_iam_member" "object_viewer" {
   member = google_service_account.ci_run_service_account.member
 }
 
-// Create a dedicated service account for generating the OIDC tokens.
+// Create a dedicated service account for generating the OIDC tokens, required to enable request
+// authentication when messages from Pub/Sub are delivered to push endpoints. If the endpoint is
+// a Cloud Run service, this service account needs to be the run invoker.
 resource "google_service_account" "oidc_service_account" {
   project      = var.project_id
   account_id   = "pmap-oidc"
