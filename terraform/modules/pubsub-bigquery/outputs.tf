@@ -18,6 +18,6 @@ output "bigquery_tables" {
 }
 
 output "pubsub_topics" {
-  description = "PubSub topics that the BigQuery tables listen to."
+  description = "A map with key table name and value PubSub topic that the table subscribes to."
   value       = google_pubsub_topic.bigquery
 }

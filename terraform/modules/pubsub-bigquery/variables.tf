@@ -32,7 +32,7 @@ variable "destination_tables" {
   type        = list(string)
 }
 
-variable "ci_run_service_account" {
+variable "run_service_account" {
   description = "The service account that the Cloud Run service run as."
   type        = string
 }

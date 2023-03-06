@@ -13,13 +13,17 @@
 // limitations under the License.
 
 output "oidc_service_account" {
-  description = "Service Account used for generating the OIDC tokens."
+  description = <<EOT
+        Service Account used for generating the OIDC tokens. Required to enable request
+        authentication when messages from Pub/Sub are delivered to push endpoints. If the
+        endpoint is a Cloud Run service, this service account needs to be the run invoker.
+    EOT
   value       = google_service_account.oidc_service_account.email
 }
 
 output "run_service_account" {
   description = "Service Account Cloud Run services to run as."
-  value       = google_service_account.ci_run_service_account.email
+  value       = google_service_account.run_service_account.email
 }
 
 output "gcs_pubsub_topic" {

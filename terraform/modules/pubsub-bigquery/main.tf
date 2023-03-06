@@ -112,5 +112,5 @@ resource "google_pubsub_topic_iam_member" "publisher" {
 
   topic  = google_pubsub_topic.bigquery[each.key].id
   role   = "roles/pubsub.publisher"
-  member = "serviceAccount:${var.ci_run_service_account}"
+  member = "serviceAccount:${var.run_service_account}"
 }

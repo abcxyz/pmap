@@ -65,7 +65,7 @@ resource "google_pubsub_subscription" "pmap" {
   project = var.project_id
   name    = module.service.service_name
   topic   = var.upstream_pubsub_topic
-  filter  = var.filter
+  filter  = var.gcs_events_filter
 
   // Required for Cloud Run, see https://cloud.google.com/run/docs/triggering/pubsub-push#ack-deadline.
   ack_deadline_seconds = 600

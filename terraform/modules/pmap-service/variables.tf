@@ -50,12 +50,16 @@ variable "pmap_service_account" {
 }
 
 variable "oidc_service_account" {
-  description = "Service Account used for generating the OIDC tokens."
+  description = <<EOT
+        Service Account used for generating the OIDC tokens. Required to enable request
+        authentication when messages from Pub/Sub are delivered to push endpoints. If the
+        endpoint is a Cloud Run service, this service account needs to be the run invoker.
+    EOT
   type        = string
 }
 
-variable "filter" {
-  description = "Optional subscription filter, for example `attributes.objectID=\"<object_id>\"`"
+variable "gcs_events_filter" {
+  description = "Optional GCS events subscription filter, for example `attributes.objectID=\"<object_id>\"`. Can be used to select a subset of GCS events."
   type        = string
   default     = null
 }

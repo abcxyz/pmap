@@ -59,12 +59,12 @@ resource "google_bigquery_dataset" "pmap" {
 
 // Create PubSub topics, BigQuery subcriptions, and BigQuery tables for successfully and unsuccessfully processed mapping event.
 module "mapping_bigquery" {
-  source                 = "../pubsub-bigquery"
-  project_id             = var.project_id
-  dataset_id             = google_bigquery_dataset.pmap.dataset_id
-  event                  = "mapping"
-  ci_run_service_account = google_service_account.ci_run_service_account.email
-  destination_tables     = ["mapping", "mapping-failure"]
+  source              = "../pubsub-bigquery"
+  project_id          = var.project_id
+  dataset_id          = google_bigquery_dataset.pmap.dataset_id
+  event               = "mapping"
+  run_service_account = google_service_account.run_service_account.email
+  destination_tables  = ["mapping", "mapping-failure"]
 
   depends_on = [
     google_bigquery_dataset_iam_member.viewer,
@@ -74,12 +74,12 @@ module "mapping_bigquery" {
 
 // Create a PubSub topic, a BigQuery subcription, and a BigQuery table for policy event.
 module "policy_bigquery" {
-  source                 = "../pubsub-bigquery"
-  project_id             = var.project_id
-  dataset_id             = google_bigquery_dataset.pmap.dataset_id
-  event                  = "policy"
-  ci_run_service_account = google_service_account.ci_run_service_account.email
-  destination_tables     = ["policy"]
+  source              = "../pubsub-bigquery"
+  project_id          = var.project_id
+  dataset_id          = google_bigquery_dataset.pmap.dataset_id
+  event               = "policy"
+  run_service_account = google_service_account.run_service_account.email
+  destination_tables  = ["policy"]
 
   depends_on = [
     google_bigquery_dataset_iam_member.viewer,
@@ -182,7 +182,7 @@ resource "google_pubsub_topic_iam_member" "gcs_notification_subscriber" {
 }
 
 // Create a dedicated service account for pmap services to run as.
-resource "google_service_account" "ci_run_service_account" {
+resource "google_service_account" "run_service_account" {
   project      = var.project_id
   account_id   = "run-pmap-sa"
   display_name = "Cloud Run Service Account for pmap"
@@ -192,7 +192,7 @@ resource "google_service_account" "ci_run_service_account" {
 // this allows the CI servie account to deploy new revisions for the
 // Cloud Run sevice.
 resource "google_service_account_iam_member" "run_sa_ci_binding" {
-  service_account_id = google_service_account.ci_run_service_account.name
+  service_account_id = google_service_account.run_service_account.name
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${var.ci_service_account}"
 }
@@ -201,7 +201,7 @@ resource "google_service_account_iam_member" "run_sa_ci_binding" {
 resource "google_storage_bucket_iam_member" "object_viewer" {
   bucket = google_storage_bucket.pmap.name
   role   = "roles/storage.objectViewer"
-  member = google_service_account.ci_run_service_account.member
+  member = google_service_account.run_service_account.member
 }
 
 // Create a dedicated service account for generating the OIDC tokens, required to enable request

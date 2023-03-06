@@ -16,6 +16,7 @@ locals {
   mapping_service_name = "mapping"
   policy_service_name  = "policy"
 }
+
 module "common_infra" {
   source             = "../modules/common"
   project_id         = var.project_id
