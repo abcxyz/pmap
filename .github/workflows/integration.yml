@@ -1,0 +1,148 @@
+name: 'integration'
+# TODO(#47): Merge back to ci workflow once completed.
+
+on:
+  workflow_dispatch:
+
+env:
+  WIF_PROVIDER: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
+  WIF_SERVICE_ACCOUNT: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
+  DOCKER_REGISTRY: 'us-docker.pkg.dev'
+  DOCKER_REPO: 'us-docker.pkg.dev/pmap-ci/ci-images'
+  DOCKER_TAG: '${{ github.sha }}'
+  PROJECT_ID: 'pmap-ci'
+  GCS_BUCKET: 'pmap-ci'
+  RUN_SERVICE_ACCOUNT: 'run-pmap-sa@pmap-ci.iam.gserviceaccount.com'
+  OIDC_SERVICE_ACCOUNT: 'pmap-oidc@pmap-ci.iam.gserviceaccount.com'
+  MAPPING_UPSTREAM_TOPIC: 'mapping-gcs'
+  MAPPING_DOWNSTREAM_TOPIC: 'mapping-bigquery'
+  MAPPING_DOWNSTREAM_FAILURE_TOPIC: 'mapping-failure-bigquery'
+  POLICY_UPSTREAM_TOPIC: 'policy-gcs'
+  POLICY_DOWNSTREAM_TOPIC: 'policy-bigquery'
+  # Object ID prefix is used as GCS notification path filter, GCS object with the name prefix
+  # will trigger the respective GCS notification. Object ID is used to mark the files uploaded
+  # to GCS and BigQuery so that we can run multiple integration tests simultaneously.
+  MAPPING_OBJECT_ID: "mapping/$OBJECT_SUFFIX"
+  POLICY_OBJECT_ID: "policy/$OBJECT_SUFFIX"
+
+concurrency:
+  group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  # Build pmap services and push to artifact registry
+  build:
+    runs-on: 'ubuntu-latest'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
+      - name: 'Setup Go'
+        uses: 'actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568' # ratchet:actions/setup-go@v3
+        with:
+          go-version: '1.20'
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
+        with:
+          workload_identity_provider: '${{ env.WIF_PROVIDER }}'
+          service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+          token_format: 'access_token'
+      - name: 'Authenticate to Artifact Registry'
+        uses: 'docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a' # ratchet:docker/login-action@v2
+        with:
+          username: 'oauth2accesstoken'
+          password: '${{ steps.auth.outputs.access_token }}'
+          registry: '${{ env.DOCKER_REGISTRY }}'
+      # goreleaser requires a tag to publish images to container registry.
+      # We create a local tag to make it happy.
+      - run: |-
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git tag -f `date "+%Y%m%d%H%M%S"`
+      - name: 'Build the service containers and push to the registry with goreleaser'
+        uses: 'goreleaser/goreleaser-action@f82d6c1c344bcacabba2c841718984797f664a6b' # ratchet:goreleaser/goreleaser-action@v4
+        with:
+          version: 'v1.15.2' # Manually pinned
+          args: 'release -f .goreleaser.docker.yaml --rm-dist --skip-validate'
+
+  # Deploy integration test infrastructure and run integration tests
+  integration:
+    runs-on: 'ubuntu-latest'
+    needs:
+      - 'build'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    env:
+      tf_module_dir: './terraform/modules/pmap-service'
+    steps:
+      - uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
+      - id: 'auth'
+        uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
+        with:
+          workload_identity_provider: '${{ env.WIF_PROVIDER }}'
+          service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+          token_format: 'access_token'
+      # TODO: Workload Identity doesn't work with GCS Provider.
+      # https://github.com/google-github-actions/auth/issues/89
+      - name: 'Workaround Terraform issue'
+        shell: 'bash'
+        run: |-
+          echo "GOOGLE_OAUTH_ACCESS_TOKEN=${{ steps.auth.outputs.access_token }}" >> $GITHUB_ENV
+      - uses: 'hashicorp/setup-terraform@633666f66e0061ca3b725c73b2ec20cd13a8fdd1' # ratchet:hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: false
+      # Generate a unique object ID suffix to mark the files in GCS and BigQuery so that we run multiple
+      # CI simultaneously.
+      - name: 'Generate object suffix'
+        run: |
+            echo "OBJECT_SUFFIX=$(uuidgen)" >> $GITHUB_ENV
+      - name: 'Write mapping tfvars file'
+        run: |-
+          var_file=/tmp/mapping_ci.tfvars
+
+          touch /tmp/mapping_ci.tfvars
+          echo project_id=\"${{ env.PROJECT_ID }}\" >> ${var_file};
+          echo service_name=\"mapping\" >> ${var_file};
+          echo image=\"${{env.DOCKER_REPO}}/privacy-data-mapping:${{env.DOCKER_TAG}}-amd64\" >> ${var_file};
+          echo upstream_topic=\"${{ env.MAPPING_UPSTREAM_TOPIC}}\" >> ${var_file};
+          echo downstream_topic=\"${{ env.MAPPING_DOWNSTREAM_TOPIC}}\" >> ${var_file};
+          echo downstream_failure_topic=\"${{ env.MAPPING_DOWNSTREAM_FAILURE_TOPIC}}\" >> ${var_file};
+          echo pmap_service_account=\"${{ env.RUN_SERVICE_ACCOUNT }}\" >> ${var_file};
+          echo oidc_service_account=\"${{ env.OIDC_SERVICE_ACCOUNT }}\" >> ${var_file}
+          echo gcs_events_filter=\"attributes.objectId=\\\"${{ env.MAPPING_OBJECT_ID }}\\\"\">> ${var_file};
+
+          cat ${var_file};
+          echo "mapping_tfvar_file=${var_file}" >> $GITHUB_ENV;
+      - name: 'Write policy tfvars file'
+        run: |-
+          var_file=/tmp/policy_ci.tfvars
+
+          touch /tmp/policy_ci.tfvars
+          echo project_id=\"${{ env.PROJECT_ID }}\" >> ${var_file};
+          echo service_name=\"policy\" >> ${var_file};
+          echo image=\"${{env.DOCKER_REPO}}/privacy-data-policy:${{env.DOCKER_TAG}}-amd64\" >> ${var_file};
+          echo upstream_topic=\"${{ env.POLICY_UPSTREAM_TOPIC}}\" >> ${var_file};
+          echo downstream_topic=\"${{ env.POLICY_DOWNSTREAM_TOPIC}}\" >> ${var_file};
+          echo pmap_service_account=\"${{ env.RUN_SERVICE_ACCOUNT }}\" >> ${var_file};
+          echo oidc_service_account=\"${{ env.OIDC_SERVICE_ACCOUNT }}\" >> ${var_file}
+          echo gcs_events_filter=\"attributes.objectId=\\\"${{ env.POLICY_OBJECT_ID }}\\\"\">> ${var_file};
+
+          cat ${var_file};
+          echo "policy_tfvar_file=${var_file}" >> $GITHUB_ENV;
+      - name: 'Init the terraform infrastructure'
+        run: terraform -chdir=${{ env.tf_module_dir }} init
+      - name: 'Apply the infrastructure updates'
+        id: 'tf_apply'
+        run: |-
+          terraform -chdir=${{ env.tf_module_dir}} apply -auto-approve -var-file=${{env.mapping_tfvar_file}};
+          terraform -chdir=${{ env.tf_module_dir}} apply -auto-approve -var-file=${{env.policy_tfvar_file}};
+      # TODO(#47): Add integration tests.
+      - name: 'Cleanup the infrastructure'
+        if: always()
+        run: |-
+          terraform -chdir=${{ env.tf_module_dir}} apply -destroy -auto-approve -var-file=${{env.mapping_tfvar_file}};
+          terraform -chdir=${{ env.tf_module_dir}} apply -destroy -auto-approve -var-file=${{env.policy_tfvar_file}};
