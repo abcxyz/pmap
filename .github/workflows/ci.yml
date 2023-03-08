@@ -9,6 +9,13 @@ on:
       - 'main'
   workflow_dispatch:
 
+env:
+  WIF_PROVIDER: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
+  WIF_SERVICE_ACCOUNT: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
+  DOCKER_REGISTRY: 'us-docker.pkg.dev'
+  DOCKER_REPO: 'us-docker.pkg.dev/pmap-ci/ci-images'
+  DOCKER_TAG: '${{ github.sha }}'
+
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
   cancel-in-progress: true
@@ -41,3 +48,43 @@ jobs:
       - 'go_test'
     steps:
       - run: 'echo prechecks complete'
+
+  # Build pmap services and push to artifact registry
+  build:
+    runs-on: 'ubuntu-latest'
+    needs:
+      - 'lint_and_unit'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
+      - name: 'Setup Go'
+        uses: 'actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568' # ratchet:actions/setup-go@v3
+        with:
+          go-version: '1.20'
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
+        with:
+          workload_identity_provider: '${{ env.WIF_PROVIDER }}'
+          service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+          token_format: 'access_token'
+      - name: 'Authenticate to Artifact Registry'
+        uses: 'docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a' # ratchet:docker/login-action@v2
+        with:
+          username: 'oauth2accesstoken'
+          password: '${{ steps.auth.outputs.access_token }}'
+          registry: '${{ env.DOCKER_REGISTRY }}'
+      # goreleaser requires a tag to publish images to container registry.
+      # We create a local tag to make it happy.
+      - run: |-
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git tag -f `date "+%Y%m%d%H%M%S"`
+      - name: 'Build the service containers and push to the registry with goreleaser'
+        uses: 'goreleaser/goreleaser-action@f82d6c1c344bcacabba2c841718984797f664a6b' # ratchet:goreleaser/goreleaser-action@v4
+        with:
+          version: 'v1.15.2' # Manually pinned
+          args: 'release -f .goreleaser.docker.yaml --rm-dist --skip-validate'
