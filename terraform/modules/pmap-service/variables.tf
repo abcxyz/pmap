@@ -27,9 +27,21 @@ variable "image" {
   type        = string
 }
 
-variable "upstream_pubsub_topic" {
+variable "upstream_topic" {
   description = "The Pub/Sub topic for GCS bucket notifications."
   type        = string
+}
+
+variable "downstream_topic" {
+  description = "The downstream Pub/Sub topic."
+  type        = string
+  default     = null
+}
+
+variable "downstream_failure_topic" {
+  description = "The downstream Pub/Sub topic for failure events."
+  type        = string
+  default     = null
 }
 
 variable "pmap_service_account" {
@@ -37,7 +49,21 @@ variable "pmap_service_account" {
   type        = string
 }
 
-variable "ci_service_account" {
-  description = "CI service account."
+variable "oidc_service_account" {
+  description = <<EOT
+        Service Account used for generating the OIDC tokens. Required to enable request
+        authentication when messages from Pub/Sub are delivered to push endpoints. If the
+        endpoint is a Cloud Run service, this service account needs to be the run invoker.
+    EOT
   type        = string
+}
+
+variable "gcs_events_filter" {
+  description = <<EOF
+      "Optional GCS events subscription filter for mapping events,
+      for example `attributes.objectId=\"<object_id>\"`. Can be used
+      to select a subset of GCS events."
+    EOF
+  type        = string
+  default     = null
 }

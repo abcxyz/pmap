@@ -12,22 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-variable "project_id" {
-  description = "The GCP project to host the pmap services and other resources created during CI."
-  type        = string
-}
-
-variable "mapping_service_image" {
-  description = "The service image of mapping service."
-  type        = string
-}
-
-variable "policy_service_image" {
-  description = "The service image of policy service."
-  type        = string
-}
-
-variable "ci_service_account" {
-  description = "CI service account."
-  type        = string
+output "bigquery_topic" {
+  description = <<EOF
+      BigQuery tables and corresponding Pub/Sub topics for publishing events
+      to the tables. One pair for successful events and the other for failures.
+    EOF
+  value = {
+    event_topic   = google_pubsub_topic.bigquery[local.success_table].name
+    event_table   = google_bigquery_table.pmap[local.success_table].id
+    failure_topic = google_pubsub_topic.bigquery[local.failure_table].name
+    failure_table = google_bigquery_table.pmap[local.failure_table].id
+  }
 }

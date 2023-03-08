@@ -12,22 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-output "policy_service_url" {
-  description = "Policy cloud run service URL."
-  value       = module.policy_service.pmap_service_url
-}
-
-output "mapping_service_url" {
-  description = "Mapping cloud run service URL."
-  value       = module.mapping_service.pmap_service_url
-}
-
-output "policy_gcs_subscription_id" {
-  description = "The Pub/Sub subscription ID for policy."
-  value       = module.policy_service.gcs_pubsub_subscription_id
-}
-
-output "mapping_gcs_subscription_id" {
-  description = "The Pub/Sub subscription ID for mapping."
-  value       = module.mapping_service.gcs_pubsub_subscription_id
+module "common_infra" {
+  source          = "../modules/common"
+  project_id      = var.project_id
+  gcs_bucket_name = var.gcs_bucket_name
+  event_types     = var.event_types
+  // Terraform destroy or terraform apply that would delete the table instance will fail.
+  bigquery_table_delete_protection = true
 }

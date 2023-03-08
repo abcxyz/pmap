@@ -13,23 +13,43 @@
 // limitations under the License.
 
 variable "project_id" {
-  description = "The GCP project that hosts the pmap infra resources for CI."
+  description = "The GCP project to host the pmap services and other resources created during CI."
   type        = string
 }
 
-variable "dataset_id" {
-  description = "The name of the BigQuery dataset ."
+variable "mapping_service_image" {
+  description = "The service image of mapping service."
   type        = string
 }
 
-variable "event" {
-  description = "The pmap event type such as mapping and policy."
+variable "policy_service_image" {
+  description = "The service image of policy service."
   type        = string
 }
 
-variable "run_service_account" {
-  description = "The service account that the Cloud Run service run as."
+variable "gcs_bucket_name" {
+  description = "Globally unique GCS bucket name."
   type        = string
+}
+
+variable "mapping_gcs_events_filter" {
+  description = <<EOF
+      "Optional GCS events subscription filter for mapping events,
+      for example `attributes.objectId=\"<object_id>\"`. Can be used
+      to select a subset of GCS events."
+    EOF
+  type        = string
+  default     = null
+}
+
+variable "policy_gcs_events_filter" {
+  description = <<EOF
+      "Optional GCS events subscription filter for mapping events,
+      for example `attributes.objectId=\"<object_id>\"`. Can be used
+      to select a subset of GCS events."
+    EOF
+  type        = string
+  default     = null
 }
 
 variable "bigquery_table_delete_protection" {

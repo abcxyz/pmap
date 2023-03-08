@@ -20,27 +20,6 @@ data "google_project" "project" {
   project_id = var.project_id
 }
 
-resource "google_project_service" "serviceusage" {
-  project            = var.project_id
-  service            = "serviceusage.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_project_service" "services" {
-  project = var.project_id
-  for_each = toset([
-    "cloudresourcemanager.googleapis.com",
-    "iam.googleapis.com",
-    "pubsub.googleapis.com"
-  ])
-  service            = each.value
-  disable_on_destroy = false
-
-  depends_on = [
-    google_project_service.serviceusage,
-  ]
-}
-
 module "service" {
   source                = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=246cd2f48ca0e2f9c34492ceb16833f2279f64e7"
   project_id            = var.project_id
@@ -50,7 +29,13 @@ module "service" {
   service_iam = {
     admins     = []
     developers = []
-    invokers   = ["serviceAccount:${var.ci_service_account}"]
+    invokers   = ["serviceAccount:${var.oidc_service_account}"]
+  }
+
+  envvars = {
+    "PROJECT_ID" : var.project_id,
+    "SUCCESS_TOPIC_ID" : var.downstream_topic,
+    "FAILURE_TOPIC_ID" : var.downstream_failure_topic
   }
 }
 
@@ -58,7 +43,8 @@ module "service" {
 resource "google_pubsub_subscription" "pmap" {
   project = var.project_id
   name    = module.service.service_name
-  topic   = var.upstream_pubsub_topic
+  topic   = var.upstream_topic
+  filter  = var.gcs_events_filter
 
   // Required for Cloud Run, see https://cloud.google.com/run/docs/triggering/pubsub-push#ack-deadline.
   ack_deadline_seconds = 600
@@ -66,7 +52,7 @@ resource "google_pubsub_subscription" "pmap" {
   push_config {
     push_endpoint = module.service.url
     oidc_token {
-      service_account_email = var.ci_service_account
+      service_account_email = var.oidc_service_account
     }
   }
 }
