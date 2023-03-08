@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-output "pmap_service_url" {
-  description = "Pmap cloud run service URL."
-  value       = module.service.url
+output "bigquery_dataset" {
+  description = "BigQuery dataset ID."
+  value       = module.common_infra.bigquery_dataset
 }
 
-output "gcs_notification_subscription_id" {
-  description = "The Pub/Sub subscription ID."
-  value       = google_pubsub_subscription.pmap.id
+output "bigquery_topics" {
+  description = "A map of event to Pub/Sub topics and BigQuery tables."
+  value       = module.common_infra.bigquery_topics
 }

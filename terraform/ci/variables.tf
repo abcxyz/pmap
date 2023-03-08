@@ -17,27 +17,12 @@ variable "project_id" {
   type        = string
 }
 
-variable "dataset_id" {
-  description = "The name of the BigQuery dataset ."
+variable "gcs_bucket_name" {
+  description = "Globally unique GCS bucket name."
   type        = string
 }
 
-variable "event" {
-  description = "The pmap event type such as mapping and policy."
-  type        = string
-}
-
-variable "run_service_account" {
-  description = "The service account that the Cloud Run service run as."
-  type        = string
-}
-
-variable "bigquery_table_delete_protection" {
-  description = <<EOF
-      Whether or not to allow Terraform to destroy the BigQuery table instances.
-      By default it is false. If set to true, a terraform destroy or terraform
-      apply that would delete the instance will fail.
-    EOF
-  type        = bool
-  default     = false
+variable "event_types" {
+  description = "Pmap event types."
+  type        = list(string)
 }

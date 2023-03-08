@@ -12,6 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+locals {
+  success_table = var.event
+  failure_table = "${var.event}-failure"
+  tables        = toset([local.success_table, local.failure_table])
+}
+
 resource "google_project_service" "serviceusage" {
   project            = var.project_id
   service            = "serviceusage.googleapis.com"
@@ -36,12 +42,12 @@ resource "google_project_service" "services" {
 }
 
 resource "google_bigquery_table" "pmap" {
-  for_each = toset(var.destination_tables)
+  for_each = local.tables
 
   project             = var.project_id
   dataset_id          = var.dataset_id
   table_id            = each.key
-  deletion_protection = true
+  deletion_protection = var.bigquery_table_delete_protection
 
   time_partitioning {
     type  = "DAY"
@@ -80,7 +86,7 @@ EOF
 }
 
 resource "google_pubsub_topic" "bigquery" {
-  for_each = toset(var.destination_tables)
+  for_each = local.tables
 
   project = var.project_id
   name    = "${each.key}-bigquery"
@@ -91,7 +97,7 @@ resource "google_pubsub_topic" "bigquery" {
 }
 
 resource "google_pubsub_subscription" "bigquery" {
-  for_each = toset(var.destination_tables)
+  for_each = local.tables
 
   project = var.project_id
   name    = "${each.key}-bigquery"
@@ -106,11 +112,11 @@ resource "google_pubsub_subscription" "bigquery" {
   }
 }
 
-// Grant Pub/Sub publisher role of downstream Pub/Sub topics to the pmap service account.
+// Grant Pub/Sub publisher role of Pub/Sub topics to the pmap service account.
 resource "google_pubsub_topic_iam_member" "publisher" {
-  for_each = toset(var.destination_tables)
+  for_each = local.tables
 
   topic  = google_pubsub_topic.bigquery[each.key].id
   role   = "roles/pubsub.publisher"
-  member = "serviceAccount:${var.ci_run_service_account}"
+  member = "serviceAccount:${var.run_service_account}"
 }
