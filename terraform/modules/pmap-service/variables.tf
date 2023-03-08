@@ -59,7 +59,11 @@ variable "oidc_service_account" {
 }
 
 variable "gcs_events_filter" {
-  description = "Optional GCS events subscription filter, for example `attributes.objectID=\"<object_id>\"`. Can be used to select a subset of GCS events."
+  description = <<EOF
+      "Optional GCS events subscription filter for mapping events,
+      for example `attributes.objectId=\"<object_id>\"`. Can be used
+      to select a subset of GCS events."
+    EOF
   type        = string
   default     = null
 }

@@ -27,12 +27,37 @@ variable "policy_service_image" {
   type        = string
 }
 
-variable "ci_service_account" {
-  description = "CI service account."
-  type        = string
-}
-
 variable "gcs_bucket_name" {
   description = "Globally unique GCS bucket name."
   type        = string
+}
+
+variable "mapping_gcs_events_filter" {
+  description = <<EOF
+      "Optional GCS events subscription filter for mapping events,
+      for example `attributes.objectId=\"<object_id>\"`. Can be used
+      to select a subset of GCS events."
+    EOF
+  type        = string
+  default     = null
+}
+
+variable "policy_gcs_events_filter" {
+  description = <<EOF
+      "Optional GCS events subscription filter for mapping events,
+      for example `attributes.objectId=\"<object_id>\"`. Can be used
+      to select a subset of GCS events."
+    EOF
+  type        = string
+  default     = null
+}
+
+variable "bigquery_table_delete_protection" {
+  description = <<EOF
+      Whether or not to allow Terraform to destroy the BigQuery table instances.
+      By default it is false. If set to true, a terraform destroy or terraform
+      apply that would delete the instance will fail.
+    EOF
+  type        = bool
+  default     = false
 }

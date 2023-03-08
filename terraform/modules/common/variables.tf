@@ -22,7 +22,17 @@ variable "gcs_bucket_name" {
   type        = string
 }
 
-variable "ci_service_account" {
-  description = "CI service account."
-  type        = string
+variable "event_types" {
+  description = "Pmap event types."
+  type        = list(string)
+}
+
+variable "bigquery_table_delete_protection" {
+  description = <<EOF
+      Whether or not to allow Terraform to destroy the BigQuery table instances.
+      By default it is false. If set to true, a terraform destroy or terraform
+      apply that would delete the instance will fail.
+    EOF
+  type        = bool
+  default     = false
 }

@@ -22,7 +22,7 @@ variable "gcs_bucket_name" {
   type        = string
 }
 
-variable "ci_service_account" {
-  description = "CI service account."
-  type        = string
+variable "event_types" {
+  description = "Pmap event types."
+  type        = list(string)
 }

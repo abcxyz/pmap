@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-output "bigquery_tables" {
-  description = "BigQuery tables that store the pmap events."
-  value       = [for table in google_bigquery_table.pmap : table.table_id]
-}
-
-output "pubsub_topics" {
-  description = "A map with key table name and value PubSub topic that the table subscribes to."
-  value       = google_pubsub_topic.bigquery
+output "topics_and_tables" {
+  description = "Pub/Sub topic and BigQuery table for success events."
+  value = {
+    downstream_pubsub_topic         = google_pubsub_topic.bigquery[local.success_table].name
+    bigquery_table                  = google_bigquery_table.pmap[local.success_table].id
+    downstream_failure_pubsub_topic = google_pubsub_topic.bigquery[local.failure_table].name
+    failure_bigquery_table          = google_bigquery_table.pmap[local.failure_table].id
+  }
 }

@@ -17,12 +17,7 @@ output "bigquery_dataset" {
   value       = module.common_infra.bigquery_dataset
 }
 
-output "mapping_bigquery_tables" {
-  description = "The Pub/Sub subscription ID for mapping."
-  value       = module.common_infra.mapping_bigquery_tables
-}
-
-output "policy_bigquery_tables" {
-  description = "The Pub/Sub subscription ID for mapping."
-  value       = module.common_infra.policy_bigquery_tables
+output "downstream_resouces" {
+  description = "A map of event to downstream PubSub topics and BigQuery tables."
+  value       = module.common_infra.downstream_resouces
 }

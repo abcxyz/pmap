@@ -27,7 +27,7 @@ output "run_service_account" {
 }
 
 output "gcs_pubsub_topic" {
-  description = "PubSub topic for writing to BigQuery."
+  description = "A map of event to PubSub topics."
   value       = google_pubsub_topic.pmap_gcs_notification
 }
 
@@ -36,22 +36,7 @@ output "bigquery_dataset" {
   value       = google_bigquery_dataset.pmap.dataset_id
 }
 
-output "mapping_bigquery_tables" {
-  description = "BigQuery tables that store the mapping events."
-  value       = module.mapping_bigquery.bigquery_tables
-}
-
-output "policy_bigquery_tables" {
-  description = "BigQuery tables that store the policy events."
-  value       = module.policy_bigquery.bigquery_tables
-}
-
-output "mapping_downstream_pubsub_topics" {
-  description = "Downstream PubSub topics for mapping events."
-  value       = module.mapping_bigquery.pubsub_topics
-}
-
-output "policy_downstream_pubsub_topics" {
-  description = "Downstream PubSub topics for policy events."
-  value       = module.policy_bigquery.pubsub_topics
+output "downstream_resouces" {
+  description = "A map of event to downstream PubSub topics and BigQuery tables."
+  value       = { for event in var.event_types : event => module.pubsub_bigquery[event].topics_and_tables }
 }

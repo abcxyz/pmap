@@ -27,12 +27,17 @@ variable "event" {
   type        = string
 }
 
-variable "destination_tables" {
-  description = "List of destination BigQuery table IDs to be created."
-  type        = list(string)
-}
-
 variable "run_service_account" {
   description = "The service account that the Cloud Run service run as."
   type        = string
+}
+
+variable "bigquery_table_delete_protection" {
+  description = <<EOF
+      Whether or not to allow Terraform to destroy the BigQuery table instances.
+      By default it is false. If set to true, a terraform destroy or terraform
+      apply that would delete the instance will fail.
+    EOF
+  type        = bool
+  default     = false
 }

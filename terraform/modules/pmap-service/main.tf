@@ -20,27 +20,6 @@ data "google_project" "project" {
   project_id = var.project_id
 }
 
-resource "google_project_service" "serviceusage" {
-  project            = var.project_id
-  service            = "serviceusage.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_project_service" "services" {
-  project = var.project_id
-  for_each = toset([
-    "cloudresourcemanager.googleapis.com",
-    "iam.googleapis.com",
-    "pubsub.googleapis.com"
-  ])
-  service            = each.value
-  disable_on_destroy = false
-
-  depends_on = [
-    google_project_service.serviceusage,
-  ]
-}
-
 module "service" {
   source                = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=246cd2f48ca0e2f9c34492ceb16833f2279f64e7"
   project_id            = var.project_id

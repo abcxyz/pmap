@@ -18,10 +18,11 @@ locals {
 }
 
 module "common_infra" {
-  source             = "../modules/common"
-  project_id         = var.project_id
-  gcs_bucket_name    = var.gcs_bucket_name
-  ci_service_account = var.ci_service_account
+  source                           = "../modules/common"
+  project_id                       = var.project_id
+  gcs_bucket_name                  = var.gcs_bucket_name
+  event_types                      = [local.mapping_service_name, local.policy_service_name]
+  bigquery_table_delete_protection = var.bigquery_table_delete_protection
 }
 
 module "mapping_service" {
@@ -30,10 +31,11 @@ module "mapping_service" {
   service_name                    = local.mapping_service_name
   image                           = var.mapping_service_image
   upstream_pubsub_topic           = module.common_infra.gcs_pubsub_topic[local.mapping_service_name].name
-  downstream_pubsub_topic         = module.common_infra.mapping_downstream_pubsub_topics[local.mapping_service_name].name
-  downstream_failure_pubsub_topic = module.common_infra.mapping_downstream_pubsub_topics["${local.mapping_service_name}-failure"].name
+  downstream_pubsub_topic         = module.common_infra.downstream_resouces[local.mapping_service_name].downstream_pubsub_topic
+  downstream_failure_pubsub_topic = module.common_infra.downstream_resouces[local.mapping_service_name].downstream_failure_pubsub_topic
   pmap_service_account            = module.common_infra.run_service_account
   oidc_service_account            = module.common_infra.oidc_service_account
+  gcs_events_filter               = var.mapping_gcs_events_filter
 }
 
 module "policy_service" {
@@ -42,7 +44,8 @@ module "policy_service" {
   service_name            = local.policy_service_name
   image                   = var.policy_service_image
   upstream_pubsub_topic   = module.common_infra.gcs_pubsub_topic[local.policy_service_name].name
-  downstream_pubsub_topic = module.common_infra.policy_downstream_pubsub_topics[local.policy_service_name].name
+  downstream_pubsub_topic = module.common_infra.downstream_resouces[local.policy_service_name].downstream_pubsub_topic
   pmap_service_account    = module.common_infra.run_service_account
   oidc_service_account    = module.common_infra.oidc_service_account
+  gcs_events_filter       = var.policy_gcs_events_filter
 }
