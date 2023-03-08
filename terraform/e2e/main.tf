@@ -26,26 +26,26 @@ module "common_infra" {
 }
 
 module "mapping_service" {
-  source                          = "../modules/pmap-service"
-  project_id                      = var.project_id
-  service_name                    = local.mapping_service_name
-  image                           = var.mapping_service_image
-  upstream_pubsub_topic           = module.common_infra.gcs_pubsub_topic[local.mapping_service_name].name
-  downstream_pubsub_topic         = module.common_infra.downstream_resouces[local.mapping_service_name].downstream_pubsub_topic
-  downstream_failure_pubsub_topic = module.common_infra.downstream_resouces[local.mapping_service_name].downstream_failure_pubsub_topic
-  pmap_service_account            = module.common_infra.run_service_account
-  oidc_service_account            = module.common_infra.oidc_service_account
-  gcs_events_filter               = var.mapping_gcs_events_filter
+  source                   = "../modules/pmap-service"
+  project_id               = var.project_id
+  service_name             = local.mapping_service_name
+  image                    = var.mapping_service_image
+  upstream_topic           = module.common_infra.gcs_notification_topics[local.mapping_service_name].name
+  downstream_topic         = module.common_infra.bigquery_topics[local.mapping_service_name].event_topic
+  downstream_failure_topic = module.common_infra.bigquery_topics[local.mapping_service_name].failure_topic
+  pmap_service_account     = module.common_infra.run_service_account
+  oidc_service_account     = module.common_infra.oidc_service_account
+  gcs_events_filter        = var.mapping_gcs_events_filter
 }
 
 module "policy_service" {
-  source                  = "../modules/pmap-service"
-  project_id              = var.project_id
-  service_name            = local.policy_service_name
-  image                   = var.policy_service_image
-  upstream_pubsub_topic   = module.common_infra.gcs_pubsub_topic[local.policy_service_name].name
-  downstream_pubsub_topic = module.common_infra.downstream_resouces[local.policy_service_name].downstream_pubsub_topic
-  pmap_service_account    = module.common_infra.run_service_account
-  oidc_service_account    = module.common_infra.oidc_service_account
-  gcs_events_filter       = var.policy_gcs_events_filter
+  source               = "../modules/pmap-service"
+  project_id           = var.project_id
+  service_name         = local.policy_service_name
+  image                = var.policy_service_image
+  upstream_topic       = module.common_infra.gcs_notification_topics[local.policy_service_name].name
+  downstream_topic     = module.common_infra.bigquery_topics[local.policy_service_name].event_topic
+  pmap_service_account = module.common_infra.run_service_account
+  oidc_service_account = module.common_infra.oidc_service_account
+  gcs_events_filter    = var.policy_gcs_events_filter
 }

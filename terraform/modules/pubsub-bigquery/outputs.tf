@@ -12,12 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-output "topics_and_tables" {
-  description = "Pub/Sub topic and BigQuery table for success events."
+output "bigquery_topic" {
+  description = <<EOF
+      BigQuery tables and corresponding Pub/Sub topics for publishing events
+      to the tables. One pair for successful events and the other for failures.
+    EOF
   value = {
-    downstream_pubsub_topic         = google_pubsub_topic.bigquery[local.success_table].name
-    bigquery_table                  = google_bigquery_table.pmap[local.success_table].id
-    downstream_failure_pubsub_topic = google_pubsub_topic.bigquery[local.failure_table].name
-    failure_bigquery_table          = google_bigquery_table.pmap[local.failure_table].id
+    event_topic   = google_pubsub_topic.bigquery[local.success_table].name
+    event_table   = google_bigquery_table.pmap[local.success_table].id
+    failure_topic = google_pubsub_topic.bigquery[local.failure_table].name
+    failure_table = google_bigquery_table.pmap[local.failure_table].id
   }
 }

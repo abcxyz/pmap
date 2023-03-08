@@ -112,7 +112,7 @@ resource "google_pubsub_subscription" "bigquery" {
   }
 }
 
-// Grant Pub/Sub publisher role of downstream Pub/Sub topics to the pmap service account.
+// Grant Pub/Sub publisher role of Pub/Sub topics to the pmap service account.
 resource "google_pubsub_topic_iam_member" "publisher" {
   for_each = local.tables
 

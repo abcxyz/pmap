@@ -17,7 +17,7 @@ output "bigquery_dataset" {
   value       = module.common_infra.bigquery_dataset
 }
 
-output "downstream_resouces" {
-  description = "A map of event to downstream PubSub topics and BigQuery tables."
-  value       = module.common_infra.downstream_resouces
+output "bigquery_topics" {
+  description = "A map of event to Pub/Sub topics and BigQuery tables."
+  value       = module.common_infra.bigquery_topics
 }

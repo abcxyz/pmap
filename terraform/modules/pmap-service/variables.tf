@@ -27,18 +27,18 @@ variable "image" {
   type        = string
 }
 
-variable "upstream_pubsub_topic" {
+variable "upstream_topic" {
   description = "The Pub/Sub topic for GCS bucket notifications."
   type        = string
 }
 
-variable "downstream_pubsub_topic" {
+variable "downstream_topic" {
   description = "The downstream Pub/Sub topic."
   type        = string
   default     = null
 }
 
-variable "downstream_failure_pubsub_topic" {
+variable "downstream_failure_topic" {
   description = "The downstream Pub/Sub topic for failure events."
   type        = string
   default     = null

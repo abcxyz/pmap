@@ -26,8 +26,8 @@ output "run_service_account" {
   value       = google_service_account.run_service_account.email
 }
 
-output "gcs_pubsub_topic" {
-  description = "A map of event to PubSub topics."
+output "gcs_notification_topics" {
+  description = "A map of event to GCS notification Pub/Sub topics."
   value       = google_pubsub_topic.pmap_gcs_notification
 }
 
@@ -36,7 +36,7 @@ output "bigquery_dataset" {
   value       = google_bigquery_dataset.pmap.dataset_id
 }
 
-output "downstream_resouces" {
-  description = "A map of event to downstream PubSub topics and BigQuery tables."
-  value       = { for event in var.event_types : event => module.pubsub_bigquery[event].topics_and_tables }
+output "bigquery_topics" {
+  description = "A map of event to Pub/Sub topics and BigQuery tables."
+  value       = { for event in var.event_types : event => module.pubsub_bigquery[event].bigquery_topic }
 }

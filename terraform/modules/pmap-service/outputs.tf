@@ -17,7 +17,7 @@ output "pmap_service_url" {
   value       = module.service.url
 }
 
-output "gcs_pubsub_subscription_id" {
+output "gcs_notification_subscription_id" {
   description = "The Pub/Sub subscription ID."
   value       = google_pubsub_subscription.pmap.id
 }

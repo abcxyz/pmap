@@ -34,8 +34,8 @@ module "service" {
 
   envvars = {
     "PROJECT_ID" : var.project_id,
-    "SUCCESS_TOPIC_ID" : var.downstream_pubsub_topic,
-    "FAILURE_TOPIC_ID" : var.downstream_failure_pubsub_topic
+    "SUCCESS_TOPIC_ID" : var.downstream_topic,
+    "FAILURE_TOPIC_ID" : var.downstream_failure_topic
   }
 }
 
@@ -43,7 +43,7 @@ module "service" {
 resource "google_pubsub_subscription" "pmap" {
   project = var.project_id
   name    = module.service.service_name
-  topic   = var.upstream_pubsub_topic
+  topic   = var.upstream_topic
   filter  = var.gcs_events_filter
 
   // Required for Cloud Run, see https://cloud.google.com/run/docs/triggering/pubsub-push#ack-deadline.
