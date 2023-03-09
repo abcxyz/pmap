@@ -18,7 +18,7 @@ output "oidc_service_account" {
         authentication when messages from Pub/Sub are delivered to push endpoints. If the
         endpoint is a Cloud Run service, this service account needs to be the run invoker.
     EOT
-  value       = google_service_account.oidc_service_account.email
+  value       = module.common_infra.oidc_service_account
 }
 
 output "oidc_service_account_name" {
@@ -27,30 +27,30 @@ output "oidc_service_account_name" {
         authentication when messages from Pub/Sub are delivered to push endpoints. If the
         endpoint is a Cloud Run service, this service account needs to be the run invoker.
     EOT
-  value       = google_service_account.oidc_service_account.name
+  value       = module.common_infra.oidc_service_account_name
 }
 
 output "run_service_account" {
   description = "Service Account Cloud Run services to run as."
-  value       = google_service_account.run_service_account.email
+  value       = module.common_infra.run_service_account
 }
 
 output "run_service_account_name" {
   description = "Service Account name Cloud Run services to run as."
-  value       = google_service_account.run_service_account.name
+  value       = module.common_infra.run_service_account_name
 }
 
 output "gcs_notification_topics" {
   description = "A map of event to GCS notification Pub/Sub topics."
-  value       = google_pubsub_topic.pmap_gcs_notification
+  value       = module.common_infra.gcs_notification_topics
 }
 
 output "bigquery_dataset" {
   description = "BigQuery dataset ID."
-  value       = google_bigquery_dataset.pmap.dataset_id
+  value       = module.common_infra.bigquery_dataset
 }
 
 output "bigquery_topics" {
   description = "A map of event to Pub/Sub topics and BigQuery tables."
-  value       = { for event in var.event_types : event => module.pubsub_bigquery[event].bigquery_topic }
+  value       = module.common_infra.bigquery_topics
 }
