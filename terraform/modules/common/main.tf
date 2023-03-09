@@ -48,7 +48,7 @@ resource "google_project_service" "services" {
 // Create BigQuery dataset and tables.
 resource "google_bigquery_dataset" "pmap" {
   project                         = var.project_id
-  dataset_id                      = "pmap"
+  dataset_id                      = "pmap_${random_id.default.hex}"
   friendly_name                   = "Privacy data annotations and mappings."
   description                     = "Dataset for data annotations and their mappings to data resources."
   location                        = "US"
@@ -149,7 +149,7 @@ resource "google_pubsub_topic" "pmap_gcs_notification" {
 // Create a dedicated service account for pmap services to run as.
 resource "google_service_account" "run_service_account" {
   project      = var.project_id
-  account_id   = "run-pmap-sa"
+  account_id   = "run-pmap-${random_id.default.hex}"
   display_name = "Cloud Run Service Account for pmap"
 }
 
@@ -165,6 +165,10 @@ resource "google_storage_bucket_iam_member" "object_viewer" {
 // a Cloud Run service, this service account needs to be the run invoker.
 resource "google_service_account" "oidc_service_account" {
   project      = var.project_id
-  account_id   = "pmap-oidc"
+  account_id   = "pmap-oidc-${random_id.default.hex}"
   display_name = "Service Account used for generating the OIDC tokens"
+}
+
+resource "random_id" "default" {
+  byte_length = 2
 }
