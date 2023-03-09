@@ -2,6 +2,12 @@ name: 'integration'
 # TODO(#47): Merge back to ci workflow once completed.
 
 on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    branches:
+      - 'main'
   workflow_dispatch:
 
 env:
@@ -11,9 +17,8 @@ env:
   DOCKER_REPO: 'us-docker.pkg.dev/pmap-ci/ci-images'
   DOCKER_TAG: '${{ github.sha }}'
   PROJECT_ID: 'pmap-ci'
-  GCS_BUCKET: 'pmap-ci'
-  RUN_SERVICE_ACCOUNT: 'run-pmap-sa@pmap-ci.iam.gserviceaccount.com'
-  OIDC_SERVICE_ACCOUNT: 'pmap-oidc@pmap-ci.iam.gserviceaccount.com'
+  RUN_SERVICE_ACCOUNT: 'run-pmap-86d8@pmap-ci.iam.gserviceaccount.com'
+  OIDC_SERVICE_ACCOUNT: 'pmap-oidc-86d8@pmap-ci.iam.gserviceaccount.com'
   MAPPING_UPSTREAM_TOPIC: 'mapping-gcs'
   MAPPING_DOWNSTREAM_TOPIC: 'mapping-bigquery'
   MAPPING_DOWNSTREAM_FAILURE_TOPIC: 'mapping-failure-bigquery'
@@ -22,8 +27,8 @@ env:
   # Object ID prefix is used as GCS notification path filter, GCS object with the name prefix
   # will trigger the respective GCS notification. Object ID is used to mark the files uploaded
   # to GCS and BigQuery so that we can run multiple integration tests simultaneously.
-  MAPPING_OBJECT_ID: "mapping/$OBJECT_SUFFIX"
-  POLICY_OBJECT_ID: "policy/$OBJECT_SUFFIX"
+  MAPPING_OBJECT_ID: "mapping/${OBJECT_SUFFIX}"
+  POLICY_OBJECT_ID: "policy/${OBJECT_SUFFIX}"
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
@@ -77,7 +82,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     env:
-      tf_module_dir: './terraform/modules/pmap-service'
+      TF_MODULE_DIR: './terraform/modules/pmap-service'
     steps:
       - uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
       - id: 'auth'
@@ -102,47 +107,47 @@ jobs:
             echo "OBJECT_SUFFIX=$(uuidgen)" >> $GITHUB_ENV
       - name: 'Write mapping tfvars file'
         run: |-
-          var_file=/tmp/mapping_ci.tfvars
+          VAR_FILE=/tmp/mapping_ci.tfvars
 
           touch /tmp/mapping_ci.tfvars
-          echo project_id=\"${{ env.PROJECT_ID }}\" >> ${var_file};
-          echo service_name=\"mapping\" >> ${var_file};
-          echo image=\"${{env.DOCKER_REPO}}/privacy-data-mapping:${{env.DOCKER_TAG}}-amd64\" >> ${var_file};
-          echo upstream_topic=\"${{ env.MAPPING_UPSTREAM_TOPIC}}\" >> ${var_file};
-          echo downstream_topic=\"${{ env.MAPPING_DOWNSTREAM_TOPIC}}\" >> ${var_file};
-          echo downstream_failure_topic=\"${{ env.MAPPING_DOWNSTREAM_FAILURE_TOPIC}}\" >> ${var_file};
-          echo pmap_service_account=\"${{ env.RUN_SERVICE_ACCOUNT }}\" >> ${var_file};
-          echo oidc_service_account=\"${{ env.OIDC_SERVICE_ACCOUNT }}\" >> ${var_file}
-          echo gcs_events_filter=\"attributes.objectId=\\\"${{ env.MAPPING_OBJECT_ID }}\\\"\">> ${var_file};
+          echo project_id=\"${{ env.PROJECT_ID }}\" >> ${VAR_FILE};
+          echo service_name=\"mapping\" >> ${VAR_FILE};
+          echo image=\"${{env.DOCKER_REPO}}/privacy-data-mapping:${{env.DOCKER_TAG}}-amd64\" >> ${VAR_FILE};
+          echo upstream_topic=\"${{ env.MAPPING_UPSTREAM_TOPIC}}\" >> ${VAR_FILE};
+          echo downstream_topic=\"${{ env.MAPPING_DOWNSTREAM_TOPIC}}\" >> ${VAR_FILE};
+          echo downstream_failure_topic=\"${{ env.MAPPING_DOWNSTREAM_FAILURE_TOPIC}}\" >> ${VAR_FILE};
+          echo pmap_service_account=\"${{ env.RUN_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
+          echo oidc_service_account=\"${{ env.OIDC_SERVICE_ACCOUNT }}\" >> ${VAR_FILE}
+          echo gcs_events_filter=\"attributes.objectId=\\\"${{ env.MAPPING_OBJECT_ID }}\\\"\">> ${VAR_FILE};
 
-          cat ${var_file};
-          echo "mapping_tfvar_file=${var_file}" >> $GITHUB_ENV;
+          cat ${VAR_FILE};
+          echo "MAPPING_TF_VAR_FILE=${VAR_FILE}" >> $GITHUB_ENV;
       - name: 'Write policy tfvars file'
         run: |-
-          var_file=/tmp/policy_ci.tfvars
+          VAR_FILE=/tmp/policy_ci.tfvars
 
           touch /tmp/policy_ci.tfvars
-          echo project_id=\"${{ env.PROJECT_ID }}\" >> ${var_file};
-          echo service_name=\"policy\" >> ${var_file};
-          echo image=\"${{env.DOCKER_REPO}}/privacy-data-policy:${{env.DOCKER_TAG}}-amd64\" >> ${var_file};
-          echo upstream_topic=\"${{ env.POLICY_UPSTREAM_TOPIC}}\" >> ${var_file};
-          echo downstream_topic=\"${{ env.POLICY_DOWNSTREAM_TOPIC}}\" >> ${var_file};
-          echo pmap_service_account=\"${{ env.RUN_SERVICE_ACCOUNT }}\" >> ${var_file};
-          echo oidc_service_account=\"${{ env.OIDC_SERVICE_ACCOUNT }}\" >> ${var_file}
-          echo gcs_events_filter=\"attributes.objectId=\\\"${{ env.POLICY_OBJECT_ID }}\\\"\">> ${var_file};
+          echo project_id=\"${{ env.PROJECT_ID }}\" >> ${VAR_FILE};
+          echo service_name=\"policy\" >> ${VAR_FILE};
+          echo image=\"${{env.DOCKER_REPO}}/privacy-data-policy:${{env.DOCKER_TAG}}-amd64\" >> ${VAR_FILE};
+          echo upstream_topic=\"${{ env.POLICY_UPSTREAM_TOPIC}}\" >> ${VAR_FILE};
+          echo downstream_topic=\"${{ env.POLICY_DOWNSTREAM_TOPIC}}\" >> ${VAR_FILE};
+          echo pmap_service_account=\"${{ env.RUN_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
+          echo oidc_service_account=\"${{ env.OIDC_SERVICE_ACCOUNT }}\" >> ${VAR_FILE}
+          echo gcs_events_filter=\"attributes.objectId=\\\"${{ env.POLICY_OBJECT_ID }}\\\"\">> ${VAR_FILE};
 
-          cat ${var_file};
-          echo "policy_tfvar_file=${var_file}" >> $GITHUB_ENV;
+          cat ${VAR_FILE};
+          echo "POLICY_TF_VAR_FILE=${VAR_FILE}" >> $GITHUB_ENV;
       - name: 'Init the terraform infrastructure'
-        run: terraform -chdir=${{ env.tf_module_dir }} init
+        run: terraform -chdir=${{ env.TF_MODULE_DIR }} init
       - name: 'Apply the infrastructure updates'
         id: 'tf_apply'
         run: |-
-          terraform -chdir=${{ env.tf_module_dir}} apply -auto-approve -var-file=${{env.mapping_tfvar_file}};
-          terraform -chdir=${{ env.tf_module_dir}} apply -auto-approve -var-file=${{env.policy_tfvar_file}};
+          terraform -chdir=${{ env.TF_MODULE_DIR}} apply -auto-approve -var-file=${{env.MAPPING_TF_VAR_FILE}};
+          terraform -chdir=${{ env.TF_MODULE_DIR}} apply -auto-approve -var-file=${{env.POLICY_TF_VAR_FILE}};
       # TODO(#47): Add integration tests.
       - name: 'Cleanup the infrastructure'
         if: always()
         run: |-
-          terraform -chdir=${{ env.tf_module_dir}} apply -destroy -auto-approve -var-file=${{env.mapping_tfvar_file}};
-          terraform -chdir=${{ env.tf_module_dir}} apply -destroy -auto-approve -var-file=${{env.policy_tfvar_file}};
+          terraform -chdir=${{ env.TF_MODULE_DIR}} apply -destroy -auto-approve -var-file=${{env.MAPPING_TF_VAR_FILE}};
+          terraform -chdir=${{ env.TF_MODULE_DIR}} apply -destroy -auto-approve -var-file=${{env.POLICY_TF_VAR_FILE}};
