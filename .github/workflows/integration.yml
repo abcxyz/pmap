@@ -24,11 +24,6 @@ env:
   MAPPING_DOWNSTREAM_FAILURE_TOPIC: 'mapping-failure-bigquery'
   POLICY_UPSTREAM_TOPIC: 'policy-gcs'
   POLICY_DOWNSTREAM_TOPIC: 'policy-bigquery'
-  # Object ID prefix is used as GCS notification path filter, GCS object with the name prefix
-  # will trigger the respective GCS notification. Object ID is used to mark the files uploaded
-  # to GCS and BigQuery so that we can run multiple integration tests simultaneously.
-  MAPPING_OBJECT_ID: "mapping/${OBJECT_SUFFIX}"
-  POLICY_OBJECT_ID: "policy/${OBJECT_SUFFIX}"
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
@@ -104,7 +99,7 @@ jobs:
       # CI simultaneously.
       - name: 'Generate object suffix'
         run: |
-            echo "OBJECT_SUFFIX=$(uuidgen)" >> $GITHUB_ENV
+            echo "OBJECT_PREFIX=$RANDOM" >> $GITHUB_ENV
       - name: 'Write mapping tfvars file'
         run: |-
           VAR_FILE=/tmp/mapping_ci.tfvars
@@ -118,7 +113,7 @@ jobs:
           echo downstream_failure_topic=\"${{ env.MAPPING_DOWNSTREAM_FAILURE_TOPIC}}\" >> ${VAR_FILE};
           echo pmap_service_account=\"${{ env.RUN_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
           echo oidc_service_account=\"${{ env.OIDC_SERVICE_ACCOUNT }}\" >> ${VAR_FILE}
-          echo gcs_events_filter=\"attributes.objectId=\\\"${{ env.MAPPING_OBJECT_ID }}\\\"\">> ${VAR_FILE};
+          echo gcs_events_filter=\"hasPrefix\"(attributes.objectId, \\\"mapping/${OBJECT_PREFIX}\\\")\"\">> ${VAR_FILE};
 
           cat ${VAR_FILE};
           echo "MAPPING_TF_VAR_FILE=${VAR_FILE}" >> $GITHUB_ENV;
@@ -134,7 +129,7 @@ jobs:
           echo downstream_topic=\"${{ env.POLICY_DOWNSTREAM_TOPIC}}\" >> ${VAR_FILE};
           echo pmap_service_account=\"${{ env.RUN_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
           echo oidc_service_account=\"${{ env.OIDC_SERVICE_ACCOUNT }}\" >> ${VAR_FILE}
-          echo gcs_events_filter=\"attributes.objectId=\\\"${{ env.POLICY_OBJECT_ID }}\\\"\">> ${VAR_FILE};
+          echo gcs_events_filter=\"hasPrefix\(attributes.objectId,\ \\\"policy/${OBJECT_PREFIX}\\\"\)\">> ${VAR_FILE};
 
           cat ${VAR_FILE};
           echo "POLICY_TF_VAR_FILE=${VAR_FILE}" >> $GITHUB_ENV;
