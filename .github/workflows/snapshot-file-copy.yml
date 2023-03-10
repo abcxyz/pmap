@@ -15,7 +15,7 @@ on:
         type: 'string'
         required: true
       resource_mappings_path:
-        description: 'The path to a file or folder contains the resource mappings in the GitHub repo that should be uploaded to the gcs. This path should only contain resource mapping yaml files'
+        description: 'The path to a file or folder contains the resource mappings yaml files in the GitHub repo that should be uploaded to the gcs.'
         type: 'string'
         required: true
 
@@ -45,6 +45,7 @@ jobs:
         with:
           path: '${{ inputs.resource_mappings_path }}'
           destination: '${{ inputs.gcs_dst_url_prefix }}/${{ env.CUR_TIMESTAMP }}'
+          glob: '**/*.yaml'
       - name: 'List all uploaded files'
         run: |-
           echo "all gcs uploaded files"
