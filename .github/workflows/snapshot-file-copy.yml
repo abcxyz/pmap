@@ -10,12 +10,12 @@ on:
         description: 'Email address or unique identifier of the Google Cloud service account for which to generate credentials.'
         type: 'string'
         required: true
-      gcs_dst_url_prefix:
+      destination_prefix:
         description: 'The destination prefix for the file/folder in the form bucket-name or with an optional prefix in the form bucket-name/prefix.'
         type: 'string'
         required: true
       resource_mappings_path:
-        description: 'The path to a file or folder contains the resource mappings yaml files in the GitHub repo that should be uploaded to the gcs.'
+        description: 'The path to a file or folder contains the resource mappings in the GitHub repo that should be uploaded to the gcs'
         type: 'string'
         required: true
 
@@ -44,9 +44,9 @@ jobs:
         uses: 'google-github-actions/upload-cloud-storage@a5b77a3bf84da1791719585d327e5f90ae5cb53c' # ratchet:google-github-actions/upload-cloud-storage@v1
         with:
           path: '${{ inputs.resource_mappings_path }}'
-          destination: '${{ inputs.gcs_dst_url_prefix }}/${{ env.CUR_TIMESTAMP }}'
+          destination: '${{ inputs.destination_prefix }}/${{ env.CUR_TIMESTAMP }}'
           glob: '**/*.yaml'
       - name: 'List all uploaded files'
         run: |-
           echo "all gcs uploaded files"
-          echo ${{ steps.gcs-upload-file.outputs.uploaded }}
+          echo '${{ steps.gcs-upload-file.outputs.uploaded }}'
