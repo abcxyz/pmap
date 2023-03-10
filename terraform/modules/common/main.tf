@@ -116,7 +116,7 @@ resource "google_storage_notification" "pmap" {
   topic          = google_pubsub_topic.pmap_gcs_notification[each.key].id
   event_types    = ["OBJECT_FINALIZE"]
   // Separate mapping and policy notifications by object name prefix.
-  // Mapping objects start with "mapping", whereas policy start with "policy".
+  // Mapping objects start with "mapping/", whereas policy start with "policy/".
   object_name_prefix = "${each.key}/"
   depends_on         = [google_pubsub_topic_iam_member.publishers]
 }
