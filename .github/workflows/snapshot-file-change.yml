@@ -10,7 +10,7 @@ on:
         description: 'Email address or unique identifier of the Google Cloud service account for which to generate credentials.'
         type: 'string'
         required: true
-      gcs_dst_url_prefix:
+      destination_prefix:
         description: 'The destination prefix for the file/folder in the form bucket-name or with an optional prefix in the form bucket-name/prefix.'
         type: 'string'
         required: true
@@ -34,6 +34,7 @@ jobs:
       - name: 'Copy added and changed files'
         if: ${{ steps.changed-yaml-files.outputs.any_changed == 'true' }}
         run: |
+          echo ${{ env.RUNNER_TEMP }}
           echo "CUR_TIMESTAMP=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
           sudo mkdir -p ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change
           for file in ${{ steps.changed-yaml-files.outputs.added_files }}; do
@@ -58,8 +59,8 @@ jobs:
         with:
           path: '${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change'
           parent: false
-          destination: '${{ inputs.gcs_dst_url_prefix }}/${{ env.CUR_TIMESTAMP }}'
+          destination: '${{ inputs.destination_prefix }}/${{ env.CUR_TIMESTAMP }}'
       - name: 'List all uploaded files'
         run: |-
           echo "all gcs uploaded files"
-          echo ${{ steps.gcs-upload-file.outputs.uploaded }}
+          echo '${{ steps.gcs-upload-file.outputs.uploaded }}'
