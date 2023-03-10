@@ -64,6 +64,7 @@ jobs:
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
           path: '/tmp/snapshot-file-change'
+          parent: false
           destination: '${{ inputs.gcs_dst_url_prefix }}/${{ env.CUR_TIMESTAMP }}'
 
       - name: 'List all uploaded files'
