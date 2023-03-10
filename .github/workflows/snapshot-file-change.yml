@@ -1,5 +1,4 @@
 name: 'pmap-snapshot-file-change'
-
 on:
   workflow_call:
     inputs:
@@ -15,7 +14,6 @@ on:
         description: 'The destination prefix for the file/folder in the form bucket-name or with an optional prefix in the form bucket-name/prefix.'
         type: 'string'
         required: true
-
 jobs:
   snapshot:
     runs-on: ubuntu-latest
@@ -23,51 +21,45 @@ jobs:
       contents: 'read'
       id-token: 'write'
     name: 'Snapshot changed files'
-
     steps:
-      - uses: 'actions/checkout@v3'
+      - uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
         with:
-          fetch-depth: 0  # OR "2" -> To retrieve the preceding commit.
-
+          fetch-depth: 0 # OR "2" -> To retrieve the preceding commit.
       - name: 'Get changed yaml files'
         id: 'changed-yaml-files'
-        uses: 'tj-actions/changed-files@v35'
+        uses: 'tj-actions/changed-files@84ed30e2f4daf616144de7e0c1db59d5b33025e3' # ratchet:tj-actions/changed-files@v35
         with:
           files: |
             **/*.yaml
-
       - name: 'Copy added and changed files'
-        if: steps.changed-yaml-files.outputs.any_changed == 'true'
+        if: ${{ steps.changed-yaml-files.outputs.any_changed == 'true' }}
         run: |
           echo "CUR_TIMESTAMP=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
-          sudo mkdir -p /tmp/snapshot-file-change
+          sudo mkdir -p ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change
           for file in ${{ steps.changed-yaml-files.outputs.added_files }}; do
             echo "$file was added"
-            sudo cp --parents $file /tmp/snapshot-file-change
-            echo "$file was copied to /tmp/snapshot-file-change"
+            sudo cp --parents $file ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change
+            echo "$file was copied to ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change"
           done
           for file in ${{ steps.changed-yaml-files.outputs.modified_files }}; do
             echo "$file was modified"
-            sudo cp --parents $file /tmp/snapshot-file-change
-            echo "$file was copied to /tmp/snapshot-file-change"
+            sudo cp --parents $file ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change
+            echo "$file was copied to ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change"
           done
-
       - name: 'Authenticate to Google Cloud'
         id: 'auth'
-        uses: 'google-github-actions/auth@v1'
+        uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
         with:
           workload_identity_provider: '${{ inputs.workload_identity_provider }}'
           service_account: '${{ inputs.service_account }}'
-
       - name: 'GCS upload files'
         id: 'gcs-upload-file'
-        uses: 'google-github-actions/upload-cloud-storage@v1'
+        uses: 'google-github-actions/upload-cloud-storage@a5b77a3bf84da1791719585d327e5f90ae5cb53c' # ratchet:google-github-actions/upload-cloud-storage@v1
         with:
-          path: '/tmp/snapshot-file-change'
+          path: '${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change'
           parent: false
           destination: '${{ inputs.gcs_dst_url_prefix }}/${{ env.CUR_TIMESTAMP }}'
-
       - name: 'List all uploaded files'
-        run: |
+        run: |-
           echo "all gcs uploaded files"
           echo ${{ steps.gcs-upload-file.outputs.uploaded }}
