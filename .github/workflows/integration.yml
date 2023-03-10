@@ -2,12 +2,6 @@ name: 'integration'
 # TODO(#47): Merge back to ci workflow once completed.
 
 on:
-  push:
-    branches:
-      - 'main'
-  pull_request:
-    branches:
-      - 'main'
   workflow_dispatch:
 
 env:
@@ -112,8 +106,8 @@ jobs:
           echo downstream_topic=\"${{ env.MAPPING_DOWNSTREAM_TOPIC}}\" >> ${VAR_FILE};
           echo downstream_failure_topic=\"${{ env.MAPPING_DOWNSTREAM_FAILURE_TOPIC}}\" >> ${VAR_FILE};
           echo pmap_service_account=\"${{ env.RUN_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
-          echo oidc_service_account=\"${{ env.OIDC_SERVICE_ACCOUNT }}\" >> ${VAR_FILE}
-          echo gcs_events_filter=\"hasPrefix\"(attributes.objectId, \\\"mapping/${OBJECT_PREFIX}\\\")\"\">> ${VAR_FILE};
+          echo oidc_service_account=\"${{ env.OIDC_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
+          echo gcs_events_filter=\"hasPrefix\(attributes.objectId, \\\"mapping/${OBJECT_PREFIX}\\\"\)\">> ${VAR_FILE};
 
           cat ${VAR_FILE};
           echo "MAPPING_TF_VAR_FILE=${VAR_FILE}" >> $GITHUB_ENV;
@@ -128,8 +122,8 @@ jobs:
           echo upstream_topic=\"${{ env.POLICY_UPSTREAM_TOPIC}}\" >> ${VAR_FILE};
           echo downstream_topic=\"${{ env.POLICY_DOWNSTREAM_TOPIC}}\" >> ${VAR_FILE};
           echo pmap_service_account=\"${{ env.RUN_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
-          echo oidc_service_account=\"${{ env.OIDC_SERVICE_ACCOUNT }}\" >> ${VAR_FILE}
-          echo gcs_events_filter=\"hasPrefix\(attributes.objectId,\ \\\"policy/${OBJECT_PREFIX}\\\"\)\">> ${VAR_FILE};
+          echo oidc_service_account=\"${{ env.OIDC_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
+          echo gcs_events_filter=\"hasPrefix\(attributes.objectId, \\\"policy/${OBJECT_PREFIX}\\\"\)\">> ${VAR_FILE};
 
           cat ${VAR_FILE};
           echo "POLICY_TF_VAR_FILE=${VAR_FILE}" >> $GITHUB_ENV;
