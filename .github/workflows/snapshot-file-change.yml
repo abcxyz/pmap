@@ -34,7 +34,7 @@ jobs:
         uses: 'tj-actions/changed-files@v35'
         with:
           files: |
-            **/*yaml
+            **/*.yaml
 
       - name: 'Copy added and changed files'
         if: steps.changed-yaml-files.outputs.any_changed == 'true'
