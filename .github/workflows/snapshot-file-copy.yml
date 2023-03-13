@@ -15,7 +15,7 @@ on:
         type: 'string'
         required: true
       path:
-        description: 'The path to a file or folder in the GitHub repo that should be uploaded to the gcs'
+        description: 'The path to a file or folder in the GitHub repo that should be uploaded to the gcs.'
         type: 'string'
         required: true
 
@@ -44,8 +44,15 @@ jobs:
         uses: 'google-github-actions/upload-cloud-storage@a5b77a3bf84da1791719585d327e5f90ae5cb53c' # ratchet:google-github-actions/upload-cloud-storage@v1
         with:
           path: '${{ inputs.path }}'
-          destination: '${{ inputs.destination_prefix }}/${{ env.CUR_TIMESTAMP }}'
+          destination: '${{ inputs.destination_prefix }}/pmap-file-copy-${{ github.run_id }}-${{ github.run_attempt }}'
           glob: '**/*.yaml'
+          headers: |-
+            content-type: application/json
+            x-goog-meta-git-commit: ${{ github.sha }}
+            x-goog-meta-git-repo: ${{ github.repository }}
+            x-goog-meta-git-workflow: ${{ github.workflow }}
+            x-goog-meta-git-workflow-sha: ${{ github.workflow_sha }}
+            x-goog-meta-triggered-timestamp: ${{ env.CUR_TIMESTAMP }}
       - name: 'List all uploaded files'
         run: |-
           echo "all gcs uploaded files"
