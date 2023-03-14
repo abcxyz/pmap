@@ -20,11 +20,13 @@ variable "project_id" {
 variable "mapping_service_image" {
   description = "The service image of mapping service."
   type        = string
+  default     = "us-docker.pkg.dev/cloudrun/container/hello"
 }
 
 variable "policy_service_image" {
   description = "The service image of policy service."
   type        = string
+  default     = "us-docker.pkg.dev/cloudrun/container/hello"
 }
 
 variable "gcs_bucket_name" {

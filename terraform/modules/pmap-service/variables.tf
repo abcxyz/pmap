@@ -25,6 +25,7 @@ variable "service_name" {
 variable "image" {
   description = "The pmap service image."
   type        = string
+  default     = "us-docker.pkg.dev/cloudrun/container/hello"
 }
 
 variable "upstream_topic" {
