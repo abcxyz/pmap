@@ -20,14 +20,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"google.golang.org/protobuf/encoding/protojson"
 	"io"
 	"net/http"
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pkg/logging"
-	"github.com/abcxyz/pkg/protoutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/ghodss/yaml"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -237,6 +238,7 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 		if err := h.failureMessenger.Send(ctx, event); err != nil {
 			return fmt.Errorf("failed to send failure event downstream: %w", err)
 		}
+		return nil
 	}
 	if err := h.successMessenger.Send(ctx, event); err != nil {
 		return fmt.Errorf("failed to send succuss event downstream: %w", err)
@@ -281,7 +283,10 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 
 	// Unmarshal the object yaml bytes into a proto message wrapper.
 	p := P(new(T))
-	if err := protoutil.UnmarshalYAML(yb, p); err != nil {
+	//if err := protoutil.UnmarshalYAML(yb, p); err != nil {
+	//	return nil, fmt.Errorf("failed to unmarshal object yaml: %w", err)
+	//}
+	if err := YAMLToProto(yb, p); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal object yaml: %w", err)
 	}
 	return p, nil
@@ -296,4 +301,13 @@ func (m *NoopMessenger) Send(_ context.Context, _ *v1alpha1.PmapEvent) error {
 
 func (m *NoopMessenger) Cleanup() error {
 	return nil
+}
+
+// YAMLToProto converts YAML to Proto.
+func YAMLToProto(y []byte, m proto.Message) error {
+	j, err := yaml.YAMLToJSON(y)
+	if err != nil {
+		return nil
+	}
+	return protojson.Unmarshal(j, m)
 }

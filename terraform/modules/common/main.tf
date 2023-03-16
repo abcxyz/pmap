@@ -30,6 +30,7 @@ resource "google_project_service" "serviceusage" {
 resource "google_project_service" "services" {
   for_each = toset([
     "cloudresourcemanager.googleapis.com",
+    "cloudasset.googleapis.com",
     "pubsub.googleapis.com",
     "iam.googleapis.com",
     "bigquery.googleapis.com",
@@ -154,11 +155,19 @@ resource "google_service_account" "run_service_account" {
 }
 
 // Grant GCS object viewer permission to the pmap service account.
-resource "google_storage_bucket_iam_member" "object_viewer" {
+resource "google_storage_bucket_iam_member" "storage_object_viewer" {
   bucket = google_storage_bucket.pmap.name
   role   = "roles/storage.objectViewer"
   member = google_service_account.run_service_account.member
 }
+
+// Grant cloudasset viewer permission to the pmap service account.
+resource "google_project_iam_member" "cloudasset_viewer" {
+  project = var.project_id
+  member =  google_service_account.run_service_account.member
+  role   = "roles/cloudasset.viewer"
+}
+
 
 // Create a dedicated service account for generating the OIDC tokens, required to enable request
 // authentication when messages from Pub/Sub are delivered to push endpoints. If the endpoint is

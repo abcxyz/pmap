@@ -189,8 +189,18 @@ func TestEventHandler_Handle(t *testing.T) {
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
 			},
-			gcsObjectBytes: []byte(`foo: bar
-isOK: true`),
+			gcsObjectBytes: []byte(
+				`
+resource:
+  name: //pubsub.googleapis.com/projects/xiyue-bets-spc/topics/mapping-bigquery
+  provider: gcp
+annotations:
+  labels:
+    env: dev
+contacts:
+  email:
+  - pmap.gmail.com
+`),
 			processors:       []Processor[*structpb.Struct]{&successProcessor{}},
 			successMessenger: &NoopMessenger{},
 		},
