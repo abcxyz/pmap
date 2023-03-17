@@ -168,7 +168,6 @@ resource "google_project_iam_member" "cloudasset_viewer" {
   member  = google_service_account.run_service_account.member
 }
 
-
 // Create a dedicated service account for generating the OIDC tokens, required to enable request
 // authentication when messages from Pub/Sub are delivered to push endpoints. If the endpoint is
 // a Cloud Run service, this service account needs to be the run invoker.
