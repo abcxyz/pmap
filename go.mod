@@ -6,13 +6,13 @@ require (
 	cloud.google.com/go/asset v1.11.0
 	cloud.google.com/go/pubsub v1.27.1
 	github.com/abcxyz/pkg v0.1.2-0.20230210171106-ffe3fe77144d
-	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.5.9
 	github.com/sethvargo/go-envconfig v0.8.2
 	google.golang.org/api v0.110.0
 	google.golang.org/genproto v0.0.0-20230222225845-10f96fb3dbec
 	google.golang.org/grpc v1.53.0
 	google.golang.org/protobuf v1.28.1
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
