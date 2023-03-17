@@ -164,8 +164,8 @@ resource "google_storage_bucket_iam_member" "storage_object_viewer" {
 // Grant cloudasset viewer permission to the pmap service account.
 resource "google_project_iam_member" "cloudasset_viewer" {
   project = var.project_id
-  role   = "roles/cloudasset.viewer"
-  member =  google_service_account.run_service_account.member
+  role    = "roles/cloudasset.viewer"
+  member  = google_service_account.run_service_account.member
 }
 
 
