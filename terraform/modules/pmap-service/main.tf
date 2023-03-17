@@ -21,8 +21,10 @@ data "google_project" "project" {
 }
 
 module "service" {
-  source                = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=246cd2f48ca0e2f9c34492ceb16833f2279f64e7"
-  project_id            = var.project_id
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=246cd2f48ca0e2f9c34492ceb16833f2279f64e7"
+
+  project_id = var.project_id
+
   name                  = var.service_name
   service_account_email = var.pmap_service_account
   image                 = var.image
@@ -42,9 +44,10 @@ module "service" {
 // Create push subscriptions with the pmap service push endpoint.
 resource "google_pubsub_subscription" "pmap" {
   project = var.project_id
-  name    = module.service.service_name
-  topic   = var.upstream_topic
-  filter  = var.gcs_events_filter
+
+  name   = module.service.service_name
+  topic  = var.upstream_topic
+  filter = var.gcs_events_filter
 
   // Required for Cloud Run, see https://cloud.google.com/run/docs/triggering/pubsub-push#ack-deadline.
   ack_deadline_seconds = 600

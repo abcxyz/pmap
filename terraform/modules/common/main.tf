@@ -22,7 +22,8 @@ data "google_project" "project" {
 }
 
 resource "google_project_service" "serviceusage" {
-  project            = var.project_id
+  project = var.project_id
+
   service            = "serviceusage.googleapis.com"
   disable_on_destroy = false
 }
@@ -36,7 +37,8 @@ resource "google_project_service" "services" {
     "storage.googleapis.com"
   ])
 
-  project            = var.project_id
+  project = var.project_id
+
   service            = each.value
   disable_on_destroy = false
 
@@ -47,7 +49,8 @@ resource "google_project_service" "services" {
 
 // Create BigQuery dataset and tables.
 resource "google_bigquery_dataset" "pmap" {
-  project                         = var.project_id
+  project = var.project_id
+
   dataset_id                      = "pmap_${random_id.default.hex}"
   friendly_name                   = "Privacy data annotations and mappings."
   description                     = "Dataset for data annotations and their mappings to data resources."
@@ -59,9 +62,10 @@ resource "google_bigquery_dataset" "pmap" {
 // Create PubSub topics, BigQuery subcriptions, and BigQuery tables for successfully and unsuccessfully processed events.
 module "pubsub_bigquery" {
   for_each = toset(var.event_types)
+  source   = "../pubsub-bigquery"
 
-  source                           = "../pubsub-bigquery"
-  project_id                       = var.project_id
+  project_id = var.project_id
+
   dataset_id                       = google_bigquery_dataset.pmap.dataset_id
   event                            = each.key
   run_service_account              = google_service_account.run_service_account.email
@@ -76,7 +80,8 @@ module "pubsub_bigquery" {
 // Add Pub/Sub service account to metadataViewer role required for writting to BigQuery.
 // See link: https://cloud.google.com/pubsub/docs/create-subscription#assign_bigquery_service_account.
 resource "google_bigquery_dataset_iam_member" "viewer" {
-  project    = var.project_id
+  project = var.project_id
+
   dataset_id = google_bigquery_dataset.pmap.dataset_id
   role       = "roles/bigquery.metadataViewer"
   member     = "serviceAccount:${local.pubsub_svc_account_email}"
@@ -85,15 +90,17 @@ resource "google_bigquery_dataset_iam_member" "viewer" {
 // Grant roles to Pub/Sub service account required for writting to BigQuery.
 // See link: https://cloud.google.com/pubsub/docs/create-subscription#assign_bigquery_service_account.
 resource "google_bigquery_dataset_iam_member" "editors" {
-  project    = var.project_id
+  project = var.project_id
+
   dataset_id = google_bigquery_dataset.pmap.dataset_id
   role       = "roles/bigquery.dataEditor"
   member     = "serviceAccount:${local.pubsub_svc_account_email}"
 }
 
 resource "google_storage_bucket" "pmap" {
+  project = var.project_id
+
   name                        = var.gcs_bucket_name
-  project                     = var.project_id
   location                    = "US"
   uniform_bucket_level_access = true
 
@@ -139,7 +146,8 @@ resource "google_pubsub_topic" "pmap_gcs_notification" {
   for_each = toset(var.event_types)
 
   project = var.project_id
-  name    = "${each.value}-gcs"
+
+  name = "${each.value}-gcs"
 
   depends_on = [
     google_project_service.services["pubsub.googleapis.com"]
@@ -148,7 +156,8 @@ resource "google_pubsub_topic" "pmap_gcs_notification" {
 
 // Create a dedicated service account for pmap services to run as.
 resource "google_service_account" "run_service_account" {
-  project      = var.project_id
+  project = var.project_id
+
   account_id   = "run-pmap-${random_id.default.hex}"
   display_name = "Cloud Run Service Account for pmap"
 }
@@ -164,7 +173,8 @@ resource "google_storage_bucket_iam_member" "object_viewer" {
 // authentication when messages from Pub/Sub are delivered to push endpoints. If the endpoint is
 // a Cloud Run service, this service account needs to be the run invoker.
 resource "google_service_account" "oidc_service_account" {
-  project      = var.project_id
+  project = var.project_id
+
   account_id   = "pmap-oidc-${random_id.default.hex}"
   display_name = "Service Account used for generating the OIDC tokens"
 }

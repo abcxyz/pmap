@@ -13,8 +13,10 @@
 // limitations under the License.
 
 module "common_infra" {
-  source          = "../modules/common"
-  project_id      = var.project_id
+  source = "../modules/common"
+
+  project_id = var.project_id
+
   gcs_bucket_name = var.gcs_bucket_name
   event_types     = var.event_types
   // Terraform destroy or terraform apply that would delete the table instance will fail.
