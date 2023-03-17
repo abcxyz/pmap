@@ -237,6 +237,7 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 		if err := h.failureMessenger.Send(ctx, event); err != nil {
 			return fmt.Errorf("failed to send failure event downstream: %w", err)
 		}
+		return nil
 	}
 	if err := h.successMessenger.Send(ctx, event); err != nil {
 		return fmt.Errorf("failed to send succuss event downstream: %w", err)
@@ -279,9 +280,9 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 		return nil, fmt.Errorf("failed to read object from GCS: %w", err)
 	}
 
-	// Unmarshal the object yaml bytes into a proto message wrapper.
+	// Convert the object yaml bytes into a proto message wrapper.
 	p := P(new(T))
-	if err := protoutil.UnmarshalYAML(yb, p); err != nil {
+	if err := protoutil.FromYAML(yb, p); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal object yaml: %w", err)
 	}
 	return p, nil
