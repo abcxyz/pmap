@@ -192,14 +192,14 @@ func TestEventHandler_Handle(t *testing.T) {
 			gcsObjectBytes: []byte(
 				`
 resource:
-  name: //pubsub.googleapis.com/projects/xiyue-bets-spc/topics/mapping-bigquery
+  name: //pubsub.googleapis.com/projects/test-project/topics/test-topic
   provider: gcp
 annotations:
   labels:
     env: dev
 contacts:
   email:
-  - pmap.gmail.com
+  - test.gmail.com
 `),
 			processors:       []Processor[*structpb.Struct]{&successProcessor{}},
 			successMessenger: &NoopMessenger{},
