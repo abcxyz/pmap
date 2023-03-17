@@ -280,7 +280,7 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 		return nil, fmt.Errorf("failed to read object from GCS: %w", err)
 	}
 
-	// Unmarshal the object yaml bytes into a proto message wrapper.
+	// Convert the object yaml bytes into a proto message wrapper.
 	p := P(new(T))
 	if err := protoutil.FromYAML(yb, p); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal object yaml: %w", err)
