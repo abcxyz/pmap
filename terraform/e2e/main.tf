@@ -18,16 +18,20 @@ locals {
 }
 
 module "common_infra" {
-  source                           = "../modules/common"
-  project_id                       = var.project_id
+  source = "../modules/common"
+
+  project_id = var.project_id
+
   gcs_bucket_name                  = var.gcs_bucket_name
   event_types                      = [local.mapping_service_name, local.policy_service_name]
   bigquery_table_delete_protection = var.bigquery_table_delete_protection
 }
 
 module "mapping_service" {
-  source                   = "../modules/pmap-service"
-  project_id               = var.project_id
+  source = "../modules/pmap-service"
+
+  project_id = var.project_id
+
   service_name             = local.mapping_service_name
   image                    = var.mapping_service_image
   upstream_topic           = module.common_infra.gcs_notification_topics[local.mapping_service_name].name
@@ -39,8 +43,10 @@ module "mapping_service" {
 }
 
 module "policy_service" {
-  source               = "../modules/pmap-service"
-  project_id           = var.project_id
+  source = "../modules/pmap-service"
+
+  project_id = var.project_id
+
   service_name         = local.policy_service_name
   image                = var.policy_service_image
   upstream_topic       = module.common_infra.gcs_notification_topics[local.policy_service_name].name

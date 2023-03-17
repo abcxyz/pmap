@@ -19,7 +19,8 @@ locals {
 }
 
 resource "google_project_service" "serviceusage" {
-  project            = var.project_id
+  project = var.project_id
+
   service            = "serviceusage.googleapis.com"
   disable_on_destroy = false
 }
@@ -32,7 +33,8 @@ resource "google_project_service" "services" {
     "bigquery.googleapis.com"
   ])
 
-  project            = var.project_id
+  project = var.project_id
+
   service            = each.value
   disable_on_destroy = false
 
@@ -44,7 +46,8 @@ resource "google_project_service" "services" {
 resource "google_bigquery_table" "pmap" {
   for_each = local.tables
 
-  project             = var.project_id
+  project = var.project_id
+
   dataset_id          = var.dataset_id
   table_id            = each.key
   deletion_protection = var.bigquery_table_delete_protection
@@ -89,7 +92,8 @@ resource "google_pubsub_topic" "bigquery" {
   for_each = local.tables
 
   project = var.project_id
-  name    = "${each.key}-bigquery"
+
+  name = "${each.key}-bigquery"
 
   depends_on = [
     google_project_service.services["pubsub.googleapis.com"]
@@ -100,8 +104,9 @@ resource "google_pubsub_subscription" "bigquery" {
   for_each = local.tables
 
   project = var.project_id
-  name    = "${each.key}-bigquery"
-  topic   = google_pubsub_topic.bigquery[each.key].name
+
+  name  = "${each.key}-bigquery"
+  topic = google_pubsub_topic.bigquery[each.key].name
 
   expiration_policy {
     ttl = "" // Subscription never expires.
