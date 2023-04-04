@@ -4,10 +4,12 @@ go 1.20
 
 require (
 	cloud.google.com/go/asset v1.11.1
+	cloud.google.com/go/bigquery v1.48.0
 	cloud.google.com/go/pubsub v1.28.0
 	github.com/abcxyz/pkg v0.2.1-0.20230317002818-607c6a5a1ae2
 	github.com/google/go-cmp v0.5.9
 	github.com/sethvargo/go-envconfig v0.9.0
+	github.com/sethvargo/go-retry v0.2.4
 	google.golang.org/api v0.110.0
 	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4
 	google.golang.org/grpc v1.53.0
@@ -15,12 +17,25 @@ require (
 )
 
 require (
+	github.com/andybalholm/brotli v1.0.4 // indirect
+	github.com/apache/arrow/go/v10 v10.0.1 // indirect
+	github.com/apache/thrift v0.16.0 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/flatbuffers v2.0.8+incompatible // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/klauspost/asmfmt v1.3.2 // indirect
+	github.com/klauspost/compress v1.15.9 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
+	github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 // indirect
+	github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 // indirect
+	github.com/pierrec/lz4/v4 v4.1.15 // indirect
+	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.uber.org/goleak v1.2.0 // indirect
+	golang.org/x/mod v0.9.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
+	golang.org/x/tools v0.7.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
