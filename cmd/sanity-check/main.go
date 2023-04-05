@@ -18,13 +18,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"net/mail"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/abcxyz/pkg/protoutil"
+	"github.com/abcxyz/pmap/apis/v1alpha1"
 )
 
 func main() {
