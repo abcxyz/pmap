@@ -246,15 +246,14 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 }
 
 // Cleanup handles the graceful shutdown of the EventHandler.
-func (h *EventHandler[T, P]) Cleanup() error {
-	var err error
-	if errS := h.successMessenger.Cleanup(); errS != nil {
-		err = errors.Join(fmt.Errorf("failed to close success event messenger, %w", errS))
+func (h *EventHandler[T, P]) Cleanup() (retErr error) {
+	if err := h.successMessenger.Cleanup(); err != nil {
+		retErr = errors.Join(retErr, fmt.Errorf("failed to close success event messenger: %w", err))
 	}
-	if errF := h.failureMessenger.Cleanup(); errF != nil {
-		err = errors.Join(err, fmt.Errorf("failed to close failure event messenger, %w", errF))
+	if err := h.failureMessenger.Cleanup(); err != nil {
+		retErr = errors.Join(retErr, fmt.Errorf("failed to close failure event messenger: %w", err))
 	}
-	return err
+	return
 }
 
 // getGCSObjectProto calls the GCS storage client with objAttrs information, and returns the object as a proto message.
