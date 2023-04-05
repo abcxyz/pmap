@@ -249,7 +249,7 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 func (h *EventHandler[T, P]) Cleanup() error {
 	var err error
 	if errS := h.successMessenger.Cleanup(); errS != nil {
-		err = errors.Join(fmt.Errorf("failed to close success event messenger, %w", errS))
+		err = errors.Join(err, fmt.Errorf("failed to close success event messenger, %w", errS))
 	}
 	if errF := h.failureMessenger.Cleanup(); errF != nil {
 		err = errors.Join(err, fmt.Errorf("failed to close failure event messenger, %w", errF))
