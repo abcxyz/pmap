@@ -59,22 +59,22 @@ func realMain() error {
 		fmt.Printf("Processing file %q\n", originF)
 		data, err := os.ReadFile(f)
 		if err != nil {
-			sanityCheckErrs = errors.Join(sanityCheckErrs, fmt.Errorf("failed to read file from %q, %w\n", originF, err))
+			sanityCheckErrs = errors.Join(sanityCheckErrs, fmt.Errorf("failed to read file from %q, %w", originF, err))
 			continue
 		}
 
 		var resourceMapping v1alpha1.ResourceMapping
 		if err := protoutil.FromYAML(data, &resourceMapping); err != nil {
-			sanityCheckErrs = errors.Join(sanityCheckErrs, fmt.Errorf("failed to unmarshal object yaml from file %q to resource mapping: %w\n", originF, err))
+			sanityCheckErrs = errors.Join(sanityCheckErrs, fmt.Errorf("failed to unmarshal object yaml from file %q to resource mapping: %w", originF, err))
 			continue
 		}
 		for _, e := range resourceMapping.Contacts.Email {
 			if !isValidEmail(e) {
-				sanityCheckErrs = errors.Join(fmt.Errorf("email %q contained from file %q is not valid \n", e, originF))
+				sanityCheckErrs = errors.Join(fmt.Errorf("email %q contained from file %q is not valid", e, originF))
 			}
 		}
 		if resourceMapping.Resource.Provider == "" {
-			sanityCheckErrs = errors.Join(fmt.Errorf("resource provider %q contained from file %q is not valid \n", resourceMapping.Resource.Provider, originF))
+			sanityCheckErrs = errors.Join(fmt.Errorf("resource provider %q contained from file %q is not valid", resourceMapping.Resource.Provider, originF))
 		}
 	}
 
@@ -85,7 +85,7 @@ func fetchExtractedFiles(localDir string) ([]string, error) {
 	var files []string
 	if err := filepath.WalkDir(localDir, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
-			return fmt.Errorf("walking scratch directory %q: %v", path, err)
+			return fmt.Errorf("failed to walking scratch directory %q: %w", path, err)
 		}
 
 		if entry.IsDir() {
@@ -95,7 +95,7 @@ func fetchExtractedFiles(localDir string) ([]string, error) {
 		files = append(files, path)
 		return nil
 	}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to walk the directory %s: %w", localDir, err)
 	}
 	return files, nil
 }
