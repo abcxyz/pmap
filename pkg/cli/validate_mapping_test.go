@@ -16,7 +16,6 @@ package cli
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,7 +54,7 @@ func TestNewValidateCmd(t *testing.T) {
 			name: "valid_contents",
 			dir:  "dir_valid_contents",
 			fileDatas: map[string][]byte{
-				"file1.yaml": []byte(fmt.Sprint(`
+				"file1.yaml": []byte(`
 resource:
     provider: gcp
     name: //pubsub.googleapis.com/projects/test-project/topics/test-topic
@@ -67,8 +66,8 @@ annotations:
         location:
             kind:
                 stringvalue: global
-`)),
-				"file2.yaml": []byte(fmt.Sprint(`
+`),
+				"file2.yaml": []byte(`
 resource:
     provider: gcp
     name: //pubsub.googleapis.com/projects/test-project/subscriptions/test-subsriptions
@@ -80,7 +79,7 @@ annotations:
         location:
             kind:
                 stringvalue: global
-`)),
+`),
 			},
 			args:   []string{"-path", filepath.Join(td, "dir_valid_contents")},
 			expOut: "processing file \"/file1.yaml\"\nprocessing file \"/file2.yaml\"",
@@ -89,9 +88,9 @@ annotations:
 			name: "invalid_yaml",
 			dir:  "dir_invalid_yaml",
 			fileDatas: map[string][]byte{
-				"file1.yaml": []byte(fmt.Sprint(`
+				"file1.yaml": []byte(`
 		foo
-		`)),
+		`),
 			},
 			args:   []string{"-path", filepath.Join(td, "dir_invalid_yaml")},
 			expErr: "file \"/file1.yaml\" failed to pass the validation: failed to unmarshal object yaml to resource mapping",
@@ -100,7 +99,7 @@ annotations:
 			name: "invalid_email",
 			dir:  "dir_invalid_email",
 			fileDatas: map[string][]byte{
-				"file1.yaml": []byte(fmt.Sprint(`
+				"file1.yaml": []byte(`
 resource:
     provider: gcp
     name: //pubsub.googleapis.com/projects/test-project/topics/test-topic
@@ -112,7 +111,7 @@ annotations:
         location:
             kind:
                 stringvalue: global
-`)),
+`),
 			},
 			args:   []string{"-path", filepath.Join(td, "dir_invalid_email")},
 			expErr: "file \"/file1.yaml\" failed to pass the validation: email \"pmap.gmail.com\" is not valid",
@@ -132,7 +131,6 @@ annotations:
 				for name, data := range tc.fileDatas {
 					testCreateFile(t, filepath.Join(td, tc.dir, name), data)
 				}
-
 			}
 
 			var cmd ValidateMappingCommand
