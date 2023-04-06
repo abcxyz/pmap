@@ -46,7 +46,7 @@ Usage: {{ COMMAND }} [options]
 
   Validate the Resource Mapping YAML files that exists in the given path:
 
-      pmapctl validate-mapping -path "a/b/c"
+      pmapctl validate-mapping -path "/path/to/file"
 `
 }
 
@@ -59,7 +59,7 @@ func (c *ValidateMappingCommand) Flags() *cli.FlagSet {
 	f.StringVar(&cli.StringVar{
 		Name:    "path",
 		Target:  &c.flagPath,
-		Example: "a/b/c",
+		Example: "/path/to/file",
 		Usage:   `Validate the Resource Mapping YAML files that exists in the given path.`,
 	})
 
@@ -88,7 +88,7 @@ func (c *ValidateMappingCommand) Run(ctx context.Context, args []string) error {
 	var sanityCheckErrs error
 	for _, file := range files {
 		originF := strings.TrimPrefix(file, dir)
-		fmt.Fprintln(c.Stdout(), fmt.Sprintf("processing file %q", originF))
+		fmt.Fprintf(c.Stdout(), "processing file %q\n", originF)
 		data, err := os.ReadFile(file)
 		if err != nil {
 			sanityCheckErrs = errors.Join(sanityCheckErrs, fmt.Errorf("failed to read file from %q, %w", originF, err))

@@ -55,7 +55,7 @@ func TestNewValidateCmd(t *testing.T) {
 			name: "valid_contents",
 			dir:  "dir_valid_contents",
 			fileDatas: map[string][]byte{
-				"file1.yaml": []byte(fmt.Sprintf(`
+				"file1.yaml": []byte(fmt.Sprint(`
 resource:
     provider: gcp
     name: //pubsub.googleapis.com/projects/test-project/topics/test-topic
@@ -68,7 +68,7 @@ annotations:
             kind:
                 stringvalue: global
 `)),
-				"file2.yaml": []byte(fmt.Sprintf(`
+				"file2.yaml": []byte(fmt.Sprint(`
 resource:
     provider: gcp
     name: //pubsub.googleapis.com/projects/test-project/subscriptions/test-subsriptions
@@ -89,7 +89,7 @@ annotations:
 			name: "invalid_yaml",
 			dir:  "dir_invalid_yaml",
 			fileDatas: map[string][]byte{
-				"file1.yaml": []byte(fmt.Sprintf(`
+				"file1.yaml": []byte(fmt.Sprint(`
 		foo
 		`)),
 			},
@@ -100,7 +100,7 @@ annotations:
 			name: "invalid_email",
 			dir:  "dir_invalid_email",
 			fileDatas: map[string][]byte{
-				"file1.yaml": []byte(fmt.Sprintf(`
+				"file1.yaml": []byte(fmt.Sprint(`
 resource:
     provider: gcp
     name: //pubsub.googleapis.com/projects/test-project/topics/test-topic
