@@ -28,8 +28,8 @@ var rootCmd = func() cli.Command {
 		Name:    "pmapctl",
 		Version: version.HumanVersion,
 		Commands: map[string]cli.CommandFactory{
-			"validate-mapping": func() cli.Command {
-				return &ValidateMappingCommand{}
+			"validate": func() cli.Command {
+				return &ValidateCommand{}
 			},
 		},
 	}

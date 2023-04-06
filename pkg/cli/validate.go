@@ -28,45 +28,54 @@ import (
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 )
 
-var _ cli.Command = (*ValidateMappingCommand)(nil)
+var _ cli.Command = (*ValidateCommand)(nil)
 
-type ValidateMappingCommand struct {
+type ValidateCommand struct {
 	cli.BaseCommand
 
+	flagType string
 	flagPath string
 }
 
-func (c *ValidateMappingCommand) Desc() string {
-	return `Verify the Resource Mapping YAML files that exists in the given path`
+func (c *ValidateCommand) Desc() string {
+	return `Given the type of YAML resources, verify YAML files that exists in the given path`
 }
 
-func (c *ValidateMappingCommand) Help() string {
+func (c *ValidateCommand) Help() string {
 	return `
 Usage: {{ COMMAND }} [options]
 
-  Validate the Resource Mapping YAML files that exists in the given path:
+  Given the type of YAML resources, verify YAML files that exists in the given path:
 
-      pmapctl validate-mapping -path "/path/to/file"
+      pmapctl validate -type ResourceMapping -path "/path/to/file"
 `
 }
 
-func (c *ValidateMappingCommand) Flags() *cli.FlagSet {
+func (c *ValidateCommand) Flags() *cli.FlagSet {
 	set := cli.NewFlagSet()
 
 	// Command options
 	f := set.NewSection("COMMAND OPTIONS")
 
 	f.StringVar(&cli.StringVar{
+		Name:    "type",
+		Target:  &c.flagType,
+		Example: "ResourceMapping",
+		Usage:   `The type of the data stored in the YAML files`,
+	})
+
+	f.StringVar(&cli.StringVar{
 		Name:    "path",
 		Target:  &c.flagPath,
 		Example: "/path/to/file",
-		Usage:   `Validate the Resource Mapping YAML files that exists in the given path.`,
+		Usage:   `The path of YAML files.`,
 	})
 
 	return set
 }
 
-func (c *ValidateMappingCommand) Run(ctx context.Context, args []string) error {
+func (c *ValidateCommand) Run(ctx context.Context, args []string) error {
+	// TODO: make it generic to support different types.
 	f := c.Flags()
 	if err := f.Parse(args); err != nil {
 		return fmt.Errorf("failed to parse flags: %w", err)
@@ -76,8 +85,14 @@ func (c *ValidateMappingCommand) Run(ctx context.Context, args []string) error {
 		return fmt.Errorf("unexpected arguments: %q", args)
 	}
 
+	if c.flagType == "" {
+		return fmt.Errorf("type is required")
+	}
 	if c.flagPath == "" {
 		return fmt.Errorf("path is required")
+	}
+	if c.flagType != "ResourceMapping" {
+		return fmt.Errorf("we only support type `ResourceMapping` now")
 	}
 
 	dir := c.flagPath

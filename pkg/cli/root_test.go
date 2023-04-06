@@ -25,7 +25,7 @@ func TestRootCommand_Help(t *testing.T) {
 	exp := `
 Usage: pmapctl COMMAND
 
-  validate-mapping    Verify the Resource Mapping YAML files that exists in the given path
+  validate    Given the type of YAML resources, verify YAML files that exists in the given path
 `
 
 	cmd := rootCmd()
