@@ -74,7 +74,7 @@ func (c *ValidateCommand) Flags() *cli.FlagSet {
 }
 
 func (c *ValidateCommand) Run(ctx context.Context, args []string) error {
-	// TODO: make it generic to support different types.
+	// TODO(#61): make it generic to support different types.
 	f := c.Flags()
 	if err := f.Parse(args); err != nil {
 		return fmt.Errorf("failed to parse flags: %w", err)
@@ -101,7 +101,7 @@ func (c *ValidateCommand) Run(ctx context.Context, args []string) error {
 	}
 	var checkErrs error
 	for _, file := range files {
-		originF := strings.TrimPrefix(file, dir+"/")
+		originF := strings.TrimPrefix(file, dir+string(os.PathSeparator))
 		fmt.Fprintf(c.Stdout(), "processing file %q\n", originF)
 		data, err := os.ReadFile(file)
 		if err != nil {
