@@ -111,11 +111,11 @@ func (c *ValidateCommand) Run(ctx context.Context, args []string) error {
 
 		var resourceMapping v1alpha1.ResourceMapping
 		if err = protoutil.FromYAML(data, &resourceMapping); err != nil {
-			checkErrs = errors.Join(checkErrs, fmt.Errorf("file %q failed to pass the validation: failed to unmarshal object yaml to resource mapping: %w", originF, err))
+			checkErrs = errors.Join(checkErrs, fmt.Errorf("file %q: failed to unmarshal object yaml to resource mapping: %w", originF, err))
 			continue
 		}
 		if err = resourceMapping.Validate(); err != nil {
-			checkErrs = errors.Join(checkErrs, fmt.Errorf("file %q failed to pass the validation: %w", originF, err))
+			checkErrs = errors.Join(checkErrs, fmt.Errorf("file %q: %w", originF, err))
 			continue
 		}
 	}
