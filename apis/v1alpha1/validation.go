@@ -23,23 +23,15 @@ import (
 	"net/mail"
 )
 
-// Validate checks if the ResourceMapping is valid.
-func (resourceMapping *ResourceMapping) Validate() (validateErr error) {
-	for _, e := range resourceMapping.Contacts.Email {
-		if !isValidEmail(e) {
-			validateErr = errors.Join(validateErr, fmt.Errorf("email %q is not valid", e))
+// ValidateResourceMapping checks if the ResourceMapping is valid.
+func ValidateResourceMapping(m *ResourceMapping) (vErr error) {
+	for _, e := range m.Contacts.Email {
+		if _, err := mail.ParseAddress(e); err != nil {
+			vErr = errors.Join(vErr, fmt.Errorf("invalid owner: %w", err))
 		}
 	}
-	if resourceMapping.Resource.Provider == "" {
-		validateErr = errors.Join(validateErr, fmt.Errorf("resource provider %q is not valid", resourceMapping.Resource.Provider))
+	if m.Resource.Provider == "" {
+		vErr = errors.Join(vErr, fmt.Errorf("empty resource provider"))
 	}
 	return
-}
-
-func isValidEmail(email string) bool {
-	if email == "" {
-		return false
-	}
-	_, err := mail.ParseAddress(email)
-	return err == nil
 }

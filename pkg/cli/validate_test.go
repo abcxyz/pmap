@@ -43,12 +43,12 @@ func TestNewValidateCmd(t *testing.T) {
 		{
 			name:   "unexpected_args",
 			args:   []string{"foo"},
-			expErr: `unexpected arguments: ["foo"]`,
+			expErr: `unexpected arguments: [foo]`,
 		},
 		{
 			name:   "missing_type",
 			args:   []string{"-path", filepath.Join(td, "dir_missing_type")},
-			expErr: `type is required`,
+			expErr: `unsupported type`,
 		},
 		{
 			name:   "missing_path",
@@ -119,7 +119,7 @@ annotations:
 `),
 			},
 			args:   []string{"-type", "ResourceMapping", "-path", filepath.Join(td, "dir_invalid_email")},
-			expErr: "file \"file1.yaml\": email \"pmap.gmail.com\" is not valid",
+			expErr: "file \"file1.yaml\": invalid owner",
 		},
 	}
 
@@ -160,14 +160,7 @@ annotations:
 
 func testCreateFile(t *testing.T, name string, data []byte) {
 	t.Helper()
-	f, err := os.Create(name)
-	if err != nil {
-		t.Fatalf("failed to create file %s: %v", name, err)
-	}
-	if _, err = f.Write(data); err != nil {
+	if err := os.WriteFile(name, data, 0o666); err != nil {
 		t.Fatalf("failed to write data to file %s: %v", name, err)
-	}
-	if err = f.Close(); err != nil {
-		t.Fatalf("failed to close file %s: %v", name, err)
 	}
 }

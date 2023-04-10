@@ -81,19 +81,22 @@ func (c *ValidateCommand) Run(ctx context.Context, args []string) error {
 	}
 	args = f.Args()
 	if len(args) > 0 {
-		return fmt.Errorf("unexpected arguments: %q", args)
+		return fmt.Errorf("unexpected arguments: %v", args)
 	}
 
-	if c.flagType == "" {
-		return fmt.Errorf("type is required")
-	}
 	if c.flagPath == "" {
 		return fmt.Errorf("path is required")
 	}
-	if c.flagType != "ResourceMapping" {
-		return fmt.Errorf("we only support type `ResourceMapping` now")
-	}
 
+	switch strings.ToLower(c.flagType) {
+	case "resourcemapping":
+		return c.validateResourceMappings()
+	default:
+		return fmt.Errorf("unsupported type %q", c.flagType)
+	}
+}
+
+func (c *ValidateCommand) validateResourceMappings() error {
 	dir := c.flagPath
 	files, err := fetchExtractedYAMLFiles(dir)
 	if err != nil {
@@ -101,21 +104,23 @@ func (c *ValidateCommand) Run(ctx context.Context, args []string) error {
 	}
 	var checkErrs error
 	for _, file := range files {
-		originF := strings.TrimPrefix(file, dir+string(os.PathSeparator))
-		c.Outf("processing file %q", originF)
+		// In pmap check.yml workflow, a temp directory will be created to store all the changed yaml files.
+		// Removing the temp directory to avoid the confusion in the error msgs of pmap check.yml workflow.
+		originFile := strings.TrimPrefix(file, dir+string(os.PathSeparator))
+		c.Outf("processing file %q", originFile)
 		data, err := os.ReadFile(file)
 		if err != nil {
-			checkErrs = errors.Join(checkErrs, fmt.Errorf("failed to read file from %q, %w", originF, err))
+			checkErrs = errors.Join(checkErrs, fmt.Errorf("failed to read file from %q, %w", originFile, err))
 			continue
 		}
 
 		var resourceMapping v1alpha1.ResourceMapping
-		if err = protoutil.FromYAML(data, &resourceMapping); err != nil {
-			checkErrs = errors.Join(checkErrs, fmt.Errorf("file %q: failed to unmarshal object yaml to resource mapping: %w", originF, err))
+		if err := protoutil.FromYAML(data, &resourceMapping); err != nil {
+			checkErrs = errors.Join(checkErrs, fmt.Errorf("file %q: failed to unmarshal object yaml to resource mapping: %w", originFile, err))
 			continue
 		}
-		if err = resourceMapping.Validate(); err != nil {
-			checkErrs = errors.Join(checkErrs, fmt.Errorf("file %q: %w", originF, err))
+		if err := v1alpha1.ValidateResourceMapping(&resourceMapping); err != nil {
+			checkErrs = errors.Join(checkErrs, fmt.Errorf("file %q: %w", originFile, err))
 			continue
 		}
 	}
