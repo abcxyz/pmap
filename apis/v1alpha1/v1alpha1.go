@@ -16,3 +16,30 @@
 
 // Package v1alpha1 contains versioned pmap contracts, e.g. resource mapping definition.
 package v1alpha1
+
+import (
+	"errors"
+	"fmt"
+	"net/mail"
+)
+
+// Validate checks if the ResourceMapping is valid.
+func (resourceMapping *ResourceMapping) Validate() (validateErr error) {
+	for _, e := range resourceMapping.Contacts.Email {
+		if !isValidEmail(e) {
+			validateErr = errors.Join(validateErr, fmt.Errorf("email %q is not valid", e))
+		}
+	}
+	if resourceMapping.Resource.Provider == "" {
+		validateErr = errors.Join(validateErr, fmt.Errorf("resource provider %q is not valid", resourceMapping.Resource.Provider))
+	}
+	return
+}
+
+func isValidEmail(email string) bool {
+	if email == "" {
+		return false
+	}
+	_, err := mail.ParseAddress(email)
+	return err == nil
+}

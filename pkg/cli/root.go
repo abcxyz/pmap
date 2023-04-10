@@ -25,7 +25,7 @@ import (
 // rootCmd defines the starting command structure.
 var rootCmd = func() cli.Command {
 	return &cli.RootCommand{
-		Name:    "pmapctl",
+		Name:    "pmap",
 		Version: version.HumanVersion,
 		Commands: map[string]cli.CommandFactory{
 			"validate": func() cli.Command {

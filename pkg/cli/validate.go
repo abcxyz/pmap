@@ -100,39 +100,37 @@ func (c *ValidateCommand) Run(ctx context.Context, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to fetch extracted files in dir %s: %w", dir, err)
 	}
-	var sanityCheckErrs error
+	var checkErrs error
 	for _, file := range files {
 		originF := strings.TrimPrefix(file, dir)
 		fmt.Fprintf(c.Stdout(), "processing file %q\n", originF)
 		data, err := os.ReadFile(file)
 		if err != nil {
-			sanityCheckErrs = errors.Join(sanityCheckErrs, fmt.Errorf("failed to read file from %q, %w", originF, err))
+			checkErrs = errors.Join(checkErrs, fmt.Errorf("failed to read file from %q, %w", originF, err))
 			continue
 		}
 
 		var resourceMapping v1alpha1.ResourceMapping
 		if err = protoutil.FromYAML(data, &resourceMapping); err != nil {
-			sanityCheckErrs = errors.Join(sanityCheckErrs, fmt.Errorf("file %q failed to pass the validation: failed to unmarshal object yaml to resource mapping: %w", originF, err))
+			checkErrs = errors.Join(checkErrs, fmt.Errorf("file %q failed to pass the validation: failed to unmarshal object yaml to resource mapping: %w", originF, err))
 			continue
 		}
-		for _, e := range resourceMapping.Contacts.Email {
-			if !isValidEmail(e) {
-				sanityCheckErrs = errors.Join(sanityCheckErrs, fmt.Errorf("file %q failed to pass the validation: email %q is not valid", originF, e))
-			}
-		}
-		if resourceMapping.Resource.Provider == "" {
-			sanityCheckErrs = errors.Join(sanityCheckErrs, fmt.Errorf("file %q failed to pass the validation: resource provider %q is not valid", originF, resourceMapping.Resource.Provider))
+		if err = resourceMapping.Validate(); err != nil {
+			checkErrs = errors.Join(checkErrs, fmt.Errorf("file %q failed to pass the validation: %w", originF, err))
+			continue
 		}
 	}
-
-	return sanityCheckErrs
+	if checkErrs != nil {
+		checkErrs = fmt.Errorf("validation failed\n%w", checkErrs)
+	}
+	return checkErrs
 }
 
 func fetchExtractedYAMLFiles(localDir string) ([]string, error) {
 	var files []string
 	if err := filepath.WalkDir(localDir, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
-			return fmt.Errorf("failed to walking scratch directory %q: %w", path, err)
+			return fmt.Errorf("failed to walking directory %q: %w", path, err)
 		}
 
 		if entry.IsDir() {

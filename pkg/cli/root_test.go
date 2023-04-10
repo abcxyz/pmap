@@ -23,7 +23,7 @@ func TestRootCommand_Help(t *testing.T) {
 	t.Parallel()
 
 	exp := `
-Usage: pmapctl COMMAND
+Usage: pmap COMMAND
 
   validate    Given the type of YAML resources, verify YAML files that exists in the given path
 `
