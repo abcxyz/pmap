@@ -1,4 +1,4 @@
-name: 'pmap-resource-mapping-sanity-check'
+name: 'pmap-resource-mapping-check'
 on:
   workflow_call:
     inputs:
@@ -6,8 +6,12 @@ on:
         description: 'The directory which includes the resource mapping yaml files"
         type: 'string'
         required: true
+      go_version:
+        description: 'The version of Golang"
+        type: 'string'
+        required: true
 jobs:
-  sanity-check:
+  check:
     runs-on: 'ubuntu-latest'
     steps:
       - name: 'Checkout'
@@ -38,10 +42,10 @@ jobs:
       - id: 'setup-go'
         uses: 'actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568' # ratchet:actions/setup-go@v3
         with:
-          go-version: '1.20'
+          go-version: ${{ inputs.go_version }}
       - id: 'install-pmapctl'
         shell: 'bash'
         run: 'go install github.com/abcxyz/pmap/cmd/pmap@latest'
-      - id: 'run-sanity-check'
+      - id: 'run-check'
         shell: 'bash'
         run: 'pmap validate -type ResourceMapping -path ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change'
