@@ -87,7 +87,7 @@ annotations:
 `),
 			},
 			args:   []string{"-type", "ResourceMapping", "-path", filepath.Join(td, "dir_valid_contents")},
-			expOut: "processing file \"/file1.yaml\"\nprocessing file \"/file2.yaml\"",
+			expOut: "processing file \"file1.yaml\"\nprocessing file \"file2.yaml\"",
 		},
 		{
 			name: "invalid_yaml",
@@ -98,7 +98,7 @@ annotations:
 		`),
 			},
 			args:   []string{"-type", "ResourceMapping", "-path", filepath.Join(td, "dir_invalid_yaml")},
-			expErr: "file \"/file1.yaml\" failed to pass the validation: failed to unmarshal object yaml to resource mapping",
+			expErr: "file \"file1.yaml\": failed to unmarshal object yaml to resource mapping",
 		},
 		{
 			name: "invalid_email",
@@ -119,7 +119,7 @@ annotations:
 `),
 			},
 			args:   []string{"-type", "ResourceMapping", "-path", filepath.Join(td, "dir_invalid_email")},
-			expErr: "file \"/file1.yaml\" failed to pass the validation: email \"pmap.gmail.com\" is not valid",
+			expErr: "file \"file1.yaml\": email \"pmap.gmail.com\" is not valid",
 		},
 	}
 
