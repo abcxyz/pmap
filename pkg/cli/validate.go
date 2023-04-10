@@ -18,7 +18,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/mail"
 	"os"
 	"path/filepath"
 	"strings"
@@ -144,12 +143,4 @@ func fetchExtractedYAMLFiles(localDir string) ([]string, error) {
 		return nil, fmt.Errorf("failed to walk the directory %s: %w", localDir, err)
 	}
 	return files, nil
-}
-
-func isValidEmail(email string) bool {
-	if email == "" {
-		return false
-	}
-	_, err := mail.ParseAddress(email)
-	return err == nil
 }
