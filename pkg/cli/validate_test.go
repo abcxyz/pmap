@@ -134,7 +134,9 @@ annotations:
 					t.Fatal(err)
 				}
 				for name, data := range tc.fileDatas {
-					testCreateFile(t, filepath.Join(td, tc.dir, name), data)
+					if err := os.WriteFile(filepath.Join(td, tc.dir, name), data, 0o600); err != nil {
+						t.Fatalf("failed to write data to file %s: %v", name, err)
+					}
 				}
 			}
 
@@ -155,12 +157,5 @@ annotations:
 				t.Errorf("output: diff (-want, +got):\n%s", diff)
 			}
 		})
-	}
-}
-
-func testCreateFile(t *testing.T, name string, data []byte) {
-	t.Helper()
-	if err := os.WriteFile(name, data, 0o666); err != nil {
-		t.Fatalf("failed to write data to file %s: %v", name, err)
 	}
 }
