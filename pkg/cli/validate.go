@@ -101,7 +101,7 @@ func (c *ValidateCommand) Run(ctx context.Context, args []string) error {
 	}
 	var checkErrs error
 	for _, file := range files {
-		originF := strings.TrimPrefix(file, dir)
+		originF := strings.TrimPrefix(file, dir+"/")
 		fmt.Fprintf(c.Stdout(), "processing file %q\n", originF)
 		data, err := os.ReadFile(file)
 		if err != nil {
