@@ -27,8 +27,6 @@ cloud.google.com/go/storage v1.29.0 h1:6weCgzRvMg7lzuUurI4697AqIRPU1SvzHhynwpW31
 cloud.google.com/go/storage v1.29.0/go.mod h1:4puEjyTKnku6gfKoTfNOU/W+a9JyuVNxjpS5GBrB8h4=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/JohnCGriffin/overflow v0.0.0-20211019200055-46fa312c352c h1:RGWPOewvKIROun94nF7v2cua9qP+thov/7M50KEoeSU=
-github.com/abcxyz/pkg v0.3.0 h1:xygbuwjJBmiC90ieYXQyRdHqG8HzNrwgDrqMxojOsGE=
-github.com/abcxyz/pkg v0.3.0/go.mod h1:9x3KtJ6HorqpFPHd0AyS4g72SMsbmvbVoJOno4+mhbg=
 github.com/abcxyz/pkg v0.3.1-0.20230410214104-4b190bd00925 h1:JBNe8wNNjKdWwe1ESV426GHiUcg0cIXY0ZDMdH212H0=
 github.com/abcxyz/pkg v0.3.1-0.20230410214104-4b190bd00925/go.mod h1:eGVWC+pDBOUVNtGwQwkllVOctUCHCnLHkDyRpDE9x/g=
 github.com/andybalholm/brotli v1.0.4 h1:V7DdXeJtZscaqfNuAdSRuRFzuiKlHSC/Zh3zl9qY3JY=
