@@ -102,7 +102,7 @@ func (c *ValidateCommand) Run(ctx context.Context, args []string) error {
 	var checkErrs error
 	for _, file := range files {
 		originF := strings.TrimPrefix(file, dir+string(os.PathSeparator))
-		fmt.Fprintf(c.Stdout(), "processing file %q\n", originF)
+		c.Outf("processing file %q", originF)
 		data, err := os.ReadFile(file)
 		if err != nil {
 			checkErrs = errors.Join(checkErrs, fmt.Errorf("failed to read file from %q, %w", originF, err))

@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/asset v1.12.0
 	cloud.google.com/go/bigquery v1.49.0
 	cloud.google.com/go/pubsub v1.30.0
-	github.com/abcxyz/pkg v0.3.0
+	github.com/abcxyz/pkg v0.3.1-0.20230410214104-4b190bd00925
 	github.com/google/go-cmp v0.5.9
 	github.com/sethvargo/go-envconfig v0.9.0
 	github.com/sethvargo/go-retry v0.2.4
