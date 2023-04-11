@@ -87,7 +87,7 @@ annotations:
 `),
 			},
 			args:   []string{"-type", "ResourceMapping", "-path", filepath.Join(td, "dir_valid_contents")},
-			expOut: "processing file \"file1.yaml\"\nprocessing file \"file2.yaml\"",
+			expOut: "processing file \"file1.yaml\"\nprocessing file \"file2.yaml\"\nValidation passed",
 		},
 		{
 			name: "invalid_yaml",
@@ -98,7 +98,7 @@ annotations:
 		`),
 			},
 			args:   []string{"-type", "ResourceMapping", "-path", filepath.Join(td, "dir_invalid_yaml")},
-			expErr: "file \"file1.yaml\": failed to unmarshal object yaml to resource mapping",
+			expErr: "file \"file1.yaml\": failed to unmarshal yaml to ResourceMapping",
 		},
 		{
 			name: "invalid_email",
@@ -155,6 +155,9 @@ annotations:
 			}
 			if diff := cmp.Diff(strings.TrimSpace(tc.expOut), strings.TrimSpace(stdout.String())); diff != "" {
 				t.Errorf("output: diff (-want, +got):\n%s", diff)
+			}
+			if want, got := strings.TrimSpace(tc.expOut), strings.TrimSpace(stdout.String()); got != want {
+				t.Errorf("got\n\n%s\n\nwant\n\n%s\n\n", got, want)
 			}
 		})
 	}

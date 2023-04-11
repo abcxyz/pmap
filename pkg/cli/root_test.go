@@ -30,6 +30,6 @@ Usage: pmap COMMAND
 
 	cmd := rootCmd()
 	if got, want := strings.TrimSpace(cmd.Help()), strings.TrimSpace(exp); got != want {
-		t.Errorf("expected\n\n%s\n\nto be\n\n%s\n\n", got, want)
+		t.Errorf("got\n\n%s\n\nwant\n\n%s\n\n", got, want)
 	}
 }

@@ -104,9 +104,12 @@ func (c *ValidateCommand) validateResourceMappings() error {
 	}
 	var checkErrs error
 	for _, file := range files {
-		// In pmap check.yml workflow, a temp directory will be created to store all the changed yaml files.
-		// Removing the temp directory to avoid the confusion in the error msgs of pmap check.yml workflow.
+		// In pmap check.yml workflow, a temp directory will be created to store all
+		// the changed yaml files. Removing the temp directory to avoid the
+		// confusion in the error msgs of pmap check.yml workflow.
 		originFile := strings.TrimPrefix(file, dir+string(os.PathSeparator))
+		// TODO(#64) Enable verbosity conctrol for pmap cli
+		// By default, we probably don't want to output such messages.
 		c.Outf("processing file %q", originFile)
 		data, err := os.ReadFile(file)
 		if err != nil {
@@ -116,7 +119,8 @@ func (c *ValidateCommand) validateResourceMappings() error {
 
 		var resourceMapping v1alpha1.ResourceMapping
 		if err := protoutil.FromYAML(data, &resourceMapping); err != nil {
-			checkErrs = errors.Join(checkErrs, fmt.Errorf("file %q: failed to unmarshal object yaml to resource mapping: %w", originFile, err))
+			checkErrs = errors.Join(checkErrs,
+				fmt.Errorf("file %q: failed to unmarshal yaml to ResourceMapping: %w", originFile, err))
 			continue
 		}
 		if err := v1alpha1.ValidateResourceMapping(&resourceMapping); err != nil {
@@ -124,8 +128,8 @@ func (c *ValidateCommand) validateResourceMappings() error {
 			continue
 		}
 	}
-	if checkErrs != nil {
-		checkErrs = fmt.Errorf("validation failed\n%w", checkErrs)
+	if checkErrs == nil {
+		c.Outf("Validation passed")
 	}
 	return checkErrs
 }
