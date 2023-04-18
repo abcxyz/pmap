@@ -49,7 +49,7 @@ func main() {
 // This server supports graceful stopping and cancellation by:
 //   - using a cancellable context
 //   - listening to incoming requests in a goroutine
-func realMain(ctx context.Context) error {
+func realMain(ctx context.Context) (runErr error) {
 	logger := logging.FromContext(ctx)
 	logger.Debugw("server starting",
 		"commit", version.Commit,
@@ -83,12 +83,15 @@ func realMain(ctx context.Context) error {
 		return fmt.Errorf("server.NewHandler: %w", err)
 	}
 
-	defer handler.Cleanup()
+	defer func() {
+		if err := handler.Cleanup(); err != nil {
+			runErr = fmt.Errorf("failed to clean up handler: %w")
+		}
+	}()
 
 	srv, err := serving.New(cfg.Port)
 	if err != nil {
 		return fmt.Errorf("failed to create serving infrastructure: %w", err)
 	}
 	return srv.StartHTTPHandler(ctx, handler.HTTPHandler())
-
 }
