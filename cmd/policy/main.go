@@ -18,13 +18,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"os/signal"
+	"syscall"
+
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/serving"
 	"github.com/abcxyz/pmap/internal/version"
 	"github.com/abcxyz/pmap/pkg/server"
 	"google.golang.org/protobuf/types/known/structpb"
-	"os/signal"
-	"syscall"
 )
 
 // main is the application entry point. It primarily wraps the realMain function with

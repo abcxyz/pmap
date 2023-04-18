@@ -18,14 +18,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"os/signal"
+	"syscall"
+
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/serving"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"github.com/abcxyz/pmap/internal/version"
 	"github.com/abcxyz/pmap/pkg/mapping/processors"
 	"github.com/abcxyz/pmap/pkg/server"
-	"os/signal"
-	"syscall"
 )
 
 // main is the application entry point. It primarily wraps the realMain function with
