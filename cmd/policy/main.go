@@ -67,18 +67,13 @@ func realMain(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("server.NewHandler: %w", err)
 	}
+	defer handler.Cleanup()
 
 	srv, err := serving.New(cfg.Port)
 	if err != nil {
 		return fmt.Errorf("failed to create serving infrastructure: %w", err)
 	}
-	if err := srv.StartHTTPHandler(ctx, handler.HTTPHandler()); err != nil {
-		return fmt.Errorf("failed to start http handler")
-	}
 
-	if err := handler.Cleanup(); err != nil {
-		return fmt.Errorf("failed to cleanup event handler: %w", err)
-	}
+	return srv.StartHTTPHandler(ctx, handler.HTTPHandler())
 
-	return nil
 }
