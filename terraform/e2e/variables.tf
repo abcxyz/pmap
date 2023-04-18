@@ -63,8 +63,3 @@ variable "bigquery_table_delete_protection" {
   type        = bool
   default     = false
 }
-
-variable "static_gcs_bucket_name" {
-  description = "Name for static GCS bucket."
-  type        = string
-}

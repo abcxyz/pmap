@@ -23,7 +23,6 @@ module "common_infra" {
   project_id = var.project_id
 
   gcs_bucket_name                  = var.gcs_bucket_name
-  static_gcs_bucket_name           = var.static_gcs_bucket_name
   event_types                      = [local.mapping_service_name, local.policy_service_name]
   bigquery_table_delete_protection = var.bigquery_table_delete_protection
 }
