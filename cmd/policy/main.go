@@ -67,9 +67,10 @@ func realMain(ctx context.Context) (runErr error) {
 	if err != nil {
 		return fmt.Errorf("server.NewHandler: %w", err)
 	}
+
 	defer func() {
 		if err := handler.Cleanup(); err != nil {
-			runErr = fmt.Errorf("failed to clean up handler: %w")
+			runErr = fmt.Errorf("failed to clean up handler %w", err)
 		}
 	}()
 
