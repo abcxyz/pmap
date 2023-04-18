@@ -17,17 +17,14 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
-	"os/signal"
-	"syscall"
-	"time"
-
 	"github.com/abcxyz/pkg/logging"
+	"github.com/abcxyz/pkg/serving"
 	"github.com/abcxyz/pmap/internal/version"
 	"github.com/abcxyz/pmap/pkg/server"
 	"google.golang.org/protobuf/types/known/structpb"
+	"os/signal"
+	"syscall"
 )
 
 // main is the application entry point. It primarily wraps the realMain function with
@@ -70,39 +67,16 @@ func realMain(ctx context.Context) error {
 		return fmt.Errorf("server.NewHandler: %w", err)
 	}
 
-	// Create the server and listen in a goroutine.
-	server := &http.Server{
-		Addr:        ":" + cfg.Port,
-		Handler:     handler.HTTPHandler(),
-		ReadTimeout: 2 * time.Second,
+	srv, err := serving.New(cfg.Port)
+	if err != nil {
+		return fmt.Errorf("failed to create serving infrastructure: %w", err)
 	}
-	serverErrCh := make(chan error, 1)
-	go func() {
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			select {
-			case serverErrCh <- err:
-			default:
-			}
-		}
-	}()
-
-	// Wait for shutdown signal or error from the listener.
-	select {
-	case err := <-serverErrCh:
-		return fmt.Errorf("error from server listener: %w", err)
-	case <-ctx.Done():
+	if err := srv.StartHTTPHandler(ctx, handler.HTTPHandler()); err != nil {
+		return fmt.Errorf("failed to start http handler")
 	}
-
-	// Gracefully shut down the server.
-	shutdownCtx, done := context.WithTimeout(context.Background(), 5*time.Second)
-	defer done()
 
 	if err := handler.Cleanup(); err != nil {
 		return fmt.Errorf("failed to cleanup event handler: %w", err)
-	}
-
-	if err := server.Shutdown(shutdownCtx); err != nil {
-		return fmt.Errorf("failed to shutdown server: %w", err)
 	}
 
 	return nil
