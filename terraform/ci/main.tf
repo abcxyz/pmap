@@ -24,14 +24,27 @@ module "common_infra" {
   bigquery_table_delete_protection = true
 }
 
+resource "random_id" "default" {
+  byte_length = 2
+}
+
+
+locals {
+  static_bucket_name = "pmap-static-ci-bucket-${random_id.default.hex}"
+}
+
 resource "google_storage_bucket" "integ_test_dedicated_bucket" {
   project = var.project_id
 
-  name                        = var.static_gcs_bucket_name
+  name                        = local.static_bucket_name
   location                    = "US"
   force_destroy               = false
   uniform_bucket_level_access = true
   public_access_prevention    = "enforced"
+
+  labels = {
+    env = "pmap-ci-test"
+  }
 }
 
 # Add service account to static bucket IAM
@@ -42,4 +55,3 @@ resource "google_storage_bucket_iam_member" "static_bucket_object_viewer" {
   role   = "roles/storage.objectViewer"
   member = module.common_infra.run_service_account.member
 }
-

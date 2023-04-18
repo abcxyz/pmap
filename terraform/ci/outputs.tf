@@ -57,5 +57,5 @@ output "bigquery_topics" {
 
 output "static_gcs_bucket_name" {
   description = "Name for static GCS bucket."
-  value       = var.static_gcs_bucket_name
+  value       = google_storage_bucket.integ_test_dedicated_bucket.name
 }
