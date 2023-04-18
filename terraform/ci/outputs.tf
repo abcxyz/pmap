@@ -54,3 +54,8 @@ output "bigquery_topics" {
   description = "A map of event to Pub/Sub topics and BigQuery tables."
   value       = module.common_infra.bigquery_topics
 }
+
+output "static_gcs_bucket_name" {
+  description = "Name for static GCS bucket."
+  value       = google_storage_bucket.integ_test_dedicated_bucket.name
+}
