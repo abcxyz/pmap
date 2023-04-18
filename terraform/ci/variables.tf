@@ -26,3 +26,8 @@ variable "event_types" {
   description = "Pmap event types."
   type        = list(string)
 }
+
+variable "static_gcs_bucket_name" {
+  description = "Name for static GCS bucket."
+  type        = string
+}

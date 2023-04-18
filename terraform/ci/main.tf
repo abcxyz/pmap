@@ -17,8 +17,9 @@ module "common_infra" {
 
   project_id = var.project_id
 
-  gcs_bucket_name = var.gcs_bucket_name
-  event_types     = var.event_types
+  gcs_bucket_name        = var.gcs_bucket_name
+  event_types            = var.event_types
+  static_gcs_bucket_name = var.static_gcs_bucket_name
   // Terraform destroy or terraform apply that would delete the table instance will fail.
   bigquery_table_delete_protection = true
 }

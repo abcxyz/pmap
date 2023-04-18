@@ -191,3 +191,22 @@ resource "google_service_account" "oidc_service_account" {
 resource "random_id" "default" {
   byte_length = 2
 }
+
+resource "google_storage_bucket" "integ_test_dedicated_bucket" {
+  project = var.project_id
+
+  name                        = var.static_gcs_bucket_name
+  location                    = "US"
+  force_destroy               = false
+  uniform_bucket_level_access = true
+  public_access_prevention    = "enforced"
+}
+
+# Add service account to static bucket IAM
+# for testing purpose, therefore the IAM policy
+# list won't be empty
+resource "google_storage_bucket_iam_member" "static_bucket_object_viewer" {
+  bucket = google_storage_bucket.integ_test_dedicated_bucket.name
+  role   = "roles/storage.objectViewer"
+  member = google_service_account.run_service_account.member
+}
