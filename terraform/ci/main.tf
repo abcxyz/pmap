@@ -53,5 +53,5 @@ resource "google_storage_bucket" "integ_test_dedicated_bucket" {
 resource "google_storage_bucket_iam_member" "static_bucket_object_viewer" {
   bucket = google_storage_bucket.integ_test_dedicated_bucket.name
   role   = "roles/storage.objectViewer"
-  member = module.common_infra.run_service_account.member
+  member = "serviceAccount:${module.common_infra.run_service_account}"
 }
