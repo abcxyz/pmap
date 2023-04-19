@@ -24,9 +24,9 @@ before:
 
 builds:
   -
-    id: privacy-data-mapping
-    main: ./cmd/mapping
-    binary: privacy-data-mapping
+    id: privacy-data
+    main: ./cmd/pmap
+    binary: privacy-data
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags:
       - '-a'
@@ -34,27 +34,7 @@ builds:
     ldflags:
       - '-s'
       - '-w'
-      - '-X={{ .ModulePath }}/pkg/version.Name=privacy-data-mapping'
-      - '-X={{ .ModulePath }}/pkg/version.Version={{ .Version }}'
-      - '-X={{ .ModulePath }}/pkg/version.Commit={{ .Commit }}'
-      - '-extldflags=-static'
-    goos:
-      - 'linux'
-    goarch:
-      - 'amd64'
-      - 'arm64'
-  -
-    id: privacy-data-policy
-    main: ./cmd/policy
-    binary: privacy-data-policy
-    mod_timestamp: '{{ .CommitTimestamp }}'
-    flags:
-      - '-a'
-      - '-trimpath'
-    ldflags:
-      - '-s'
-      - '-w'
-      - '-X={{ .ModulePath }}/pkg/version.Name=privacy-data-policy'
+      - '-X={{ .ModulePath }}/pkg/version.Name=privacy-data'
       - '-X={{ .ModulePath }}/pkg/version.Version={{ .Version }}'
       - '-X={{ .ModulePath }}/pkg/version.Commit={{ .Commit }}'
       - '-extldflags=-static'
@@ -67,91 +47,49 @@ builds:
 dockers:
   -
     ids:
-    - privacy-data-mapping
+    - privacy-data
     use: 'buildx'
     goos: 'linux'
     goarch: 'amd64'
     image_templates:
-      - '{{ .Env.DOCKER_REPO }}/privacy-data-mapping:{{ .Env.DOCKER_TAG }}-amd64'
+      - '{{ .Env.DOCKER_REPO }}/privacy-data:{{ .Env.DOCKER_TAG }}-amd64'
     build_flag_templates:
-      - '--build-arg=APP=privacy-data-mapping'
+      - '--build-arg=APP=privacy-data'
       - '--platform=linux/amd64'
       - '--pull'
       - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
-      - '--label=org.opencontainers.image.description=Privacy Data Mapping is a service to ingest privacy data mapping events such as data mappings to a retention plan.'
+      - '--label=org.opencontainers.image.description=pmap command line.'
       - '--label=org.opencontainers.image.licenses=Apache-2.0'
-      - '--label=org.opencontainers.image.name=privacy-data-mapping'
+      - '--label=org.opencontainers.image.name=privacy-data'
       - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
       - '--label=org.opencontainers.image.source={{ .GitURL }}'
-      - '--label=org.opencontainers.image.title=privacy-data-mapping'
+      - '--label=org.opencontainers.image.title=privacy-data'
       - '--label=org.opencontainers.image.version={{ .Version }}'
   -
     ids:
-    - privacy-data-mapping
+    - privacy-data
     use: 'buildx'
     goos: 'linux'
     goarch: 'arm64'
     image_templates:
-      - '{{ .Env.DOCKER_REPO }}/privacy-data-mapping:{{ .Env.DOCKER_TAG }}-arm64'
+      - '{{ .Env.DOCKER_REPO }}/privacy-data:{{ .Env.DOCKER_TAG }}-arm64'
     build_flag_templates:
-      - '--build-arg=APP=privacy-data-mapping'
+      - '--build-arg=APP=privacy-data'
       - '--platform=linux/arm64'
       - '--pull'
       - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
-      - '--label=org.opencontainers.image.description=Privacy Data Mapping is a service to ingest privacy data mapping events such as data mappings to a retention plan.'
+      - '--label=org.opencontainers.image.description=pmap command line.'
       - '--label=org.opencontainers.image.licenses=Apache-2.0'
-      - '--label=org.opencontainers.image.name=privacy-data-mapping'
+      - '--label=org.opencontainers.image.name=privacy-data'
       - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
       - '--label=org.opencontainers.image.source={{ .GitURL }}'
-      - '--label=org.opencontainers.image.title=privacy-data-mapping'
-      - '--label=org.opencontainers.image.version={{ .Version }}'
-  -
-    ids:
-    - privacy-data-policy
-    use: 'buildx'
-    goos: 'linux'
-    goarch: 'amd64'
-    image_templates:
-      - '{{ .Env.DOCKER_REPO }}/privacy-data-policy:{{ .Env.DOCKER_TAG }}-amd64'
-    build_flag_templates:
-      - '--build-arg=APP=privacy-data-policy'
-      - '--platform=linux/amd64'
-      - '--pull'
-      - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
-      - '--label=org.opencontainers.image.description=Privacy Data Policy is a service to ingest privacy data policy related events such as retention plan.'
-      - '--label=org.opencontainers.image.licenses=Apache-2.0'
-      - '--label=org.opencontainers.image.name=privacy-data-policy'
-      - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
-      - '--label=org.opencontainers.image.source={{ .GitURL }}'
-      - '--label=org.opencontainers.image.title=privacy-data-policy'
-      - '--label=org.opencontainers.image.version={{ .Version }}'
-  -
-    ids:
-    - privacy-data-policy
-    use: 'buildx'
-    goos: 'linux'
-    goarch: 'arm64'
-    image_templates:
-      - '{{ .Env.DOCKER_REPO }}/privacy-data-policy:{{ .Env.DOCKER_TAG }}-arm64'
-    build_flag_templates:
-      - '--build-arg=APP=privacy-data-policy'
-      - '--platform=linux/arm64'
-      - '--pull'
-      - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
-      - '--label=org.opencontainers.image.description=Privacy Data Policy is a service to ingest privacy data policy related events such as retention plan.'
-      - '--label=org.opencontainers.image.licenses=Apache-2.0'
-      - '--label=org.opencontainers.image.name=privacy-data-policy'
-      - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
-      - '--label=org.opencontainers.image.source={{ .GitURL }}'
-      - '--label=org.opencontainers.image.title=privacy-data-policy'
+      - '--label=org.opencontainers.image.title=privacy-data'
       - '--label=org.opencontainers.image.version={{ .Version }}'
 
 docker_manifests:
   - image_templates:
-      - '{{ .Env.DOCKER_REPO }}/privacy-data-mapping:{{ .Env.DOCKER_TAG }}-amd64'
-      - '{{ .Env.DOCKER_REPO }}/privacy-data-mapping:{{ .Env.DOCKER_TAG }}-arm64'
-      - '{{ .Env.DOCKER_REPO }}/privacy-data-policy:{{ .Env.DOCKER_TAG }}-amd64'
-      - '{{ .Env.DOCKER_REPO }}/privacy-data-policy:{{ .Env.DOCKER_TAG }}-arm64'
+      - '{{ .Env.DOCKER_REPO }}/privacy-data:{{ .Env.DOCKER_TAG }}-amd64'
+      - '{{ .Env.DOCKER_REPO }}/privacy-data:{{ .Env.DOCKER_TAG }}-arm64'
 
 # TODO: Follow up on signing.
 

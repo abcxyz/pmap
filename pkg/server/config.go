@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/abcxyz/pkg/cfgloader"
+	"github.com/abcxyz/pkg/cli"
 	"github.com/sethvargo/go-envconfig"
 )
 
@@ -52,4 +53,43 @@ func NewConfig(ctx context.Context) (*HandlerConfig, error) {
 		return nil, fmt.Errorf("failed to parse server config: %w", err)
 	}
 	return &cfg, nil
+}
+
+// ToFlags binds the config to the give [cli.FlagSet] and returns it.
+func (cfg *HandlerConfig) ToFlags(set *cli.FlagSet) *cli.FlagSet {
+	// Command options
+	f := set.NewSection("COMMON SERVER OPTIONS")
+
+	f.StringVar(&cli.StringVar{
+		Name:    "port",
+		Target:  &cfg.Port,
+		EnvVar:  "PORT",
+		Default: "8080",
+		Usage:   `The port the server listens to.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "project-id",
+		Target: &cfg.ProjectID,
+		EnvVar: "PROJECT_ID",
+		Usage:  `Google Cloud project ID.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:    "success-topic-id",
+		Target:  &cfg.SuccessTopicID,
+		EnvVar:  "SUCCESS_TOPIC_ID",
+		Example: "test-success-topic",
+		Usage:   "The topic id which handles the resources that are processed successfully",
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:    "failure-topic-id",
+		Target:  &cfg.FailureTopicID,
+		EnvVar:  "FAILURE_TOPIC_ID",
+		Example: "test-failure-topic",
+		Usage:   "The topic id which handles the resources that failed to process",
+	})
+
+	return set
 }

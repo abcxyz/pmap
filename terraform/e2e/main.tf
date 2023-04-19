@@ -33,7 +33,7 @@ module "mapping_service" {
   project_id = var.project_id
 
   service_name             = local.mapping_service_name
-  image                    = var.mapping_service_image
+  image                    = var.pmap_container_image
   upstream_topic           = module.common_infra.gcs_notification_topics[local.mapping_service_name].name
   downstream_topic         = module.common_infra.bigquery_topics[local.mapping_service_name].event_topic
   downstream_failure_topic = module.common_infra.bigquery_topics[local.mapping_service_name].failure_topic
@@ -48,7 +48,7 @@ module "policy_service" {
   project_id = var.project_id
 
   service_name         = local.policy_service_name
-  image                = var.policy_service_image
+  image                = var.pmap_container_image
   upstream_topic       = module.common_infra.gcs_notification_topics[local.policy_service_name].name
   downstream_topic     = module.common_infra.bigquery_topics[local.policy_service_name].event_topic
   pmap_service_account = module.common_infra.run_service_account

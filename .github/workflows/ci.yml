@@ -144,7 +144,8 @@ jobs:
           touch /tmp/mapping_ci.tfvars
           echo project_id=\"${{ env.INTEG_TEST_PROJECT_ID }}\" >> ${VAR_FILE};
           echo service_name=\"mapping\" >> ${VAR_FILE};
-          echo image=\"${{env.DOCKER_REPO}}/privacy-data-mapping:${{env.DOCKER_TAG}}-amd64\" >> ${VAR_FILE};
+          echo image=\"${{env.DOCKER_REPO}}/privacy-data:${{env.DOCKER_TAG}}-amd64\" >> ${VAR_FILE};
+          echo pmap_args=\"["mapping", "server"]\" >> ${VAR_FILE};
           echo upstream_topic=\"${{ env.INTEG_TEST_MAPPING_UPSTREAM_TOPIC}}\" >> ${VAR_FILE};
           echo downstream_topic=\"${{ env.INTEG_TEST_MAPPING_DOWNSTREAM_TOPIC}}\" >> ${VAR_FILE};
           echo downstream_failure_topic=\"${{ env.INTEG_TEST_MAPPING_DOWNSTREAM_FAILURE_TOPIC}}\" >> ${VAR_FILE};
@@ -161,7 +162,8 @@ jobs:
           touch /tmp/policy_ci.tfvars
           echo project_id=\"${{ env.INTEG_TEST_PROJECT_ID }}\" >> ${VAR_FILE};
           echo service_name=\"policy\" >> ${VAR_FILE};
-          echo image=\"${{env.DOCKER_REPO}}/privacy-data-policy:${{env.DOCKER_TAG}}-amd64\" >> ${VAR_FILE};
+          echo image=\"${{env.DOCKER_REPO}}/privacy-data:${{env.DOCKER_TAG}}-amd64\" >> ${VAR_FILE};
+          echo pmap_args=\"[\"policy\", \"server\"]\" >> ${VAR_FILE};
           echo upstream_topic=\"${{ env.INTEG_TEST_POLICY_UPSTREAM_TOPIC}}\" >> ${VAR_FILE};
           echo downstream_topic=\"${{ env.INTEG_TEST_POLICY_DOWNSTREAM_TOPIC}}\" >> ${VAR_FILE};
           echo pmap_service_account=\"${{ env.INTEG_TEST_RUN_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};

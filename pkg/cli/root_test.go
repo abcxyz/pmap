@@ -25,6 +25,8 @@ func TestRootCommand_Help(t *testing.T) {
 	exp := `
 Usage: pmap COMMAND
 
+  mapping     Perform operations related to mapping
+  policy      Perform operations related to policy
   validate    Given the type of YAML resources, verify YAML files that exists in the given path
 `
 
