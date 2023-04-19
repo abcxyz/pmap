@@ -32,7 +32,7 @@ type config struct {
 	QueryRetryWaitDuration time.Duration `env:"INTEG_TEST_QUERY_RETRY_WAIT_DURATION,default=5s"`
 	QueryRetryLimit        uint64        `env:"INTEG_TEST_QUERY_RETRY_COUNT,default=5"`
 	MappingDownstreamTopic string        `env:"INTEG_TEST_MAPPING_DOWNSTREAM_TOPIC,required"`
-	GCSStaticBucket        string        `env:"INTEG_TEST_STATIC_GCS_BUCKET, required"`
+	GCSStaticBucket        string        `env:"INTEG_TEST_STATIC_GCS_BUCKET,required"`
 
 	// ObjectPrefix is a unique object prefix for each integration test run.
 	// It's required to trigger the correct GCS notification for each CI/CD run
