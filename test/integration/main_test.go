@@ -94,14 +94,14 @@ func TestMappingEventHandling(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name                string
-		topicResource       string
+		resourceName        string
 		bigqueryTable       string
 		wantCAISProcessed   bool
 		wantResourceMapping *v1alpha1.ResourceMapping
 	}{
 		{
 			name:              "mapping_success_event",
-			topicResource:     fmt.Sprintf("//storage.googleapis.com/%s", cfg.GCSStaticBucket),
+			resourceName:      fmt.Sprintf("//storage.googleapis.com/%s", cfg.GCSStaticBucket),
 			bigqueryTable:     cfg.MappingTableID,
 			wantCAISProcessed: true,
 			wantResourceMapping: &v1alpha1.ResourceMapping{
@@ -114,7 +114,7 @@ func TestMappingEventHandling(t *testing.T) {
 		},
 		{
 			name:          "mapping_failure_event",
-			topicResource: fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
+			resourceName:  fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
 			bigqueryTable: cfg.MappingFailureTableID,
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
@@ -149,7 +149,7 @@ annotations:
 contacts:
   email:
   - group@example.com
-`, tc.topicResource, traceID.String()))
+`, tc.resourceName, traceID.String()))
 			gcsObject := fmt.Sprintf("mapping/%s/traceID-%s.yaml", cfg.ObjectPrefix, traceID)
 			// Upload data to GCS, this should trigger the pmap event handler via GCS notification behind the scenes.
 			if err := testUploadFile(ctx, t, cfg.GCSBucketID, gcsObject, bytes.NewReader(data)); err != nil {
