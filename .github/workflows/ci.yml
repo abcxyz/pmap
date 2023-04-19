@@ -114,6 +114,7 @@ jobs:
       INTEG_TEST_MAPPING_DOWNSTREAM_FAILURE_TOPIC: 'mapping-failure-bigquery'
       INTEG_TEST_POLICY_UPSTREAM_TOPIC: 'policy-gcs'
       INTEG_TEST_POLICY_DOWNSTREAM_TOPIC: 'policy-bigquery'
+      INTEG_TEST_STATIC_GCS_BUCKET: 'pmap-static-ci-bucket-7faa'
     steps:
       - uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
       - id: 'auth'
