@@ -3,11 +3,11 @@ on:
   workflow_call:
     inputs:
       resource_mapping_directory:
-        description: 'The directory which includes the resource mapping yaml files"
+        description: 'The directory which includes the resource mapping yaml files'
         type: 'string'
         required: true
       go_version:
-        description: 'The version of Golang"
+        description: 'The version of Golang'
         type: 'string'
         required: true
 jobs:
