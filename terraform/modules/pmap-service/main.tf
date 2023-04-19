@@ -29,6 +29,7 @@ module "service" {
   service_account_email = var.pmap_service_account
   image                 = var.pmap_container_image
   args                  = var.pmap_args
+
   service_iam = {
     admins     = []
     developers = []
