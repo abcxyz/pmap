@@ -24,9 +24,9 @@ before:
 
 builds:
   -
-    id: privacy-data
+    id: pmap
     main: ./cmd/pmap
-    binary: privacy-data
+    binary: pmap
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags:
       - '-a'
@@ -34,7 +34,7 @@ builds:
     ldflags:
       - '-s'
       - '-w'
-      - '-X={{ .ModulePath }}/pkg/version.Name=privacy-data'
+      - '-X={{ .ModulePath }}/pkg/version.Name=pmap'
       - '-X={{ .ModulePath }}/pkg/version.Version={{ .Version }}'
       - '-X={{ .ModulePath }}/pkg/version.Commit={{ .Commit }}'
       - '-extldflags=-static'
@@ -47,49 +47,49 @@ builds:
 dockers:
   -
     ids:
-    - privacy-data
+    - pmap
     use: 'buildx'
     goos: 'linux'
     goarch: 'amd64'
     image_templates:
-      - '{{ .Env.DOCKER_REPO }}/privacy-data:{{ .Env.DOCKER_TAG }}-amd64'
+      - '{{ .Env.DOCKER_REPO }}/pmap:{{ .Env.DOCKER_TAG }}-amd64'
     build_flag_templates:
-      - '--build-arg=APP=privacy-data'
+      - '--build-arg=APP=pmap'
       - '--platform=linux/amd64'
       - '--pull'
       - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
       - '--label=org.opencontainers.image.description=pmap command line.'
       - '--label=org.opencontainers.image.licenses=Apache-2.0'
-      - '--label=org.opencontainers.image.name=privacy-data'
+      - '--label=org.opencontainers.image.name=pmap'
       - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
       - '--label=org.opencontainers.image.source={{ .GitURL }}'
-      - '--label=org.opencontainers.image.title=privacy-data'
+      - '--label=org.opencontainers.image.title=pmap'
       - '--label=org.opencontainers.image.version={{ .Version }}'
   -
     ids:
-    - privacy-data
+    - pmap
     use: 'buildx'
     goos: 'linux'
     goarch: 'arm64'
     image_templates:
-      - '{{ .Env.DOCKER_REPO }}/privacy-data:{{ .Env.DOCKER_TAG }}-arm64'
+      - '{{ .Env.DOCKER_REPO }}/pmap:{{ .Env.DOCKER_TAG }}-arm64'
     build_flag_templates:
-      - '--build-arg=APP=privacy-data'
+      - '--build-arg=APP=pmap'
       - '--platform=linux/arm64'
       - '--pull'
       - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
       - '--label=org.opencontainers.image.description=pmap command line.'
       - '--label=org.opencontainers.image.licenses=Apache-2.0'
-      - '--label=org.opencontainers.image.name=privacy-data'
+      - '--label=org.opencontainers.image.name=pmap'
       - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
       - '--label=org.opencontainers.image.source={{ .GitURL }}'
-      - '--label=org.opencontainers.image.title=privacy-data'
+      - '--label=org.opencontainers.image.title=pmap'
       - '--label=org.opencontainers.image.version={{ .Version }}'
 
 docker_manifests:
   - image_templates:
-      - '{{ .Env.DOCKER_REPO }}/privacy-data:{{ .Env.DOCKER_TAG }}-amd64'
-      - '{{ .Env.DOCKER_REPO }}/privacy-data:{{ .Env.DOCKER_TAG }}-arm64'
+      - '{{ .Env.DOCKER_REPO }}/pmap:{{ .Env.DOCKER_TAG }}-amd64'
+      - '{{ .Env.DOCKER_REPO }}/pmap:{{ .Env.DOCKER_TAG }}-arm64'
 
 # TODO: Follow up on signing.
 
