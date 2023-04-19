@@ -100,15 +100,14 @@ func TestMappingEventHandling(t *testing.T) {
 		wantResourceMapping *v1alpha1.ResourceMapping
 	}{
 		{
-			name: "mapping_success_event",
-			// TODO(#57): Use static dedicated GCP resource.
-			topicResource:     fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, cfg.MappingDownstreamTopic),
+			name:              "mapping_success_event",
+			topicResource:     fmt.Sprintf("//storage.googleapis.com/%s", cfg.GCSStaticBucket),
 			bigqueryTable:     cfg.MappingTableID,
 			wantCAISProcessed: true,
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
-					Name:     fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, cfg.MappingDownstreamTopic),
+					Name:     fmt.Sprintf("//storage.googleapis.com/%s", cfg.GCSStaticBucket),
 				},
 				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
 			},
