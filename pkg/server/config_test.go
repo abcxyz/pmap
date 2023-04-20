@@ -55,7 +55,7 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: &HandlerConfig{
 				ProjectID: testProjectID,
 			},
-			wantErr: `SUCCESS_TOPIC_ID is empty and requires a value`,
+			wantErr: `PMAP_SUCCESS_TOPIC_ID is empty and requires a value`,
 		},
 	}
 

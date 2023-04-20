@@ -46,13 +46,8 @@ func TestNewValidateCmd(t *testing.T) {
 			expErr: `unexpected arguments: [foo]`,
 		},
 		{
-			name:   "missing_type",
-			args:   []string{"-path", filepath.Join(td, "dir_missing_type")},
-			expErr: `unsupported type`,
-		},
-		{
 			name:   "missing_path",
-			args:   []string{"-type", "ResourceMapping"},
+			args:   []string{},
 			expErr: `path is required`,
 		},
 		{
@@ -86,7 +81,7 @@ annotations:
                 stringvalue: global
 `),
 			},
-			args:   []string{"-type", "ResourceMapping", "-path", filepath.Join(td, "dir_valid_contents")},
+			args:   []string{"-path", filepath.Join(td, "dir_valid_contents")},
 			expOut: "processing file \"file1.yaml\"\nprocessing file \"file2.yaml\"\nValidation passed",
 		},
 		{
@@ -97,7 +92,7 @@ annotations:
 		foo
 		`),
 			},
-			args:   []string{"-type", "ResourceMapping", "-path", filepath.Join(td, "dir_invalid_yaml")},
+			args:   []string{"-path", filepath.Join(td, "dir_invalid_yaml")},
 			expErr: "file \"file1.yaml\": failed to unmarshal yaml to ResourceMapping",
 		},
 		{
@@ -118,7 +113,7 @@ annotations:
                 stringvalue: global
 `),
 			},
-			args:   []string{"-type", "ResourceMapping", "-path", filepath.Join(td, "dir_invalid_email")},
+			args:   []string{"-path", filepath.Join(td, "dir_invalid_email")},
 			expErr: "file \"file1.yaml\": invalid owner",
 		},
 	}
@@ -140,7 +135,7 @@ annotations:
 				}
 			}
 
-			var cmd ValidateCommand
+			var cmd MappingValidateCommand
 			_, stdout, _ := cmd.Pipe()
 
 			args := append([]string{}, tc.args...)

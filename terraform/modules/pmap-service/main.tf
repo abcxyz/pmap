@@ -21,13 +21,15 @@ data "google_project" "project" {
 }
 
 module "service" {
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=246cd2f48ca0e2f9c34492ceb16833f2279f64e7"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=e4e2ad79ae2cf833540f890ac8241220144057d0"
 
   project_id = var.project_id
 
   name                  = var.service_name
   service_account_email = var.pmap_service_account
-  image                 = var.image
+  image                 = var.pmap_container_image
+  args                  = var.pmap_args
+
   service_iam = {
     admins     = []
     developers = []
@@ -36,8 +38,8 @@ module "service" {
 
   envvars = {
     "PROJECT_ID" : var.project_id,
-    "SUCCESS_TOPIC_ID" : var.downstream_topic,
-    "FAILURE_TOPIC_ID" : var.downstream_failure_topic
+    "PMAP_SUCCESS_TOPIC_ID" : var.downstream_topic,
+    "PMAP_FAILURE_TOPIC_ID" : var.downstream_failure_topic
   }
 }
 
