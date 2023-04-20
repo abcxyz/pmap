@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package cli implements the commands for the PMAP CLI.
-
 package cli
 
 import (
@@ -45,7 +43,7 @@ func TestPolicyServerCommand(t *testing.T) {
 		{
 			name: "invalid_config_missing_project_id",
 			env: map[string]string{
-				"SUCCESS_TOPIC_ID": "test_success_topic",
+				"PMAP_SUCCESS_TOPIC_ID": "test_success_topic",
 			},
 			expErr: `invalid configuration: PROJECT_ID is empty and requires a value`,
 		},
@@ -54,7 +52,7 @@ func TestPolicyServerCommand(t *testing.T) {
 			env: map[string]string{
 				"PROJECT_ID": "test_project",
 			},
-			expErr: `invalid configuration: SUCCESS_TOPIC_ID is empty and requires a value`,
+			expErr: `invalid configuration: PMAP_SUCCESS_TOPIC_ID is empty and requires a value`,
 		},
 	}
 

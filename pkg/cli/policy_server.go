@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package cli implements the commands for the PMAP CLI.
-
 package cli
 
 import (
@@ -41,14 +39,14 @@ type PolicyServerCommand struct {
 }
 
 func (c *PolicyServerCommand) Desc() string {
-	return `Start an Policy server`
+	return `Start an Policy server. Policy server provides retention planning solution.`
 }
 
 func (c *PolicyServerCommand) Help() string {
 	return `
 Usage: {{ COMMAND }} [options]
 
-  Start a Policy server.
+  Start a Policy server. Policy server provides retention planning solution.
 `
 }
 
@@ -94,6 +92,7 @@ func (c *PolicyServerCommand) RunUnstarted(ctx context.Context, args []string) (
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create success event messenger: %w", err)
 	}
+
 	handler, err := server.NewHandler(ctx, []server.Processor[*structpb.Struct]{}, successMessenger)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("server.NewHandler: %w", err)

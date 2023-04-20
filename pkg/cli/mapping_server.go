@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package cli implements the commands for the PMAP CLI.
-
 package cli
 
 import (
@@ -42,14 +40,14 @@ type MappingServerCommand struct {
 }
 
 func (c *MappingServerCommand) Desc() string {
-	return `Start an Mapping server`
+	return `Start an Mapping server. Mapping server provides structured data annotation and metadata discovery.`
 }
 
 func (c *MappingServerCommand) Help() string {
 	return `
 Usage: {{ COMMAND }} [options]
 
-  Start a Mapping server.
+  Start a Mapping server. Mapping server provides structured data annotation and metadata discovery.
 `
 }
 
@@ -91,8 +89,9 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 	logger.Debugw("loaded configuration", "config", c.cfg)
 
+	// For mapping server, we also require a failure topic ID.
 	if c.cfg.FailureTopicID == "" {
-		return nil, nil, closer, fmt.Errorf("missing FAILURE_TOPIC_ID in config")
+		return nil, nil, closer, fmt.Errorf("missing PMAP_FAILURE_TOPIC_ID in config")
 	}
 
 	successMessenger, err := server.NewPubSubMessenger(ctx, c.cfg.ProjectID, c.cfg.SuccessTopicID)
@@ -104,10 +103,12 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create failure event messenger: %w", err)
 	}
+
 	processor, err := processors.NewAssetInventoryProcessor(ctx, fmt.Sprintf("projects/%s", c.cfg.ProjectID))
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create asset inventory processor: %w", err)
 	}
+
 	handler, err := server.NewHandler(ctx,
 		[]server.Processor[*v1alpha1.ResourceMapping]{processor},
 		successMessenger,
@@ -115,6 +116,7 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("server.NewHandler: %w", err)
 	}
+
 	closer = func() {
 		if err := handler.Cleanup(); err != nil {
 			logger.Errorw("failed to close clean up handler", "error", err)

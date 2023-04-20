@@ -18,7 +18,7 @@ variable "project_id" {
 }
 
 variable "pmap_container_image" {
-  description = "Container image for the pmap CLI and server entrypoints."
+  description = "The container image for pmap."
   type        = string
 }
 

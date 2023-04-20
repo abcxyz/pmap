@@ -27,54 +27,45 @@ import (
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 )
 
-var _ cli.Command = (*ValidateCommand)(nil)
+var _ cli.Command = (*MappingValidateCommand)(nil)
 
-type ValidateCommand struct {
+type MappingValidateCommand struct {
 	cli.BaseCommand
 
-	flagType string
 	flagPath string
 }
 
-func (c *ValidateCommand) Desc() string {
-	return `Given the type of YAML resources, verify YAML files that exists in the given path`
+func (c *MappingValidateCommand) Desc() string {
+	return `Validate resource mapping YAML files that exists in the given path`
 }
 
-func (c *ValidateCommand) Help() string {
+func (c *MappingValidateCommand) Help() string {
 	return `
 Usage: {{ COMMAND }} [options]
 
-  Given the type of YAML resources, verify YAML files that exists in the given path:
+  Validate resource mapping YAML files that exists in the given path:
 
-      pmapctl validate -type ResourceMapping -path "/path/to/file"
+      pmap mapping validate -path "/path/to/file"
 `
 }
 
-func (c *ValidateCommand) Flags() *cli.FlagSet {
+func (c *MappingValidateCommand) Flags() *cli.FlagSet {
 	set := cli.NewFlagSet()
 
 	// Command options
 	f := set.NewSection("COMMAND OPTIONS")
 
 	f.StringVar(&cli.StringVar{
-		Name:    "type",
-		Target:  &c.flagType,
-		Example: "ResourceMapping",
-		Usage:   `The type of the data stored in the YAML files`,
-	})
-
-	f.StringVar(&cli.StringVar{
 		Name:    "path",
 		Target:  &c.flagPath,
 		Example: "/path/to/file",
-		Usage:   `The path of YAML files.`,
+		Usage:   `The path of resource mapping files.`,
 	})
 
 	return set
 }
 
-func (c *ValidateCommand) Run(ctx context.Context, args []string) error {
-	// TODO(#61): make it generic to support different types.
+func (c *MappingValidateCommand) Run(ctx context.Context, args []string) error {
 	f := c.Flags()
 	if err := f.Parse(args); err != nil {
 		return fmt.Errorf("failed to parse flags: %w", err)
@@ -88,15 +79,10 @@ func (c *ValidateCommand) Run(ctx context.Context, args []string) error {
 		return fmt.Errorf("path is required")
 	}
 
-	switch strings.ToLower(c.flagType) {
-	case "resourcemapping":
-		return c.validateResourceMappings()
-	default:
-		return fmt.Errorf("unsupported type %q", c.flagType)
-	}
+	return c.validateResourceMappings()
 }
 
-func (c *ValidateCommand) validateResourceMappings() error {
+func (c *MappingValidateCommand) validateResourceMappings() error {
 	dir := c.flagPath
 	files, err := fetchExtractedYAMLFiles(dir)
 	if err != nil {

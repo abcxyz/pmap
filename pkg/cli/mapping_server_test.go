@@ -45,26 +45,26 @@ func TestMappingServerCommand(t *testing.T) {
 		{
 			name: "invalid_config_missing_project_id",
 			env: map[string]string{
-				"SUCCESS_TOPIC_ID": "test_success_topic",
-				"FAILURE_TOPIC_ID": "test_failure_topic",
+				"PMAP_SUCCESS_TOPIC_ID": "test_success_topic",
+				"PMAP_FAILURE_TOPIC_ID": "test_failure_topic",
 			},
 			expErr: `invalid configuration: PROJECT_ID is empty and requires a value`,
 		},
 		{
 			name: "invalid_config_missing_success_topic_id",
 			env: map[string]string{
-				"PROJECT_ID":       "test_project",
-				"FAILURE_TOPIC_ID": "test_failure_topic",
+				"PROJECT_ID":            "test_project",
+				"PMAP_FAILURE_TOPIC_ID": "test_failure_topic",
 			},
-			expErr: `invalid configuration: SUCCESS_TOPIC_ID is empty and requires a value`,
+			expErr: `invalid configuration: PMAP_SUCCESS_TOPIC_ID is empty and requires a value`,
 		},
 		{
 			name: "missing_failure_topic_id",
 			env: map[string]string{
-				"PROJECT_ID":       "test_project",
-				"SUCCESS_TOPIC_ID": "test_success_topic",
+				"PROJECT_ID":            "test_project",
+				"PMAP_SUCCESS_TOPIC_ID": "test_success_topic",
 			},
-			expErr: `missing FAILURE_TOPIC_ID in config`,
+			expErr: `missing PMAP_FAILURE_TOPIC_ID in config`,
 		},
 	}
 

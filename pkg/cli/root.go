@@ -31,10 +31,13 @@ var rootCmd = func() cli.Command {
 			"mapping": func() cli.Command {
 				return &cli.RootCommand{
 					Name:        "mapping",
-					Description: "Perform operations related to mapping",
+					Description: "Perform operations related to the resource mapping",
 					Commands: map[string]cli.CommandFactory{
 						"server": func() cli.Command {
 							return &MappingServerCommand{}
+						},
+						"validate": func() cli.Command {
+							return &MappingValidateCommand{}
 						},
 					},
 				}
@@ -42,16 +45,13 @@ var rootCmd = func() cli.Command {
 			"policy": func() cli.Command {
 				return &cli.RootCommand{
 					Name:        "policy",
-					Description: "Perform operations related to policy",
+					Description: "Perform operations related to the policies",
 					Commands: map[string]cli.CommandFactory{
 						"server": func() cli.Command {
 							return &PolicyServerCommand{}
 						},
 					},
 				}
-			},
-			"validate": func() cli.Command {
-				return &ValidateCommand{}
 			},
 		},
 	}

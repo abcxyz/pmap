@@ -38,8 +38,8 @@ module "service" {
 
   envvars = {
     "PROJECT_ID" : var.project_id,
-    "SUCCESS_TOPIC_ID" : var.downstream_topic,
-    "FAILURE_TOPIC_ID" : var.downstream_failure_topic
+    "PMAP_SUCCESS_TOPIC_ID" : var.downstream_topic,
+    "PMAP_FAILURE_TOPIC_ID" : var.downstream_failure_topic
   }
 }
 

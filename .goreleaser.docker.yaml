@@ -54,11 +54,10 @@ dockers:
     image_templates:
       - '{{ .Env.DOCKER_REPO }}/pmap:{{ .Env.DOCKER_TAG }}-amd64'
     build_flag_templates:
-      - '--build-arg=APP=pmap'
       - '--platform=linux/amd64'
       - '--pull'
       - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
-      - '--label=org.opencontainers.image.description=pmap command line.'
+      - '--label=org.opencontainers.image.description=Privacy data mapping tool.'
       - '--label=org.opencontainers.image.licenses=Apache-2.0'
       - '--label=org.opencontainers.image.name=pmap'
       - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
@@ -74,11 +73,10 @@ dockers:
     image_templates:
       - '{{ .Env.DOCKER_REPO }}/pmap:{{ .Env.DOCKER_TAG }}-arm64'
     build_flag_templates:
-      - '--build-arg=APP=pmap'
       - '--platform=linux/arm64'
       - '--pull'
       - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
-      - '--label=org.opencontainers.image.description=pmap command line.'
+      - '--label=org.opencontainers.image.description=Privacy data mapping tool.'
       - '--label=org.opencontainers.image.licenses=Apache-2.0'
       - '--label=org.opencontainers.image.name=pmap'
       - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
