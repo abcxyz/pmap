@@ -45,7 +45,9 @@ jobs:
         with:
           path: '${{ inputs.path }}'
           destination: '${{ inputs.destination_prefix }}/pmap-file-copy-${{ github.run_id }}-${{ github.run_attempt }}'
-          glob: '**/*.yaml'
+          glob: |
+            '**/*.yaml'
+            '**/*.yml'
           headers: |-
             content-type: application/json
             x-goog-meta-git-commit: ${{ github.sha }}

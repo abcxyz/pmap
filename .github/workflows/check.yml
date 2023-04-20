@@ -24,6 +24,7 @@ jobs:
         with:
           files: |
             ${{ inputs.resource_mapping_directory }}/**/*.yaml
+            ${{ inputs.resource_mapping_directory }}/**/*.yml
       - name: 'Copy added and changed files'
         if: ${{ steps.changed-yaml-files.outputs.any_changed == 'true' }}
         run: |

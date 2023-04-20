@@ -133,6 +133,9 @@ func fetchExtractedYAMLFiles(localDir string) ([]string, error) {
 		if filepath.Ext(path) == ".yaml" {
 			files = append(files, path)
 		}
+		if filepath.Ext(path) == ".yml" && !strings.Contains(filepath.Dir(path), "/.github/workflows") {
+			files = append(files, path)
+		}
 		return nil
 	}); err != nil {
 		return nil, fmt.Errorf("failed to walk the directory %s: %w", localDir, err)
