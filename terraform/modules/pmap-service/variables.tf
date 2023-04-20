@@ -22,10 +22,15 @@ variable "service_name" {
   type        = string
 }
 
-variable "image" {
-  description = "The pmap service image."
+variable "pmap_container_image" {
+  description = "The container image for pmap."
   type        = string
-  default     = "us-docker.pkg.dev/cloudrun/container/hello"
+}
+
+variable "pmap_args" {
+  type        = list(string)
+  default     = []
+  description = "Arguments to the pmap container's entrypoint."
 }
 
 variable "upstream_topic" {

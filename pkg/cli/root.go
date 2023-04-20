@@ -28,8 +28,30 @@ var rootCmd = func() cli.Command {
 		Name:    "pmap",
 		Version: version.HumanVersion,
 		Commands: map[string]cli.CommandFactory{
-			"validate": func() cli.Command {
-				return &ValidateCommand{}
+			"mapping": func() cli.Command {
+				return &cli.RootCommand{
+					Name:        "mapping",
+					Description: "Perform operations related to the resource mapping",
+					Commands: map[string]cli.CommandFactory{
+						"server": func() cli.Command {
+							return &MappingServerCommand{}
+						},
+						"validate": func() cli.Command {
+							return &MappingValidateCommand{}
+						},
+					},
+				}
+			},
+			"policy": func() cli.Command {
+				return &cli.RootCommand{
+					Name:        "policy",
+					Description: "Perform operations related to the policies",
+					Commands: map[string]cli.CommandFactory{
+						"server": func() cli.Command {
+							return &PolicyServerCommand{}
+						},
+					},
+				}
 			},
 		},
 	}

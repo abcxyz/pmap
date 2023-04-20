@@ -15,11 +15,9 @@
 package server
 
 import (
-	"context"
 	"fmt"
 
-	"github.com/abcxyz/pkg/cfgloader"
-	"github.com/sethvargo/go-envconfig"
+	"github.com/abcxyz/pkg/cli"
 )
 
 // HandlerConfig defines the set over environment variables required
@@ -27,8 +25,8 @@ import (
 type HandlerConfig struct {
 	Port           string `env:"PORT,default=8080"`
 	ProjectID      string `env:"PROJECT_ID,required"`
-	SuccessTopicID string `env:"SUCCESS_TOPIC_ID,required"`
-	FailureTopicID string `env:"FAILURE_TOPIC_ID"`
+	SuccessTopicID string `env:"PMAP_SUCCESS_TOPIC_ID,required"`
+	FailureTopicID string `env:"PMAP_FAILURE_TOPIC_ID"`
 }
 
 // Validate validates the handler config after load.
@@ -38,18 +36,47 @@ func (cfg *HandlerConfig) Validate() error {
 	}
 
 	if cfg.SuccessTopicID == "" {
-		return fmt.Errorf("SUCCESS_TOPIC_ID is empty and requires a value")
+		return fmt.Errorf("PMAP_SUCCESS_TOPIC_ID is empty and requires a value")
 	}
 
 	return nil
 }
 
-// NewConfig creates a new HandlerConfig from environment variables.
-func NewConfig(ctx context.Context) (*HandlerConfig, error) {
-	var cfg HandlerConfig
-	err := cfgloader.Load(ctx, &cfg, cfgloader.WithLookuper(envconfig.OsLookuper()))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse server config: %w", err)
-	}
-	return &cfg, nil
+// ToFlags binds the config to the give [cli.FlagSet] and returns it.
+func (cfg *HandlerConfig) ToFlags(set *cli.FlagSet) *cli.FlagSet {
+	// Command options
+	f := set.NewSection("COMMON SERVER OPTIONS")
+
+	f.StringVar(&cli.StringVar{
+		Name:    "port",
+		Target:  &cfg.Port,
+		EnvVar:  "PORT",
+		Default: "8080",
+		Usage:   `The port the server listens to.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "project-id",
+		Target: &cfg.ProjectID,
+		EnvVar: "PROJECT_ID",
+		Usage:  `Google Cloud project ID.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:    "success-topic-id",
+		Target:  &cfg.SuccessTopicID,
+		EnvVar:  "PMAP_SUCCESS_TOPIC_ID",
+		Example: "test-success-topic",
+		Usage:   "The topic id which handles the resources that are processed successfully.",
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:    "failure-topic-id",
+		Target:  &cfg.FailureTopicID,
+		EnvVar:  "PMAP_FAILURE_TOPIC_ID",
+		Example: "test-failure-topic",
+		Usage:   "The topic id which handles the resources that failed to process.",
+	})
+
+	return set
 }
