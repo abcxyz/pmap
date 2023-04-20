@@ -23,7 +23,7 @@ import (
 )
 
 // rootCmd defines the starting command structure.
-// debug
+// debug.
 var rootCmd = func() cli.Command {
 	return &cli.RootCommand{
 		Name:    "pmap",
