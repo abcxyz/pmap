@@ -130,10 +130,7 @@ func fetchExtractedYAMLFiles(localDir string) ([]string, error) {
 		if entry.IsDir() {
 			return nil
 		}
-		if filepath.Ext(path) == ".yaml" {
-			files = append(files, path)
-		}
-		if filepath.Ext(path) == ".yml" && !strings.Contains(filepath.Dir(path), "/.github/workflows") {
+		if !strings.Contains(filepath.Dir(path), "/.github/workflows") && (filepath.Ext(path) == ".yml" || filepath.Ext(path) == ".yaml") {
 			files = append(files, path)
 		}
 		return nil
