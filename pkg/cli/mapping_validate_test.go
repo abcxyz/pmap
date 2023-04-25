@@ -33,13 +33,12 @@ func TestNewValidateCmd(t *testing.T) {
 	td := t.TempDir()
 
 	cases := []struct {
-		name             string
-		args             []string
-		dir              string
-		fileDatas        map[string][]byte
-		expOut           string
-		expErr           string
-		haveWorkflowFile bool
+		name      string
+		args      []string
+		dir       string
+		fileDatas map[string][]byte
+		expOut    string
+		expErr    string
 	}{
 		{
 			name:   "unexpected_args",
@@ -50,40 +49,6 @@ func TestNewValidateCmd(t *testing.T) {
 			name:   "missing_path",
 			args:   []string{},
 			expErr: `path is required`,
-		},
-		{
-			name: "valid_contents",
-			dir:  "dir_valid_contents",
-			fileDatas: map[string][]byte{
-				"file1.yaml": []byte(`
-resource:
-    provider: gcp
-    name: //pubsub.googleapis.com/projects/test-project/topics/test-topic
-contacts:
-    email:
-        - pmap@gmail.com
-annotations:
-    fields:
-        location:
-            kind:
-                stringvalue: global
-`),
-				"file2.yaml": []byte(`
-resource:
-    provider: gcp
-    name: //pubsub.googleapis.com/projects/test-project/subscriptions/test-subsriptions
-contacts:
-    email:
-        - pmap@gmail.com
-annotations:
-    fields:
-        location:
-            kind:
-                stringvalue: global
-`),
-			},
-			args:   []string{"-path", filepath.Join(td, "dir_valid_contents")},
-			expOut: "processing file \"file1.yaml\"\nprocessing file \"file2.yaml\"\nValidation passed",
 		},
 		{
 			name: "invalid_yaml",
@@ -118,7 +83,7 @@ annotations:
 			expErr: "file \"file1.yaml\": invalid owner",
 		},
 		{
-			name: "validate_files",
+			name: "valid_contents",
 			fileDatas: map[string][]byte{
 				"file1.yaml": []byte(`
 resource:
@@ -146,23 +111,10 @@ annotations:
             kind:
                 stringvalue: global
 `),
-				"./.github/workflows/file3.yaml": []byte(`
+				"file3.txt": []byte(`
 resource:
     provider: gcp
-    name: //pubsub.googleapis.com/projects/test-project/topics/test-topic
-contacts:
-    email:
-        - pmap@gmail.com
-annotations:
-    fields:
-        location:
-            kind:
-                stringvalue: global
-`),
-				"./.github/workflows/file4.yml": []byte(`
-resource:
-    provider: gcp
-    name: //pubsub.googleapis.com/projects/test-project/topics/test-topic
+    name: //pubsub.googleapis.com/projects/test-project/subscriptions/test-subsriptions
 contacts:
     email:
         - pmap@gmail.com
@@ -173,10 +125,9 @@ annotations:
                 stringvalue: global
 `),
 			},
-			dir:              "dir_validate_files",
-			haveWorkflowFile: true,
-			args:             []string{"-path", filepath.Join(td, "dir_validate_files")},
-			expOut:           "processing file \"file1.yaml\"\nprocessing file \"file2.yml\"\nValidation passed",
+			dir:    "dir_valid_contents",
+			args:   []string{"-path", filepath.Join(td, "dir_valid_contents")},
+			expOut: "processing file \"file1.yaml\"\nprocessing file \"file2.yml\"\nValidation passed",
 		},
 	}
 
@@ -187,17 +138,10 @@ annotations:
 			t.Parallel()
 
 			if tc.dir != "" && tc.fileDatas != nil {
-				if tc.haveWorkflowFile {
-					if err := os.MkdirAll(filepath.Join(td, tc.dir, "./.github/workflows"), 0o755); err != nil {
-						t.Fatal(err)
-					}
-				} else {
-					if err := os.MkdirAll(filepath.Join(td, tc.dir), 0o755); err != nil {
-						t.Fatal(err)
-					}
+				if err := os.MkdirAll(filepath.Join(td, tc.dir), 0o755); err != nil {
+					t.Fatal(err)
 				}
 				for name, data := range tc.fileDatas {
-					// if err := os.MkdirAll(filepath.Join(td, tc.dir,))
 					if err := os.WriteFile(filepath.Join(td, tc.dir, name), data, 0o600); err != nil {
 						t.Fatalf("failed to write data to file %s: %v", name, err)
 					}

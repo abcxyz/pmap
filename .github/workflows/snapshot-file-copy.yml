@@ -47,6 +47,11 @@ jobs:
           destination: '${{ inputs.destination_prefix }}/pmap-file-copy-${{ github.run_id }}-${{ github.run_attempt }}'
           glob: |
             **/*.{yml,yaml}
+          # please refer to .gcloudignore file as an
+          # examle to exclude files to be uploaded
+          # add/delete entries in this file to customize
+          # your settings
+          process_gcloudignore: true
           headers: |-
             content-type: application/json
             x-goog-meta-git-commit: ${{ github.sha }}

@@ -31,6 +31,8 @@ jobs:
         with:
           files: |
             **/*.{yml,yaml}
+          files_ignore: |
+            **/.github/workflows/**/*.{yaml,yml}
       - name: 'Copy added and changed files'
         if: ${{ steps.changed-yaml-files.outputs.any_changed == 'true' }}
         run: |
