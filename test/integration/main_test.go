@@ -158,7 +158,7 @@ contacts:
 
 			// Check if the file uploaded exists in BigQuery.
 			queryString := fmt.Sprintf("SELECT data FROM `%s.%s.%s`", cfg.ProjectID, cfg.BigQueryDataSetID, tc.bigqueryTable)
-			queryString += ` WHERE JSON_VALUE(data.payload.annotations.traceID) = ?`
+			queryString += ` WHERE JSON_VALUE(data.payload.annotations.traceID1) = ?`
 			bqQuery := bqClient.Query(queryString)
 			bqQuery.Parameters = []bigquery.QueryParameter{{Value: traceID.String()}}
 
