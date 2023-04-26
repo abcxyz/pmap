@@ -3,7 +3,7 @@ on:
   workflow_call:
     inputs:
       resource_mapping_directory:
-        description: 'The directory which includes the resource mapping yaml files'
+        description: 'The directory which includes the resource mapping yaml and yml files'
         type: 'string'
         required: true
       go_version:
@@ -18,7 +18,7 @@ jobs:
         uses: 'actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3' # ratchet:actions/checkout@v3
         with:
           fetch-depth: 0 # OR "2" -> To retrieve the preceding commit.
-      - name: 'Get changed yaml files'
+      - name: 'Get changed yaml and yml files'
         id: 'changed-yaml-files'
         uses: 'tj-actions/changed-files@b109d83a62e94cf7c522bf6c15cb25c175850b16' # ratchet:tj-actions/changed-files@v35
         with:

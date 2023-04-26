@@ -1,5 +1,0 @@
-# Ignore github workflow files and goreleaser files
-# Add or delete entries in this files to customize
-# your own settings.
-.github/workflows/*
-.goreleaser.docker.yaml
