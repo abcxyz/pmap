@@ -17,8 +17,8 @@ package v1alpha1
 import (
 	"testing"
 
-	"github.com/abcxyz/pkg/protoutil"
 	"github.com/abcxyz/pkg/testutil"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestValidateResouceMapping(t *testing.T) {
@@ -27,57 +27,60 @@ func TestValidateResouceMapping(t *testing.T) {
 	cases := []struct {
 		name   string
 		expErr string
-		data   []byte
+		data   *ResourceMapping
 	}{
 		{
 			name:   "invalid_email",
 			expErr: "invalid owner",
-			data: []byte(`
-resource:
-    provider: gcp
-    name: //pubsub.googleapis.com/projects/test-project/topics/test-topic
-contacts:
-    email:
-        - pmap.gmail.com
-annotations:
-    fields:
-        location:
-            kind:
-                stringvalue: global
-        `),
+			data: &ResourceMapping{
+				Resource: &Resource{
+					Provider: "gcp",
+					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
+				},
+				Contacts: &Contacts{
+					Email: []string{"pmap.gmail.com"},
+				},
+				Annotations: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"location": structpb.NewStringValue("global"),
+					},
+				},
+			},
 		},
 		{
 			name:   "empty_resource_provider",
 			expErr: "empty resource provider",
-			data: []byte(`
-resource:
-    provider: ""
-    name: //pubsub.googleapis.com/projects/test-project/topics/test-topic
-contacts:
-    email:
-        - pmap@gmail.com
-annotations:
-    fields:
-        location:
-            kind:
-                stringvalue: global
-        `),
+			data: &ResourceMapping{
+				Resource: &Resource{
+					Provider: "",
+					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
+				},
+				Contacts: &Contacts{
+					Email: []string{"pmap.gmail.com"},
+				},
+				Annotations: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"location": structpb.NewStringValue("global"),
+					},
+				},
+			},
 		},
 		{
-			name: "validation succeed",
-			data: []byte(`
-resource:
-    provider: "gcp"
-    name: //pubsub.googleapis.com/projects/test-project/topics/test-topic
-contacts:
-    email:
-        - pmap@gmail.com
-annotations:
-    fields:
-        location:
-            kind:
-                stringvalue: global
-        `),
+			name: "success",
+			data: &ResourceMapping{
+				Resource: &Resource{
+					Provider: "gcp",
+					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
+				},
+				Contacts: &Contacts{
+					Email: []string{"pmap@gmail.com"},
+				},
+				Annotations: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"location": structpb.NewStringValue("global"),
+					},
+				},
+			},
 		},
 	}
 
@@ -86,11 +89,7 @@ annotations:
 
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			var resourceMapping ResourceMapping
-			if err := protoutil.FromYAML(tc.data, &resourceMapping); err != nil {
-				t.Fatalf("failed to unmarshal data to ResourceMapping: %v", err)
-			}
-			err := ValidateResourceMapping(&resourceMapping)
+			err := ValidateResourceMapping(tc.data)
 			if diff := testutil.DiffErrString(err, tc.expErr); diff != "" {
 				t.Errorf("ValidateResourceMapping got unexpected error: %s", diff)
 			}
