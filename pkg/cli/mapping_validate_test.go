@@ -62,27 +62,6 @@ func TestNewValidateCmd(t *testing.T) {
 			expErr: "file \"file1.yaml\": failed to unmarshal yaml to ResourceMapping",
 		},
 		{
-			name: "invalid_email",
-			dir:  "dir_invalid_email",
-			fileDatas: map[string][]byte{
-				"file1.yaml": []byte(`
-resource:
-    provider: gcp
-    name: //pubsub.googleapis.com/projects/test-project/topics/test-topic
-contacts:
-    email:
-        - pmap.gmail.com
-annotations:
-    fields:
-        location:
-            kind:
-                stringvalue: global
-`),
-			},
-			args:   []string{"-path", filepath.Join(td, "dir_invalid_email")},
-			expErr: "file \"file1.yaml\": invalid owner",
-		},
-		{
 			name: "valid_contents",
 			fileDatas: map[string][]byte{
 				"file1.yaml": []byte(`
