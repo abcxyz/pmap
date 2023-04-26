@@ -23,7 +23,7 @@ jobs:
         uses: 'tj-actions/changed-files@b109d83a62e94cf7c522bf6c15cb25c175850b16' # ratchet:tj-actions/changed-files@v35
         with:
           files: |
-            ${{ inputs.resource_mapping_directory }}/**/*.yaml
+            ${{ inputs.resource_mapping_directory }}/**/*.{yaml,yml}
       - name: 'Copy added and changed files'
         if: ${{ steps.changed-yaml-files.outputs.any_changed == 'true' }}
         run: |

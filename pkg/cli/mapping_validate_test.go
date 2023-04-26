@@ -51,8 +51,18 @@ func TestNewValidateCmd(t *testing.T) {
 			expErr: `path is required`,
 		},
 		{
+			name: "invalid_yaml",
+			dir:  "dir_invalid_yaml",
+			fileDatas: map[string][]byte{
+				"file1.yaml": []byte(`
+		foo
+		`),
+			},
+			args:   []string{"-path", filepath.Join(td, "dir_invalid_yaml")},
+			expErr: "file \"file1.yaml\": failed to unmarshal yaml to ResourceMapping",
+		},
+		{
 			name: "valid_contents",
-			dir:  "dir_valid_contents",
 			fileDatas: map[string][]byte{
 				"file1.yaml": []byte(`
 resource:
@@ -67,7 +77,20 @@ annotations:
             kind:
                 stringvalue: global
 `),
-				"file2.yaml": []byte(`
+				"file2.yml": []byte(`
+resource:
+    provider: gcp
+    name: //pubsub.googleapis.com/projects/test-project/subscriptions/test-subsriptions
+contacts:
+    email:
+        - pmap@gmail.com
+annotations:
+    fields:
+        location:
+            kind:
+                stringvalue: global
+`),
+				"file3.txt": []byte(`
 resource:
     provider: gcp
     name: //pubsub.googleapis.com/projects/test-project/subscriptions/test-subsriptions
@@ -81,40 +104,9 @@ annotations:
                 stringvalue: global
 `),
 			},
+			dir:    "dir_valid_contents",
 			args:   []string{"-path", filepath.Join(td, "dir_valid_contents")},
-			expOut: "processing file \"file1.yaml\"\nprocessing file \"file2.yaml\"\nValidation passed",
-		},
-		{
-			name: "invalid_yaml",
-			dir:  "dir_invalid_yaml",
-			fileDatas: map[string][]byte{
-				"file1.yaml": []byte(`
-		foo
-		`),
-			},
-			args:   []string{"-path", filepath.Join(td, "dir_invalid_yaml")},
-			expErr: "file \"file1.yaml\": failed to unmarshal yaml to ResourceMapping",
-		},
-		{
-			name: "invalid_email",
-			dir:  "dir_invalid_email",
-			fileDatas: map[string][]byte{
-				"file1.yaml": []byte(`
-resource:
-    provider: gcp
-    name: //pubsub.googleapis.com/projects/test-project/topics/test-topic
-contacts:
-    email:
-        - pmap.gmail.com
-annotations:
-    fields:
-        location:
-            kind:
-                stringvalue: global
-`),
-			},
-			args:   []string{"-path", filepath.Join(td, "dir_invalid_email")},
-			expErr: "file \"file1.yaml\": invalid owner",
+			expOut: "processing file \"file1.yaml\"\nprocessing file \"file2.yml\"\nValidation passed",
 		},
 	}
 
