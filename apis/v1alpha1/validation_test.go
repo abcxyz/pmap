@@ -63,6 +63,22 @@ annotations:
                 stringvalue: global
         `),
 		},
+		{
+			name: "validation succeed",
+			data: []byte(`
+resource:
+    provider: "gcp"
+    name: //pubsub.googleapis.com/projects/test-project/topics/test-topic
+contacts:
+    email:
+        - pmap@gmail.com
+annotations:
+    fields:
+        location:
+            kind:
+                stringvalue: global
+        `),
+		},
 	}
 
 	for _, tc := range cases {
@@ -72,12 +88,11 @@ annotations:
 			t.Parallel()
 			var resourceMapping ResourceMapping
 			if err := protoutil.FromYAML(tc.data, &resourceMapping); err != nil {
-				t.Errorf("failed to unmarshal data to ResourceMapping: %v", err)
+				t.Fatalf("failed to unmarshal data to ResourceMapping: %v", err)
 			}
-			if err := ValidateResourceMapping(&resourceMapping); err != nil {
-				if diff := testutil.DiffErrString(err, tc.expErr); diff != "" {
-					t.Fatal(diff)
-				}
+			err := ValidateResourceMapping(&resourceMapping)
+			if diff := testutil.DiffErrString(err, tc.expErr); diff != "" {
+				t.Errorf("ValidateResourceMapping got unexpected error: %s", diff)
 			}
 		})
 	}

@@ -3,7 +3,7 @@ on:
   workflow_call:
     inputs:
       resource_mapping_directory:
-        description: 'The directory which includes the resource mapping yaml and yml files'
+        description: 'The directory which includes the resource mapping yaml files'
         type: 'string'
         required: true
       go_version:
