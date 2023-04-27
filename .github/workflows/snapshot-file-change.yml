@@ -14,6 +14,11 @@ on:
         description: 'The destination prefix for the file/folder in the form bucket-name or with an optional prefix in the form bucket-name/prefix.'
         type: 'string'
         required: true
+      path:
+        description: 'The path to a file or folder in the GitHub repo that should be uploaded to the gcs.'
+        type: 'string'
+        required: true
+
 jobs:
   snapshot:
     runs-on: ubuntu-latest
@@ -29,6 +34,7 @@ jobs:
         id: 'changed-yaml-files'
         uses: 'tj-actions/changed-files@84ed30e2f4daf616144de7e0c1db59d5b33025e3' # ratchet:tj-actions/changed-files@v35
         with:
+          path: '${{ inputs.path }}'
           files: |
             **/*.{yml,yaml}
       - name: 'Copy added and changed files'
