@@ -52,6 +52,7 @@ type ProtoWrapper[T any] interface {
 // Processor[*structpb.Struct].
 type Processor[P proto.Message] interface {
 	Process(context.Context, P) error
+	Stop() error
 }
 
 // An interface for sending pmap event downstream.
@@ -252,6 +253,11 @@ func (h *EventHandler[T, P]) Cleanup() (retErr error) {
 	}
 	if err := h.failureMessenger.Cleanup(); err != nil {
 		retErr = errors.Join(retErr, fmt.Errorf("failed to close failure event messenger: %w", err))
+	}
+	for _, p := range h.processors {
+		if err := p.Stop(); err != nil {
+			retErr = errors.Join(retErr, fmt.Errorf("failed to stop processor: %w", err))
+		}
 	}
 	return
 }
