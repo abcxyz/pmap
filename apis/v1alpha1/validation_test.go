@@ -66,6 +66,24 @@ func TestValidateResouceMapping(t *testing.T) {
 			},
 		},
 		{
+			name:   "assetInfo_included_as_custom_key",
+			expErr: "input includes reserved key: assetInfo",
+			data: &ResourceMapping{
+				Resource: &Resource{
+					Provider: "gcp",
+					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
+				},
+				Contacts: &Contacts{
+					Email: []string{"pmap@gmail.com"},
+				},
+				Annotations: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"assetInfo": structpb.NewStringValue("global"),
+					},
+				},
+			},
+		},
+		{
 			name: "success",
 			data: &ResourceMapping{
 				Resource: &Resource{

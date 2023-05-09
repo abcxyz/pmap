@@ -143,33 +143,45 @@ func TestProcessor_UpdatedProcess(t *testing.T) {
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap.gmail.com"}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
+				Annotations: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"custom_key": structpb.NewStringValue("test-key"),
+					},
+				},
 			},
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap.gmail.com"}},
-				Annotations: &structpb.Struct{Fields: map[string]*structpb.Value{
-					"ancestors": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{structpb.NewStringValue("organizations/0"), structpb.NewStringValue("folders/0"), structpb.NewStringValue("folders/1"), structpb.NewStringValue("projects/0")}}),
-					"labels": structpb.NewStructValue(&structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							"env": structpb.NewStringValue("dev"),
-						},
-					}),
-					"location": structpb.NewStringValue("global"),
-					"iamPolicies": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{structpb.NewStructValue(&structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							"bindings": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{structpb.NewStructValue(&structpb.Struct{
-								Fields: map[string]*structpb.Value{
-									"members": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{structpb.NewStringValue("serviceAccount:test-service@gcp-sa-pubsub.iam.gserviceaccount.com")}}),
-									"role":    structpb.NewStringValue("roles/pubsub.publisher"),
-								},
-							})}}),
-						},
-					})}}),
-				}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
+				Annotations: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"custom_key": structpb.NewStringValue("test-key"),
+						"assetInfo": structpb.NewStructValue(&structpb.Struct{
+							Fields: map[string]*structpb.Value{
+								"ancestors": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{structpb.NewStringValue("organizations/0"), structpb.NewStringValue("folders/0"), structpb.NewStringValue("folders/1"), structpb.NewStringValue("projects/0")}}),
+								"labels": structpb.NewStructValue(&structpb.Struct{
+									Fields: map[string]*structpb.Value{
+										"env": structpb.NewStringValue("dev"),
+									},
+								}),
+								"location": structpb.NewStringValue("global"),
+								"iamPolicies": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{structpb.NewStructValue(&structpb.Struct{
+									Fields: map[string]*structpb.Value{
+										"bindings": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{structpb.NewStructValue(&structpb.Struct{
+											Fields: map[string]*structpb.Value{
+												"members": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{structpb.NewStringValue("serviceAccount:test-service@gcp-sa-pubsub.iam.gserviceaccount.com")}}),
+												"role":    structpb.NewStringValue("roles/pubsub.publisher"),
+											},
+										})}}),
+									},
+								})}}),
+							},
+						}),
+					},
+				},
 			},
 		},
 		{
@@ -199,14 +211,14 @@ func TestProcessor_UpdatedProcess(t *testing.T) {
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap.gmail.com"}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
 			},
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap.gmail.com"}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
 			},
 			wantErrSubstr: "encountered error during resources search: Internal Server Error",
 		},
@@ -222,14 +234,14 @@ func TestProcessor_UpdatedProcess(t *testing.T) {
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap.gmail.com"}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
 			},
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap.gmail.com"}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
 			},
 
 			wantErrSubstr: "0 matched resources found, expected 1 matched resource",
@@ -258,14 +270,14 @@ func TestProcessor_UpdatedProcess(t *testing.T) {
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap.gmail.com"}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
 			},
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap.gmail.com"}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
 			},
 			wantErrSubstr: "encountered error during iam policies search: Internal Server Error",
 		},
