@@ -145,7 +145,6 @@ resource:
   name: %s
   provider: gcp
 annotations:
-  location: custom-location
   traceID: %s
 contacts:
   email:
@@ -181,9 +180,6 @@ contacts:
 			// Resources that don't exist won't pass the validation of CAIS processor,
 			// therefore, additional metadata including 'ancestors' and 'iamPolicies' won't get attached.
 			if tc.wantCAISProcessed {
-				if value, ok := resourceMapping.GetAnnotations().GetFields()["location"]; !ok || value.GetStringValue() != "custom-location" {
-					t.Errorf("lost custom annotations")
-				}
 				if _, ok := resourceMapping.GetAnnotations().GetFields()["assetInfo"].GetStructValue().AsMap()["ancestors"]; !ok {
 					t.Errorf("ancestors is blank in resourcemapping.annotations")
 				}

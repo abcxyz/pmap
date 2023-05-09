@@ -32,7 +32,7 @@ func ValidateResourceMapping(m *ResourceMapping) (vErr error) {
 		vErr = errors.Join(vErr, fmt.Errorf("empty resource provider"))
 	}
 	if _, ok := m.Annotations.AsMap()["assetInfo"]; ok {
-		vErr = errors.Join(vErr, fmt.Errorf("input includes reserved key: assetInfo"))
+		vErr = errors.Join(vErr, fmt.Errorf("reserved key is included: assertInfo"))
 	}
 	return
 }

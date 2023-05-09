@@ -67,7 +67,7 @@ func TestValidateResouceMapping(t *testing.T) {
 		},
 		{
 			name:   "assetInfo_included_as_custom_key",
-			expErr: "input includes reserved key: assetInfo",
+			expErr: "reserved key is included: assertInfo",
 			data: &ResourceMapping{
 				Resource: &Resource{
 					Provider: "gcp",
