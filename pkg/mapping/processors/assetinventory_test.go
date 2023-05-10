@@ -143,7 +143,7 @@ func TestProcessor_UpdatedProcess(t *testing.T) {
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@example.com"}},
 				Annotations: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
 						"custom_key": structpb.NewStringValue("test-key"),
@@ -155,7 +155,7 @@ func TestProcessor_UpdatedProcess(t *testing.T) {
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@example.com"}},
 				Annotations: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
 						"custom_key": structpb.NewStringValue("test-key"),
@@ -211,14 +211,14 @@ func TestProcessor_UpdatedProcess(t *testing.T) {
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@example.com"}},
 			},
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@example.com"}},
 			},
 			wantErrSubstr: "encountered error during resources search: Internal Server Error",
 		},
@@ -234,14 +234,14 @@ func TestProcessor_UpdatedProcess(t *testing.T) {
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@example.com"}},
 			},
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@example.com"}},
 			},
 
 			wantErrSubstr: "0 matched resources found, expected 1 matched resource",
@@ -270,14 +270,14 @@ func TestProcessor_UpdatedProcess(t *testing.T) {
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@example.com"}},
 			},
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@gmail.com"}},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap@example.com"}},
 			},
 			wantErrSubstr: "encountered error during iam policies search: Internal Server Error",
 		},

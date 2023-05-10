@@ -38,7 +38,7 @@ func TestValidateResouceMapping(t *testing.T) {
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
 				Contacts: &Contacts{
-					Email: []string{"pmap.gmail.com"},
+					Email: []string{"pmap.example.com"},
 				},
 				Annotations: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
@@ -56,7 +56,7 @@ func TestValidateResouceMapping(t *testing.T) {
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
 				Contacts: &Contacts{
-					Email: []string{"pmap.gmail.com"},
+					Email: []string{"pmap@example.com"},
 				},
 				Annotations: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
@@ -74,7 +74,7 @@ func TestValidateResouceMapping(t *testing.T) {
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
 				Contacts: &Contacts{
-					Email: []string{"pmap@gmail.com"},
+					Email: []string{"pmap@example.com"},
 				},
 				Annotations: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
@@ -91,7 +91,7 @@ func TestValidateResouceMapping(t *testing.T) {
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
 				Contacts: &Contacts{
-					Email: []string{"pmap@gmail.com"},
+					Email: []string{"pmap@example.com"},
 				},
 				Annotations: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
