@@ -38,7 +38,7 @@ func TestValidateResouceMapping(t *testing.T) {
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 				},
 				Contacts: &Contacts{
-					Email: []string{"pmap.example.com"},
+					Email: []string{"invalid.example.com"},
 				},
 				Annotations: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
@@ -67,7 +67,7 @@ func TestValidateResouceMapping(t *testing.T) {
 		},
 		{
 			name:   "assetInfo_included_as_custom_key",
-			expErr: "reserved key is included: assertInfo",
+			expErr: "reserved key is included: assetInfo",
 			data: &ResourceMapping{
 				Resource: &Resource{
 					Provider: "gcp",
@@ -78,7 +78,7 @@ func TestValidateResouceMapping(t *testing.T) {
 				},
 				Annotations: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
-						"assetInfo": structpb.NewStringValue("global"),
+						AnnotationKeyAssetInfo: structpb.NewStringValue("global"),
 					},
 				},
 			},

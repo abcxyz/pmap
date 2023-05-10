@@ -159,7 +159,7 @@ func TestProcessor_UpdatedProcess(t *testing.T) {
 				Annotations: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
 						"custom_key": structpb.NewStringValue("test-key"),
-						"assetInfo": structpb.NewStructValue(&structpb.Struct{
+						v1alpha1.AnnotationKeyAssetInfo: structpb.NewStructValue(&structpb.Struct{
 							Fields: map[string]*structpb.Value{
 								"ancestors": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{structpb.NewStringValue("organizations/0"), structpb.NewStringValue("folders/0"), structpb.NewStringValue("folders/1"), structpb.NewStringValue("projects/0")}}),
 								"labels": structpb.NewStructValue(&structpb.Struct{

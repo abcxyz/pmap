@@ -182,7 +182,7 @@ func (p *AssetInventoryProcessor) validateAndEnrich(ctx context.Context, resourc
 	}
 
 	annotations := map[string]any{}
-	annotations["assetInfo"] = assetInventoryAnnos
+	annotations[v1alpha1.AnnotationKeyAssetInfo] = assetInventoryAnnos
 
 	assetInventorySpb, err := protoutil.ToProtoStruct(annotations)
 	if err != nil {
