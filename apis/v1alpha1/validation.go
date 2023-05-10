@@ -21,6 +21,11 @@ import (
 	"net/mail"
 )
 
+const (
+	// Reserved key where annotation from CAIS will be stored.
+	AnnotationKeyAssetInfo = "assetInfo"
+)
+
 // ValidateResourceMapping checks if the ResourceMapping is valid.
 func ValidateResourceMapping(m *ResourceMapping) (vErr error) {
 	for _, e := range m.Contacts.Email {
@@ -30,6 +35,9 @@ func ValidateResourceMapping(m *ResourceMapping) (vErr error) {
 	}
 	if m.Resource.Provider == "" {
 		vErr = errors.Join(vErr, fmt.Errorf("empty resource provider"))
+	}
+	if _, ok := m.Annotations.AsMap()[AnnotationKeyAssetInfo]; ok {
+		vErr = errors.Join(vErr, fmt.Errorf("reserved key is included: %s", AnnotationKeyAssetInfo))
 	}
 	return
 }
