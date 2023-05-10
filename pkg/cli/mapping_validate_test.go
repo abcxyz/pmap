@@ -70,7 +70,7 @@ resource:
     name: //pubsub.googleapis.com/projects/test-project/topics/test-topic
 contacts:
     email:
-        - pmap@gmail.com
+        - pmap@example.com
 annotations:
     fields:
         location:
@@ -83,7 +83,7 @@ resource:
     name: //pubsub.googleapis.com/projects/test-project/subscriptions/test-subsriptions
 contacts:
     email:
-        - pmap@gmail.com
+        - pmap@example.com
 annotations:
     fields:
         location:
@@ -96,7 +96,7 @@ resource:
     name: //pubsub.googleapis.com/projects/test-project/subscriptions/test-subsriptions
 contacts:
     email:
-        - pmap@gmail.com
+        - pmap@example.com
 annotations:
     fields:
         location:

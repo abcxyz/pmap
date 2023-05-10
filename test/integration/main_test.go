@@ -180,10 +180,10 @@ contacts:
 			// Resources that don't exist won't pass the validation of CAIS processor,
 			// therefore, additional metadata including 'ancestors' and 'iamPolicies' won't get attached.
 			if tc.wantCAISProcessed {
-				if _, ok := resourceMapping.GetAnnotations().GetFields()["ancestors"]; !ok {
+				if _, ok := resourceMapping.GetAnnotations().GetFields()[v1alpha1.AnnotationKeyAssetInfo].GetStructValue().AsMap()["ancestors"]; !ok {
 					t.Errorf("ancestors is blank in resourcemapping.annotations")
 				}
-				if _, ok := resourceMapping.GetAnnotations().GetFields()["iamPolicies"]; !ok {
+				if _, ok := resourceMapping.GetAnnotations().GetFields()[v1alpha1.AnnotationKeyAssetInfo].GetStructValue().AsMap()["iamPolicies"]; !ok {
 					t.Errorf("iamPolicies is blank in resourcemapping.annotations")
 				}
 			}

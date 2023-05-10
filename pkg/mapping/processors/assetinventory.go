@@ -181,7 +181,10 @@ func (p *AssetInventoryProcessor) validateAndEnrich(ctx context.Context, resourc
 		assetInventoryAnnos["iamPolicies"] = iamPolicies
 	}
 
-	assetInventorySpb, err := protoutil.ToProtoStruct(assetInventoryAnnos)
+	annotations := map[string]any{}
+	annotations[v1alpha1.AnnotationKeyAssetInfo] = assetInventoryAnnos
+
+	assetInventorySpb, err := protoutil.ToProtoStruct(annotations)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert Asset Inventory annotations to structpb.Struct: %w", err)
 	}
