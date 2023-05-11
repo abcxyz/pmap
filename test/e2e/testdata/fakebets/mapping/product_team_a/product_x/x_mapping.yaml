@@ -3,7 +3,6 @@ resource:
   provider: gcp
 annotations:
   traceID: fake-bets-pmap-dev-manual-test
-  env: dev
 contacts:
   email:
     - pmap.mapping@gmail.com

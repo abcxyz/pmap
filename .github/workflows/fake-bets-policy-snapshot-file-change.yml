@@ -1,12 +1,6 @@
 name: 'fake-bets-policy-snapshot-file-change'
 
 on:
-  push:
-    branches:
-      - 'main'
-  pull_request:
-    branches:
-      - 'main'
   workflow_dispatch:
 
 # Don't cancel in progress since we don't want to have half-baked file change snapshot.
@@ -14,7 +8,7 @@ concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-fake-b
 
 jobs:
   snapshot:
-    uses: './.github/workflows/snapshot-file-change.yml' # ratchet:exclude
+    uses: 'abcxyz/pmap/.github/workflows/snapshot-file-change.yml@main' # ratchet:exclude
     with:
       workload_identity_provider: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
       service_account: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'

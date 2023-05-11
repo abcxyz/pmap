@@ -1,9 +1,0 @@
-resource:
-  name: //storage.googleapis.com/pmap-dev-manual-bucket-i
-  provider: gcp
-annotations:
-  traceID: fake-bets-pmap-dev-manual-test-i
-  env: dev
-contacts:
-  email:
-    - pmap.mapping@gmail.com

@@ -3,5 +3,3 @@ resource:
 contacts:
   email:
     - pmap.policy@gmail.com
-annotations:
-  env: dev
