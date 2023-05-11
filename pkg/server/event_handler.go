@@ -52,6 +52,10 @@ type ProtoWrapper[T any] interface {
 // Processor[*structpb.Struct].
 type Processor[P proto.Message] interface {
 	Process(context.Context, P) error
+}
+
+// StoppableProcessor is the interface to processors that are stoppable.
+type StoppableProcessor[P proto.Message] interface {
 	Stop() error
 }
 
@@ -255,8 +259,10 @@ func (h *EventHandler[T, P]) Cleanup() (retErr error) {
 		retErr = errors.Join(retErr, fmt.Errorf("failed to close failure event messenger: %w", err))
 	}
 	for _, p := range h.processors {
-		if err := p.Stop(); err != nil {
-			retErr = errors.Join(retErr, fmt.Errorf("failed to stop processor: %w", err))
+		if stoppable, ok := p.(StoppableProcessor[P]); ok {
+			if err := stoppable.Stop(); err != nil {
+				retErr = errors.Join(retErr, fmt.Errorf("failed to stop processor: %w", err))
+			}
 		}
 	}
 	return
