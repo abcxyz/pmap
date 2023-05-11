@@ -1,6 +1,12 @@
 name: 'fake-bets-policy-snapshot-file-change'
 
 on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    branches:
+      - 'main'
   workflow_dispatch:
 
 # Don't cancel in progress since we don't want to have half-baked file change snapshot.
