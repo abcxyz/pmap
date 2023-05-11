@@ -37,9 +37,8 @@ jobs:
         id: 'changed-yaml-files'
         uses: 'tj-actions/changed-files@84ed30e2f4daf616144de7e0c1db59d5b33025e3' # ratchet:tj-actions/changed-files@v35
         with:
-          path: '${{ inputs.path }}'
           files: |
-            **/*.{yml,yaml}
+            ${{ inputs.path }}/**/*.{yml,yaml}
       - name: 'Copy added and changed files'
         id: 'copy-changed-yaml-files'
         if: ${{ steps.changed-yaml-files.outputs.any_changed == 'true' }}
