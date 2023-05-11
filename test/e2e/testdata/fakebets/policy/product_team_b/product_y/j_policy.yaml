@@ -1,0 +1,7 @@
+resource:
+  name: policy-j
+contacts:
+  email:
+    - pmap.policy@gmail.com
+annotations:
+  env: dev
