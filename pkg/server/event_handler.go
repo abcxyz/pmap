@@ -228,9 +228,17 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 	if err != nil {
 		return fmt.Errorf("failed to convert object to pmap event payload: %w", err)
 	}
+
 	// TODO(#21): Add additional metadata to pmap event.
 	event := &v1alpha1.PmapEvent{
 		Payload: payload,
+	}
+	gr, err := h.getGCSObjectGithubResourceMetadata(ctx, m.Attributes)
+	if err != nil {
+		return fmt.Errorf("failed to convert metadata: %w", err)
+	}
+	if gr != nil {
+		event.GithubSource = gr
 	}
 
 	if processErr != nil {
@@ -291,6 +299,48 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 		return nil, fmt.Errorf("failed to unmarshal object yaml: %w", err)
 	}
 	return p, nil
+}
+
+func (h *EventHandler[T, P]) getGCSObjectGithubResourceMetadata(ctx context.Context, objAttrs map[string]string) (*v1alpha1.GitHubSource, error) {
+	bucketID, found := objAttrs["bucketId"]
+	if !found {
+		return nil, fmt.Errorf("bucket ID not found")
+	}
+	objectID, found := objAttrs["objectId"]
+	if !found {
+		return nil, fmt.Errorf("object ID not found")
+	}
+
+	// Read the object from bucket.
+	attrs, err := h.client.Bucket(bucketID).Object(objectID).Attrs(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("Attrs not found")
+	}
+	m := attrs.Metadata
+	fmt.Println(m)
+	fmt.Println("===========Metadata is here===============")
+	r := &v1alpha1.GitHubSource{}
+	c, found := m["git-commit"]
+	if found {
+		r.Commit = c
+	}
+	rn, found := m["git-repo"]
+	if found {
+		r.RepoName = rn
+	}
+	w, found := m["git-workflow"]
+	if found {
+		r.Workflow = w
+	}
+	ws, found := m["git-workflow-sha"]
+	if found {
+		r.WorkflowSha = ws
+	}
+	t, found := m["triggered-timestamp"]
+	if found {
+		r.TriggeredTimestamp = t
+	}
+	return r, nil
 }
 
 // NoopMessenger is a no-op implementation of Messenger interface.

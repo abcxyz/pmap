@@ -31,6 +31,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sethvargo/go-retry"
 	"google.golang.org/api/iterator"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -129,6 +130,14 @@ func TestMappingEventHandling(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 
+		wantGithubResource := &v1alpha1.GitHubSource{
+			RepoName:           "test-git-repo",
+			Commit:             "test-git-commit",
+			Workflow:           "test-workflow",
+			WorkflowSha:        "test-workflow-sha",
+			TriggeredTimestamp: "test-timestamp",
+		}
+
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -177,6 +186,12 @@ contacts:
 				t.Errorf("resourcemapping(ignore annotation) unexpected diff (-want,+got):\n%s", diff)
 			}
 
+			gotGithubResouce := gotPmapEvent.GetGithubSource()
+
+			if diff := cmp.Diff(gotGithubResouce, wantGithubResource, cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{})); diff != "" {
+				t.Errorf("githubResource unexpected diff (-want, +got):\n%s", diff)
+			}
+
 			// Resources that don't exist won't pass the validation of CAIS processor,
 			// therefore, additional metadata including 'ancestors' and 'iamPolicies' won't get attached.
 			if tc.wantCAISProcessed {
@@ -213,6 +228,14 @@ func TestPolicyEventHandling(t *testing.T) {
 			t.Parallel()
 
 			ctx := context.Background()
+
+			wantGithubResource := &v1alpha1.GitHubSource{
+				RepoName:           "test-git-repo",
+				Commit:             "test-git-commit",
+				Workflow:           "test-workflow",
+				WorkflowSha:        "test-workflow-sha",
+				TriggeredTimestamp: "test-timestamp",
+			}
 
 			traceID, err := rand.Int(rand.Reader, big.NewInt(100000))
 			if err != nil {
@@ -261,6 +284,12 @@ deletion_timeline:
 
 			if diff := cmp.Diff(wantPayload, gotPayload, protocmp.Transform()); diff != "" {
 				t.Errorf("gotPayload unexpected diff (-want,+got):\n%s", diff)
+			}
+
+			gotGithubResouce := gotPmapEvent.GetGithubSource()
+
+			if diff := cmp.Diff(wantGithubResource, gotGithubResouce, cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{})); diff != "" {
+				t.Errorf("githubResource unexpected diff (-want, +got):\n%s", diff)
 			}
 		})
 	}
@@ -349,7 +378,7 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 	o := gcsClient.Bucket(bucket).Object(object)
 
 	// For an object that does not yet exist, set the DoesNotExist precondition.
-	o = o.If(storage.Conditions{DoesNotExist: true})
+	// o = o.If(storage.Conditions{DoesNotExist: true})
 
 	// Upload an object with storage.Writer.
 	wc := o.NewWriter(ctx)
@@ -358,6 +387,20 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 	}
 	if err := wc.Close(); err != nil {
 		return fmt.Errorf("failed to close writer: %w", err)
+	}
+
+	objectAttrsToUpdate := storage.ObjectAttrsToUpdate{
+		Metadata: map[string]string{
+			"git-commit":          "test-git-commit",
+			"git-repo":            "test-git-repo",
+			"git-workflow":        "test-workflow",
+			"git-workflow-sha":    "test-workflow-sha",
+			"triggered-timestamp": "test-timestamp",
+		},
+	}
+
+	if _, err := o.Update(ctx, objectAttrsToUpdate); err != nil {
+		return fmt.Errorf("ObjectHandle(%q).Update: %w", object, err)
 	}
 
 	return nil

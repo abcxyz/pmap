@@ -325,17 +325,39 @@ func newTestServer(handler func(w http.ResponseWriter, r *http.Request)) (*http.
 	}
 }
 
+func getFakeMetadata() []byte {
+	return []byte(`{
+		"metadata": {
+		  "git-commit": "test-git-commit",
+		  "triggered-timestamp": "test-timestamp",
+		  "git-workflow-sha": "test-workflow-sha",
+		  "git-workflow": "test-workflow",
+		  "git-repo": "test-git-repo"
+		}
+	  }`)
+}
+
 // Returns a fake http func that writes the data in http response.
 func handleObjectRead(t *testing.T, data []byte) func(w http.ResponseWriter, r *http.Request) {
 	t.Helper()
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.String() != "/foo/bar" {
+		switch r.URL.Path {
+		// This is for getting object info
+		case "/foo/bar":
+			_, err := w.Write(data)
+			if err != nil {
+				t.Fatalf("failed to write response for object info: %v", err)
+			}
+		// This is for getting object's metadata
+		case "/storage/v1/b/foo/o/bar":
+			_, err := w.Write(getFakeMetadata())
+			if err != nil {
+				fmt.Println("error")
+				t.Fatalf("failed to write response for object metadata: %v", err)
+			}
+		default:
 			http.Error(w, "injected error", http.StatusNotFound)
-		}
-		_, err := w.Write(data)
-		if err != nil {
-			t.Fatalf("failed to write response: %v", err)
 		}
 	}
 }
@@ -371,3 +393,19 @@ func (m *failMessenger) Send(_ context.Context, _ *v1alpha1.PmapEvent) error {
 func (m *failMessenger) Cleanup() error {
 	return nil
 }
+
+// func setMetaData(ctx context.Context, client *storage.Client, bucket, object string) error {
+// 	fmt.Println("++++++++++++++++++++++++++=")
+// 	o := client.Bucket(bucket).Object(object)
+// 	objectAttrsToUpdate := storage.ObjectAttrsToUpdate{
+// 		Metadata: map[string]string{
+// 			"testKey": "testValue",
+// 		},
+// 	}
+// 	if _, err := o.Update(ctx, objectAttrsToUpdate); err != nil {
+// 		return fmt.Errorf("ObjectHandle(%q).Update: %v", object, err)
+// 	}
+// 	return nil
+// }
+
+// 4/0AbUR2VP40c_Gt8SahGETctg5o9tzWMukClNQ20rKg08bnRVrWJIrF3wx3ktsmufypwpnYA

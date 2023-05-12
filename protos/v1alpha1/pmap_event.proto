@@ -44,4 +44,13 @@ message GitHubSource {
 
   // Required. The git commit.
   string commit = 3;
+
+  // Required. The github workflow that triggered the pmap event.
+  string workflow = 4;
+
+  // Required. The sha for the github workflow.
+  string workflow_sha = 5;
+
+  // Required. The timestamp when workflow is triggered.
+  string triggered_timestamp = 6;
 }
