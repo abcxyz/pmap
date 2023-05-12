@@ -39,7 +39,7 @@ func TestEventHandler_NewHandler(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup fake storage client.
-	hc, done := newTestServer(handleObjectRead(t, []byte("test")))
+	hc, done := newTestServer(handleObjectRead(t, []byte("test"), getFakeMetadata()))
 	defer done()
 	c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
 	if err != nil {
@@ -92,6 +92,7 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 		name               string
 		pubsubMessageBytes []byte
 		gcsObjectBytes     []byte
+		githubObjectBytes  []byte
 		wantStatusCode     int
 		wantRespBodySubstr string
 	}{
@@ -110,6 +111,7 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 			`),
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
+			githubObjectBytes:  getFakeMetadata(),
 			wantStatusCode:     http.StatusCreated,
 			wantRespBodySubstr: "OK",
 		},
@@ -117,6 +119,7 @@ isOK: true`),
 			name:               "invalid_request_body",
 			pubsubMessageBytes: []byte(`}`),
 			gcsObjectBytes:     nil,
+			githubObjectBytes:  nil,
 			wantStatusCode:     http.StatusBadRequest,
 			wantRespBodySubstr: "invalid character",
 		},
@@ -145,7 +148,7 @@ isOK: true`),
 			t.Parallel()
 
 			// Setup fake storage client.
-			hc, done := newTestServer(handleObjectRead(t, tc.gcsObjectBytes))
+			hc, done := newTestServer(handleObjectRead(t, tc.gcsObjectBytes, tc.githubObjectBytes))
 			defer done()
 			c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
 			if err != nil {
@@ -176,13 +179,14 @@ func TestEventHandler_Handle(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name             string
-		notification     pubsub.Message
-		gcsObjectBytes   []byte
-		processors       []Processor[*structpb.Struct]
-		successMessenger Messenger
-		failureMessenger Messenger
-		wantErrSubstr    string
+		name                string
+		notification        pubsub.Message
+		gcsObjectBytes      []byte
+		githubResourceBytes []byte
+		processors          []Processor[*structpb.Struct]
+		successMessenger    Messenger
+		failureMessenger    Messenger
+		wantErrSubstr       string
 	}{
 		{
 			name: "success",
@@ -201,8 +205,9 @@ contacts:
   email:
   - test.gmail.com
 `),
-			processors:       []Processor[*structpb.Struct]{&successProcessor{}},
-			successMessenger: &NoopMessenger{},
+			githubResourceBytes: getFakeMetadata(),
+			processors:          []Processor[*structpb.Struct]{&successProcessor{}},
+			successMessenger:    &NoopMessenger{},
 		},
 		{
 			name: "failed_send_downstream",
@@ -211,42 +216,58 @@ contacts:
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors:       []Processor[*structpb.Struct]{&successProcessor{}},
-			successMessenger: &failMessenger{},
-			wantErrSubstr:    "failed to send succuss event downstream",
+			githubResourceBytes: getFakeMetadata(),
+			processors:          []Processor[*structpb.Struct]{&successProcessor{}},
+			successMessenger:    &failMessenger{},
+			wantErrSubstr:       "failed to send succuss event downstream",
 		},
 		{
 			name: "missing_bucket_id",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"objectId": "bar"},
 			},
-			successMessenger: &NoopMessenger{},
-			wantErrSubstr:    "bucket ID not found",
+			githubResourceBytes: getFakeMetadata(),
+			successMessenger:    &NoopMessenger{},
+			wantErrSubstr:       "bucket ID not found",
 		},
 		{
 			name: "missing_object_id",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo"},
 			},
-			successMessenger: &NoopMessenger{},
-			wantErrSubstr:    "object ID not found",
+			githubResourceBytes: getFakeMetadata(),
+			successMessenger:    &NoopMessenger{},
+			wantErrSubstr:       "object ID not found",
 		},
 		{
 			name: "bucket_not_exist",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar"},
 			},
-			successMessenger: &NoopMessenger{},
-			wantErrSubstr:    "failed to create GCS object reader",
+			githubResourceBytes: getFakeMetadata(),
+			successMessenger:    &NoopMessenger{},
+			wantErrSubstr:       "failed to create GCS object reader",
 		},
 		{
 			name: "invalid_yaml_format",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
 			},
-			gcsObjectBytes:   []byte(`foo, bar`),
-			successMessenger: &NoopMessenger{},
-			wantErrSubstr:    "failed to unmarshal object yaml",
+			gcsObjectBytes:      []byte(`foo, bar`),
+			githubResourceBytes: getFakeMetadata(),
+			successMessenger:    &NoopMessenger{},
+			wantErrSubstr:       "failed to unmarshal object yaml",
+		},
+		{
+			name: "invalid_object_metadata",
+			notification: pubsub.Message{
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+			},
+			gcsObjectBytes: []byte(`foo: bar
+isOK: true`),
+			githubResourceBytes: []byte(`foo, bar`),
+			successMessenger:    &NoopMessenger{},
+			wantErrSubstr:       "object attrs not found",
 		},
 		{
 			name: "failed_process",
@@ -255,8 +276,9 @@ isOK: true`),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors:       []Processor[*structpb.Struct]{&failProcessor{}},
-			successMessenger: &NoopMessenger{},
+			githubResourceBytes: getFakeMetadata(),
+			processors:          []Processor[*structpb.Struct]{&failProcessor{}},
+			successMessenger:    &NoopMessenger{},
 		},
 		{
 			name: "failed_process_and_send",
@@ -265,10 +287,11 @@ isOK: true`),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors:       []Processor[*structpb.Struct]{&failProcessor{}},
-			successMessenger: &NoopMessenger{},
-			failureMessenger: &failMessenger{},
-			wantErrSubstr:    "failed to send failure event downstream",
+			githubResourceBytes: getFakeMetadata(),
+			processors:          []Processor[*structpb.Struct]{&failProcessor{}},
+			successMessenger:    &NoopMessenger{},
+			failureMessenger:    &failMessenger{},
+			wantErrSubstr:       "failed to send failure event downstream",
 		},
 	}
 
@@ -281,7 +304,7 @@ isOK: true`),
 			ctx := context.Background()
 
 			// Create fake http client for storage client.
-			hc, done := newTestServer(handleObjectRead(t, tc.gcsObjectBytes))
+			hc, done := newTestServer(handleObjectRead(t, tc.gcsObjectBytes, tc.githubResourceBytes))
 			defer done()
 
 			// Setup test handler with fake storage client.
@@ -325,17 +348,39 @@ func newTestServer(handler func(w http.ResponseWriter, r *http.Request)) (*http.
 	}
 }
 
+// Returns fake metadata that include github resource info.
+func getFakeMetadata() []byte {
+	return []byte(`{
+		"metadata": {
+		  "git-commit": "test-git-commit",
+		  "triggered-timestamp": "test-timestamp",
+		  "git-workflow-sha": "test-workflow-sha",
+		  "git-workflow": "test-workflow",
+		  "git-repo": "test-git-repo"
+		}
+	  }`)
+}
+
 // Returns a fake http func that writes the data in http response.
-func handleObjectRead(t *testing.T, data []byte) func(w http.ResponseWriter, r *http.Request) {
+func handleObjectRead(t *testing.T, data, metadata []byte) func(w http.ResponseWriter, r *http.Request) {
 	t.Helper()
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.String() != "/foo/bar" {
+		switch r.URL.Path {
+		// This is for getting object info
+		case "/foo/bar":
+			_, err := w.Write(data)
+			if err != nil {
+				t.Fatalf("failed to write response for object info: %v", err)
+			}
+		// This is for getting object's metadata
+		case "/storage/v1/b/foo/o/bar":
+			_, err := w.Write(metadata)
+			if err != nil {
+				t.Fatalf("failed to write response for object metadata: %v", err)
+			}
+		default:
 			http.Error(w, "injected error", http.StatusNotFound)
-		}
-		_, err := w.Write(data)
-		if err != nil {
-			t.Fatalf("failed to write response: %v", err)
 		}
 	}
 }
