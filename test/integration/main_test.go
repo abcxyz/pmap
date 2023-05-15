@@ -131,8 +131,8 @@ func TestMappingEventHandling(t *testing.T) {
 		tc := tc
 
 		wantGithubResource := &v1alpha1.GitHubSource{
-			RepoName:           "test-git-repo",
-			Commit:             "test-git-commit",
+			RepoName:           "test-github-repo",
+			Commit:             "test-github-commit",
 			Workflow:           "test-workflow",
 			WorkflowSha:        "test-workflow-sha",
 			TriggeredTimestamp: "test-timestamp",
@@ -186,9 +186,7 @@ contacts:
 				t.Errorf("resourcemapping(ignore annotation) unexpected diff (-want,+got):\n%s", diff)
 			}
 
-			gotGithubResouce := gotPmapEvent.GetGithubSource()
-
-			if diff := cmp.Diff(gotGithubResouce, wantGithubResource, cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{})); diff != "" {
+			if diff := cmp.Diff(wantGithubResource, gotPmapEvent.GetGithubSource(), cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{})); diff != "" {
 				t.Errorf("githubResource unexpected diff (-want, +got):\n%s", diff)
 			}
 
@@ -230,8 +228,8 @@ func TestPolicyEventHandling(t *testing.T) {
 			ctx := context.Background()
 
 			wantGithubResource := &v1alpha1.GitHubSource{
-				RepoName:           "test-git-repo",
-				Commit:             "test-git-commit",
+				RepoName:           "test-github-repo",
+				Commit:             "test-github-commit",
 				Workflow:           "test-workflow",
 				WorkflowSha:        "test-workflow-sha",
 				TriggeredTimestamp: "test-timestamp",
@@ -286,9 +284,7 @@ deletion_timeline:
 				t.Errorf("gotPayload unexpected diff (-want,+got):\n%s", diff)
 			}
 
-			gotGithubResouce := gotPmapEvent.GetGithubSource()
-
-			if diff := cmp.Diff(wantGithubResource, gotGithubResouce, cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{})); diff != "" {
+			if diff := cmp.Diff(wantGithubResource, gotPmapEvent.GetGithubSource(), cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{})); diff != "" {
 				t.Errorf("githubResource unexpected diff (-want, +got):\n%s", diff)
 			}
 		})
@@ -377,9 +373,6 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 	// TODO: #41 set up GCS upload retry.
 	o := gcsClient.Bucket(bucket).Object(object)
 
-	// For an object that does not yet exist, set the DoesNotExist precondition.
-	// o = o.If(storage.Conditions{DoesNotExist: true})
-
 	// Upload an object with storage.Writer.
 	wc := o.NewWriter(ctx)
 	if _, err := io.Copy(wc, data); err != nil {
@@ -391,8 +384,8 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 
 	objectAttrsToUpdate := storage.ObjectAttrsToUpdate{
 		Metadata: map[string]string{
-			"git-commit":          "test-git-commit",
-			"git-repo":            "test-git-repo",
+			"git-commit":          "test-github-commit",
+			"git-repo":            "test-github-repo",
 			"git-workflow":        "test-workflow",
 			"git-workflow-sha":    "test-workflow-sha",
 			"triggered-timestamp": "test-timestamp",

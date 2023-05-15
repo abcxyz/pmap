@@ -208,6 +208,10 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error {
 	logger := logging.FromContext(ctx)
 	// Get the GCS object as a proto message given GCS notification information.
+	fmt.Println("pubsub message attributes are: ")
+	fmt.Println(m.Attributes)
+	fmt.Println("pubsub message : ")
+	fmt.Println(m.Attributes)
 	p, err := h.getGCSObjectProto(ctx, m.Attributes)
 	if err != nil {
 		return fmt.Errorf("failed to get GCS object: %w", err)
@@ -229,7 +233,7 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 		return fmt.Errorf("failed to convert object to pmap event payload: %w", err)
 	}
 
-	gr, err := h.getGCSObjectGithubResourceMetadata(ctx, m.Attributes)
+	gr, err := parseGitHubSource(ctx, m.Attributes)
 	if err != nil {
 		return fmt.Errorf("failed to convert metadata: %w", err)
 	}
@@ -299,40 +303,44 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 	return p, nil
 }
 
-func (h *EventHandler[T, P]) getGCSObjectGithubResourceMetadata(ctx context.Context, objAttrs map[string]string) (*v1alpha1.GitHubSource, error) {
-	bucketID, found := objAttrs["bucketId"]
-	if !found {
-		return nil, fmt.Errorf("bucket ID not found")
-	}
-	objectID, found := objAttrs["objectId"]
-	if !found {
-		return nil, fmt.Errorf("object ID not found")
-	}
+func parseGitHubSource(ctx context.Context, objAttrs map[string]string) (*v1alpha1.GitHubSource, error) {
+	fmt.Println("objAttrs are: ")
+	fmt.Println(objAttrs)
+	fmt.Print("\n\n\n\n\n")
+	// bucketID, found := objAttrs["bucketId"]
+	// if !found {
+	// 	return nil, fmt.Errorf("bucket ID not found")
+	// }
+	// objectID, found := objAttrs["objectId"]
+	// if !found {
+	// 	return nil, fmt.Errorf("object ID not found")
+	// }
 
 	// Read the object from bucket.
-	attrs, err := h.client.Bucket(bucketID).Object(objectID).Attrs(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("object attrs not found")
-	}
-	m := attrs.Metadata
+	// attrs, err := h.client.Bucket(bucketID).Object(objectID).Attrs(ctx)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("object attrs not found")
+	// }
+	// m := attrs.Metadata
 	r := &v1alpha1.GitHubSource{}
-	c, found := m["git-commit"]
-	if found {
-		r.Commit = c
+	c, found := objAttrs["git-commit"]
+	if !found {
+		return nil, fmt.Errorf("failed to find git-commit from objAttr:  %v", objAttrs)
 	}
-	rn, found := m["git-repo"]
+	r.Commit = c
+	rn, found := objAttrs["git-repo"]
 	if found {
 		r.RepoName = rn
 	}
-	w, found := m["git-workflow"]
+	w, found := objAttrs["git-workflow"]
 	if found {
 		r.Workflow = w
 	}
-	ws, found := m["git-workflow-sha"]
+	ws, found := objAttrs["git-workflow-sha"]
 	if found {
 		r.WorkflowSha = ws
 	}
-	t, found := m["triggered-timestamp"]
+	t, found := objAttrs["triggered-timestamp"]
 	if found {
 		r.TriggeredTimestamp = t
 	}

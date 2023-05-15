@@ -89,12 +89,12 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 	ctx := context.Background()
 
 	cases := []struct {
-		name               string
-		pubsubMessageBytes []byte
-		gcsObjectBytes     []byte
-		githubObjectBytes  []byte
-		wantStatusCode     int
-		wantRespBodySubstr string
+		name                   string
+		pubsubMessageBytes     []byte
+		gcsObjectBytes         []byte
+		gcsObjectMetadataBytes []byte
+		wantStatusCode         int
+		wantRespBodySubstr     string
 	}{
 		{
 			name: "success",
@@ -111,17 +111,17 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 			`),
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			githubObjectBytes:  getFakeMetadata(),
-			wantStatusCode:     http.StatusCreated,
-			wantRespBodySubstr: "OK",
+			gcsObjectMetadataBytes: getFakeMetadata(),
+			wantStatusCode:         http.StatusCreated,
+			wantRespBodySubstr:     "OK",
 		},
 		{
-			name:               "invalid_request_body",
-			pubsubMessageBytes: []byte(`}`),
-			gcsObjectBytes:     nil,
-			githubObjectBytes:  nil,
-			wantStatusCode:     http.StatusBadRequest,
-			wantRespBodySubstr: "invalid character",
+			name:                   "invalid_request_body",
+			pubsubMessageBytes:     []byte(`}`),
+			gcsObjectBytes:         nil,
+			gcsObjectMetadataBytes: nil,
+			wantStatusCode:         http.StatusBadRequest,
+			wantRespBodySubstr:     "invalid character",
 		},
 		{
 			name: "failed_handle_event",
@@ -148,7 +148,7 @@ isOK: true`),
 			t.Parallel()
 
 			// Setup fake storage client.
-			hc, done := newTestServer(handleObjectRead(t, tc.gcsObjectBytes, tc.githubObjectBytes))
+			hc, done := newTestServer(handleObjectRead(t, tc.gcsObjectBytes, tc.gcsObjectMetadataBytes))
 			defer done()
 			c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
 			if err != nil {
@@ -352,11 +352,11 @@ func newTestServer(handler func(w http.ResponseWriter, r *http.Request)) (*http.
 func getFakeMetadata() []byte {
 	return []byte(`{
 		"metadata": {
-		  "git-commit": "test-git-commit",
+		  "git-commit": "test-github-commit",
 		  "triggered-timestamp": "test-timestamp",
 		  "git-workflow-sha": "test-workflow-sha",
 		  "git-workflow": "test-workflow",
-		  "git-repo": "test-git-repo"
+		  "git-repo": "test-github-repo"
 		}
 	  }`)
 }
