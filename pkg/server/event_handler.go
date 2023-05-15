@@ -325,7 +325,7 @@ func parseGitHubSource(ctx context.Context, objAttrs map[string]string) (*v1alph
 	r := &v1alpha1.GitHubSource{}
 	c, found := objAttrs["git-commit"]
 	if !found {
-		return nil, fmt.Errorf("failed to find git-commit from objAttr:  %v", objAttrs)
+		return nil, fmt.Errorf("object attrs not found: failed to find git-commit from objAttr:  %v", objAttrs)
 	}
 	r.Commit = c
 	rn, found := objAttrs["git-repo"]

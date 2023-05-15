@@ -103,7 +103,8 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 				"message": {
 					"attributes": {
 						"bucketId": "foo",
-						"objectId": "bar"
+						"objectId": "bar",
+						"git-commit" : "test-git-commit"
 					}
 				},
 				"subscription": "test_subscription"
@@ -130,7 +131,8 @@ isOK: true`),
 				"message": {
 					"attributes": {
 						"bucketId": "foo",
-						"objectId": "bar2"
+						"objectId": "bar2",
+						"git-commit" : "test-git-commit"
 					}
 				},
 				"subscription": "test_subscription"
@@ -191,7 +193,7 @@ func TestEventHandler_Handle(t *testing.T) {
 		{
 			name: "success",
 			notification: pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "git-commit": "test-git-commit"},
 			},
 			gcsObjectBytes: []byte(
 				`
@@ -212,7 +214,7 @@ contacts:
 		{
 			name: "failed_send_downstream",
 			notification: pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "git-commit": "test-git-commit"},
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
@@ -224,7 +226,7 @@ isOK: true`),
 		{
 			name: "missing_bucket_id",
 			notification: pubsub.Message{
-				Attributes: map[string]string{"objectId": "bar"},
+				Attributes: map[string]string{"objectId": "bar", "git-commit": "test-git-commit"},
 			},
 			githubResourceBytes: getFakeMetadata(),
 			successMessenger:    &NoopMessenger{},
@@ -233,7 +235,7 @@ isOK: true`),
 		{
 			name: "missing_object_id",
 			notification: pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo"},
+				Attributes: map[string]string{"bucketId": "foo", "git-commit": "test-git-commit"},
 			},
 			githubResourceBytes: getFakeMetadata(),
 			successMessenger:    &NoopMessenger{},
@@ -242,7 +244,7 @@ isOK: true`),
 		{
 			name: "bucket_not_exist",
 			notification: pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar"},
+				Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar", "git-commit": "test-git-commit"},
 			},
 			githubResourceBytes: getFakeMetadata(),
 			successMessenger:    &NoopMessenger{},
@@ -251,7 +253,7 @@ isOK: true`),
 		{
 			name: "invalid_yaml_format",
 			notification: pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "git-commit": "test-git-commit"},
 			},
 			gcsObjectBytes:      []byte(`foo, bar`),
 			githubResourceBytes: getFakeMetadata(),
@@ -272,7 +274,7 @@ isOK: true`),
 		{
 			name: "failed_process",
 			notification: pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "git-commit": "test-git-commit"},
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
@@ -283,7 +285,7 @@ isOK: true`),
 		{
 			name: "failed_process_and_send",
 			notification: pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "git-commit": "test-git-commit"},
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
