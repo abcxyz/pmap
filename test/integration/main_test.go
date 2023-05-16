@@ -26,17 +26,18 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sethvargo/go-retry"
 	"google.golang.org/api/iterator"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var (
@@ -129,13 +130,17 @@ func TestMappingEventHandling(t *testing.T) {
 
 	for _, tc := range cases {
 		tc := tc
-
-		wantGithubResource := &v1alpha1.GitHubSource{
+		wantTS := "2023-04-25T17:44:57"
+		wantT, err := time.Parse("2006-01-02T15:04:05", wantTS)
+		if err != nil {
+			t.Fatalf("failed to parse timestamp str to timestamppb")
+		}
+		wantGithubSource := &v1alpha1.GitHubSource{
 			RepoName:           "test-github-repo",
 			Commit:             "test-github-commit",
 			Workflow:           "test-workflow",
 			WorkflowSha:        "test-workflow-sha",
-			TriggeredTimestamp: "test-timestamp",
+			TriggeredTimestamp: timestamppb.New(wantT),
 		}
 
 		t.Run(tc.name, func(t *testing.T) {
@@ -181,13 +186,15 @@ contacts:
 			cmpOpts := []cmp.Option{
 				protocmp.Transform(),
 				protocmp.IgnoreFields(&v1alpha1.ResourceMapping{}, "annotations"),
+				protocmp.IgnoreFields(&v1alpha1.GitHubSource{}),
+				protocmp.IgnoreFields(&timestamppb.Timestamp{}),
 			}
 			if diff := cmp.Diff(tc.wantResourceMapping, resourceMapping, cmpOpts...); diff != "" {
 				t.Errorf("resourcemapping(ignore annotation) unexpected diff (-want,+got):\n%s", diff)
 			}
 
-			if diff := cmp.Diff(wantGithubResource, gotPmapEvent.GetGithubSource(), cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{})); diff != "" {
-				t.Errorf("githubResource unexpected diff (-want, +got):\n%s", diff)
+			if diff := cmp.Diff(wantGithubSource, gotPmapEvent.GetGithubSource(), cmpOpts...); diff != "" {
+				t.Errorf("githubSource unexpected diff (-want, +got):\n%s", diff)
 			}
 
 			// Resources that don't exist won't pass the validation of CAIS processor,
@@ -226,13 +233,18 @@ func TestPolicyEventHandling(t *testing.T) {
 			t.Parallel()
 
 			ctx := context.Background()
+			wantTS := "2023-04-25T17:44:57"
+			wantT, err := time.Parse("2006-01-02T15:04:05", wantTS)
+			if err != nil {
+				t.Fatalf("failed to parse timestamp str to timestamppb")
+			}
 
-			wantGithubResource := &v1alpha1.GitHubSource{
+			wantGithubSource := &v1alpha1.GitHubSource{
 				RepoName:           "test-github-repo",
 				Commit:             "test-github-commit",
 				Workflow:           "test-workflow",
 				WorkflowSha:        "test-workflow-sha",
-				TriggeredTimestamp: "test-timestamp",
+				TriggeredTimestamp: timestamppb.New(wantT),
 			}
 
 			traceID, err := rand.Int(rand.Reader, big.NewInt(100000))
@@ -283,9 +295,13 @@ deletion_timeline:
 			if diff := cmp.Diff(wantPayload, gotPayload, protocmp.Transform()); diff != "" {
 				t.Errorf("gotPayload unexpected diff (-want,+got):\n%s", diff)
 			}
-
-			if diff := cmp.Diff(wantGithubResource, gotPmapEvent.GetGithubSource(), cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{})); diff != "" {
-				t.Errorf("githubResource unexpected diff (-want, +got):\n%s", diff)
+			cmpOpts := []cmp.Option{
+				protocmp.Transform(),
+				protocmp.IgnoreFields(&v1alpha1.GitHubSource{}),
+				protocmp.IgnoreFields(&timestamppb.Timestamp{}),
+			}
+			if diff := cmp.Diff(wantGithubSource, gotPmapEvent.GetGithubSource(), cmpOpts...); diff != "" {
+				t.Errorf("githubSource unexpected diff (-want, +got):\n%s", diff)
 			}
 		})
 	}
@@ -382,7 +398,7 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 		"git-repo":            "test-github-repo",
 		"git-workflow":        "test-workflow",
 		"git-workflow-sha":    "test-workflow-sha",
-		"triggered-timestamp": "test-timestamp",
+		"triggered-timestamp": "2023-04-25T17:44:57",
 	}
 
 	if _, err := io.Copy(wc, data); err != nil {

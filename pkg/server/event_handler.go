@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
@@ -30,6 +31,7 @@ import (
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -334,7 +336,11 @@ func parseGitHubSource(ctx context.Context, data []byte) (*v1alpha1.GitHubSource
 	}
 	t, found := pm.Metadata["triggered-timestamp"]
 	if found {
-		r.TriggeredTimestamp = t
+		date, err := time.Parse("2006-01-02T15:04:05", t)
+		if err != nil {
+			return nil, fmt.Errorf("error converting date %w", err)
+		}
+		r.TriggeredTimestamp = timestamppb.New(date)
 	}
 	return r, nil
 }

@@ -52,5 +52,5 @@ message GitHubSource {
   string workflow_sha = 5;
 
   // Required. The timestamp when workflow is triggered.
-  string triggered_timestamp = 6;
+  google.protobuf.Timestamp triggered_timestamp = 6;
 }
