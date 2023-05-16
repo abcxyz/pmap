@@ -346,18 +346,10 @@ func (p *failProcessor) Process(_ context.Context, m *structpb.Struct) error {
 	return fmt.Errorf("always fail")
 }
 
-func (p *failProcessor) Stop() error {
-	return nil
-}
-
 type successProcessor struct{}
 
 func (p *successProcessor) Process(_ context.Context, m *structpb.Struct) error {
 	m.Fields["processed"] = structpb.NewBoolValue(true)
-	return nil
-}
-
-func (p *successProcessor) Stop() error {
 	return nil
 }
 
