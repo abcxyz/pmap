@@ -372,28 +372,24 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 
 	// TODO: #41 set up GCS upload retry.
 	o := gcsClient.Bucket(bucket).Object(object)
+	// For an object that does not yet exist, set the DoesNotExist precondition.
+	o = o.If(storage.Conditions{DoesNotExist: true})
 
 	// Upload an object with storage.Writer.
 	wc := o.NewWriter(ctx)
+	wc.Metadata = map[string]string{
+		"git-commit":          "test-github-commit",
+		"git-repo":            "test-github-repo",
+		"git-workflow":        "test-workflow",
+		"git-workflow-sha":    "test-workflow-sha",
+		"triggered-timestamp": "test-timestamp",
+	}
+
 	if _, err := io.Copy(wc, data); err != nil {
 		return fmt.Errorf("failed to copy bytes: %w", err)
 	}
 	if err := wc.Close(); err != nil {
 		return fmt.Errorf("failed to close writer: %w", err)
-	}
-
-	objectAttrsToUpdate := storage.ObjectAttrsToUpdate{
-		Metadata: map[string]string{
-			"git-commit":          "test-github-commit",
-			"git-repo":            "test-github-repo",
-			"git-workflow":        "test-workflow",
-			"git-workflow-sha":    "test-workflow-sha",
-			"triggered-timestamp": "test-timestamp",
-		},
-	}
-
-	if _, err := o.Update(ctx, objectAttrsToUpdate); err != nil {
-		return fmt.Errorf("ObjectHandle(%q).Update: %w", object, err)
 	}
 
 	return nil

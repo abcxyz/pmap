@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -90,7 +91,8 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 
 	cases := []struct {
 		name                   string
-		pubsubMessageBytes     []byte
+		pubsubMessage          *PubSubMessage
+		PubSubMessageBytes     []byte
 		gcsObjectBytes         []byte
 		gcsObjectMetadataBytes []byte
 		wantStatusCode         int
@@ -98,18 +100,19 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 	}{
 		{
 			name: "success",
-			pubsubMessageBytes: []byte(`
-			{
-				"message": {
-					"attributes": {
+			pubsubMessage: &PubSubMessage{
+				Subscription: "test_subscription",
+				Message: struct {
+					Data       []byte            "json:\"data,omitempty\""
+					Attributes map[string]string "json:\"attributes\""
+				}{
+					Data: getFakeMetadata(),
+					Attributes: map[string]string{
 						"bucketId": "foo",
 						"objectId": "bar",
-						"git-commit" : "test-git-commit"
-					}
+					},
 				},
-				"subscription": "test_subscription"
-			}
-			`),
+			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
 			gcsObjectMetadataBytes: getFakeMetadata(),
@@ -118,7 +121,7 @@ isOK: true`),
 		},
 		{
 			name:                   "invalid_request_body",
-			pubsubMessageBytes:     []byte(`}`),
+			PubSubMessageBytes:     []byte(`}`),
 			gcsObjectBytes:         nil,
 			gcsObjectMetadataBytes: nil,
 			wantStatusCode:         http.StatusBadRequest,
@@ -126,18 +129,19 @@ isOK: true`),
 		},
 		{
 			name: "failed_handle_event",
-			pubsubMessageBytes: []byte(`
-			{
-				"message": {
-					"attributes": {
+			pubsubMessage: &PubSubMessage{
+				Subscription: "test_subscription",
+				Message: struct {
+					Data       []byte            "json:\"data,omitempty\""
+					Attributes map[string]string "json:\"attributes\""
+				}{
+					Data: getFakeMetadata(),
+					Attributes: map[string]string{
 						"bucketId": "foo",
 						"objectId": "bar2",
-						"git-commit" : "test-git-commit"
-					}
+					},
 				},
-				"subscription": "test_subscription"
-			}
-			`),
+			},
 			wantStatusCode:     http.StatusInternalServerError,
 			wantRespBodySubstr: "failed to get GCS object",
 		},
@@ -161,8 +165,16 @@ isOK: true`),
 			if err != nil {
 				t.Fatalf("failed to create event handler %v", err)
 			}
-
-			req := httptest.NewRequest(http.MethodPost, "/test", bytes.NewReader(tc.pubsubMessageBytes))
+			var pubsubMessageBytes []byte
+			if tc.PubSubMessageBytes != nil {
+				pubsubMessageBytes = tc.PubSubMessageBytes
+			} else {
+				pubsubMessageBytes, err = json.Marshal(tc.pubsubMessage)
+				if err != nil {
+					t.Fatalf("failed to marshal pubsubMessage to json: %v", err)
+				}
+			}
+			req := httptest.NewRequest(http.MethodPost, "/test", bytes.NewReader(pubsubMessageBytes))
 			resp := httptest.NewRecorder()
 			h.HTTPHandler().ServeHTTP(resp, req)
 
@@ -193,7 +205,8 @@ func TestEventHandler_Handle(t *testing.T) {
 		{
 			name: "success",
 			notification: pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "git-commit": "test-git-commit"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+				Data:       getFakeMetadata(),
 			},
 			gcsObjectBytes: []byte(
 				`
@@ -215,6 +228,7 @@ contacts:
 			name: "failed_send_downstream",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "git-commit": "test-git-commit"},
+				Data:       getFakeMetadata(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
@@ -227,6 +241,7 @@ isOK: true`),
 			name: "missing_bucket_id",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"objectId": "bar", "git-commit": "test-git-commit"},
+				Data:       getFakeMetadata(),
 			},
 			githubResourceBytes: getFakeMetadata(),
 			successMessenger:    &NoopMessenger{},
@@ -236,6 +251,7 @@ isOK: true`),
 			name: "missing_object_id",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "git-commit": "test-git-commit"},
+				Data:       getFakeMetadata(),
 			},
 			githubResourceBytes: getFakeMetadata(),
 			successMessenger:    &NoopMessenger{},
@@ -245,6 +261,7 @@ isOK: true`),
 			name: "bucket_not_exist",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar", "git-commit": "test-git-commit"},
+				Data:       getFakeMetadata(),
 			},
 			githubResourceBytes: getFakeMetadata(),
 			successMessenger:    &NoopMessenger{},
@@ -254,6 +271,7 @@ isOK: true`),
 			name: "invalid_yaml_format",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "git-commit": "test-git-commit"},
+				Data:       getFakeMetadata(),
 			},
 			gcsObjectBytes:      []byte(`foo, bar`),
 			githubResourceBytes: getFakeMetadata(),
@@ -269,12 +287,13 @@ isOK: true`),
 isOK: true`),
 			githubResourceBytes: []byte(`foo, bar`),
 			successMessenger:    &NoopMessenger{},
-			wantErrSubstr:       "object attrs not found",
+			wantErrSubstr:       "failed to parse metadata",
 		},
 		{
 			name: "failed_process",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "git-commit": "test-git-commit"},
+				Data:       getFakeMetadata(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
@@ -286,6 +305,7 @@ isOK: true`),
 			name: "failed_process_and_send",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "git-commit": "test-git-commit"},
+				Data:       getFakeMetadata(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),

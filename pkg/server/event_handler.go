@@ -149,6 +149,9 @@ func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P]
 // PubSubMessage is the payload of a [Pub/Sub message].
 //
 // [Pub/Sub message]: https://cloud.google.com/pubsub/docs/reference/rest/v1/PubsubMessage
+// [Attributes]: includes bucketID and objectID info.
+// [Data]: https://cloud.google.com/storage/docs/json_api/v1/objects#resource-representations
+// GCS objects' custom metadata will be included in [Data].
 type PubSubMessage struct {
 	Message struct {
 		Data       []byte            `json:"data,omitempty"`
@@ -161,6 +164,7 @@ type PubSubMessage struct {
 // in HTTP requests and calls [Handle] to handle the events.
 //
 // [GCS notifications]: https://cloud.google.com/storage/docs/pubsub-notifications#format
+// Object's metadata change will be included in payload of the notification.
 func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -208,10 +212,6 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error {
 	logger := logging.FromContext(ctx)
 	// Get the GCS object as a proto message given GCS notification information.
-	fmt.Println("pubsub message attributes are: ")
-	fmt.Println(m.Attributes)
-	fmt.Println("pubsub message : ")
-	fmt.Println(m.Attributes)
 	p, err := h.getGCSObjectProto(ctx, m.Attributes)
 	if err != nil {
 		return fmt.Errorf("failed to get GCS object: %w", err)
@@ -233,9 +233,9 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 		return fmt.Errorf("failed to convert object to pmap event payload: %w", err)
 	}
 
-	gr, err := parseGitHubSource(ctx, m.Attributes)
+	gr, err := parseGitHubSource(ctx, m.Data)
 	if err != nil {
-		return fmt.Errorf("failed to convert metadata: %w", err)
+		return fmt.Errorf("failed to parse metadata: %w", err)
 	}
 
 	event := &v1alpha1.PmapEvent{
@@ -303,44 +303,36 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 	return p, nil
 }
 
-func parseGitHubSource(ctx context.Context, objAttrs map[string]string) (*v1alpha1.GitHubSource, error) {
-	fmt.Println("objAttrs are: ")
-	fmt.Println(objAttrs)
-	fmt.Print("\n\n\n\n\n")
-	// bucketID, found := objAttrs["bucketId"]
-	// if !found {
-	// 	return nil, fmt.Errorf("bucket ID not found")
-	// }
-	// objectID, found := objAttrs["objectId"]
-	// if !found {
-	// 	return nil, fmt.Errorf("object ID not found")
-	// }
+type payloadMetadata struct {
+	Metadata map[string]string
+}
 
-	// Read the object from bucket.
-	// attrs, err := h.client.Bucket(bucketID).Object(objectID).Attrs(ctx)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("object attrs not found")
-	// }
-	// m := attrs.Metadata
+func parseGitHubSource(ctx context.Context, data []byte) (*v1alpha1.GitHubSource, error) {
+	pm := &payloadMetadata{}
+	if err := json.Unmarshal(data, pm); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal payloadMetadata %w", err)
+	}
+
 	r := &v1alpha1.GitHubSource{}
-	c, found := objAttrs["git-commit"]
-	if !found {
-		return nil, fmt.Errorf("object attrs not found: failed to find git-commit from objAttr:  %v", objAttrs)
+
+	c, found := pm.Metadata["git-commit"]
+	if found {
+		r.Commit = c
 	}
 	r.Commit = c
-	rn, found := objAttrs["git-repo"]
+	rn, found := pm.Metadata["git-repo"]
 	if found {
 		r.RepoName = rn
 	}
-	w, found := objAttrs["git-workflow"]
+	w, found := pm.Metadata["git-workflow"]
 	if found {
 		r.Workflow = w
 	}
-	ws, found := objAttrs["git-workflow-sha"]
+	ws, found := pm.Metadata["git-workflow-sha"]
 	if found {
 		r.WorkflowSha = ws
 	}
-	t, found := objAttrs["triggered-timestamp"]
+	t, found := pm.Metadata["triggered-timestamp"]
 	if found {
 		r.TriggeredTimestamp = t
 	}

@@ -118,17 +118,17 @@ type GitHubSource struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Required. The repository name where the payload is located.
-	RepoName string `protobuf:"bytes,1,opt,name=repo_name,json=repoName,proto3" json:"repo-name,omitempty"`
+	RepoName string `protobuf:"bytes,1,opt,name=repo_name,json=repoName,proto3" json:"repo_name,omitempty"`
 	// Required. The file path of the payload.
-	FilePath string `protobuf:"bytes,2,opt,name=file_path,json=filePath,proto3" json:"file-path,omitempty"`
+	FilePath string `protobuf:"bytes,2,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
 	// Required. The git commit.
 	Commit string `protobuf:"bytes,3,opt,name=commit,proto3" json:"commit,omitempty"`
 	// Required. The github workflow that triggered the pmap event.
 	Workflow string `protobuf:"bytes,4,opt,name=workflow,proto3" json:"workflow,omitempty"`
 	// Required. The sha for the github workflow.
-	WorkflowSha string `protobuf:"bytes,5,opt,name=workflow_sha,json=workflowSha,proto3" json:"workflow-sha,omitempty"`
+	WorkflowSha string `protobuf:"bytes,5,opt,name=workflow_sha,json=workflowSha,proto3" json:"workflow_sha,omitempty"`
 	// Required. The timestamp when workflow is triggered.
-	TriggeredTimestamp string `protobuf:"bytes,6,opt,name=triggered_timestamp,json=triggeredTimestamp,proto3" json:"triggered-timestamp,omitempty"`
+	TriggeredTimestamp string `protobuf:"bytes,6,opt,name=triggered_timestamp,json=triggeredTimestamp,proto3" json:"triggered_timestamp,omitempty"`
 }
 
 func (x *GitHubSource) Reset() {
