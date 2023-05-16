@@ -145,6 +145,24 @@ isOK: true`),
 			wantStatusCode:     http.StatusInternalServerError,
 			wantRespBodySubstr: "failed to get GCS object",
 		},
+		{
+			name: "invalid_pubsubmessage_data",
+			pubsubMessage: &PubSubMessage{
+				Subscription: "test_subscription",
+				Message: struct {
+					Data       []byte            "json:\"data,omitempty\""
+					Attributes map[string]string "json:\"attributes\""
+				}{
+					Data: []byte("}"),
+					Attributes: map[string]string{
+						"bucketId": "foo",
+						"objectId": "bar",
+					},
+				},
+			},
+			wantStatusCode:     http.StatusInternalServerError,
+			wantRespBodySubstr: "failed to unmarshal payloadMetadata",
+		},
 	}
 
 	for _, tc := range cases {
