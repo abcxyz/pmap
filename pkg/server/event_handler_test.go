@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/json"
+	"encoding/base64"
 	"fmt"
 	"net"
 	"net/http"
@@ -40,7 +40,7 @@ func TestEventHandler_NewHandler(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup fake storage client.
-	hc, done := newTestServer(handleObjectRead(t, []byte("test"), getFakeMetadata()))
+	hc, done := newTestServer(handleObjectRead(t, []byte("test")))
 	defer done()
 	c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
 	if err != nil {
@@ -90,76 +90,92 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 	ctx := context.Background()
 
 	cases := []struct {
-		name                   string
-		pubsubMessage          *PubSubMessage
-		PubSubMessageBytes     []byte
-		gcsObjectBytes         []byte
-		gcsObjectMetadataBytes []byte
-		wantStatusCode         int
-		wantRespBodySubstr     string
+		name               string
+		pubsubMessageBytes []byte
+		gcsObjectBytes     []byte
+		wantStatusCode     int
+		wantRespBodySubstr string
 	}{
 		{
 			name: "success",
-			pubsubMessage: &PubSubMessage{
-				Subscription: "test_subscription",
-				Message: struct {
-					Data       []byte            "json:\"data,omitempty\""
-					Attributes map[string]string "json:\"attributes\""
-				}{
-					Data: getFakeMetadata(),
-					Attributes: map[string]string{
-						"bucketId": "foo",
-						"objectId": "bar",
-					},
+			pubsubMessageBytes: []byte(fmt.Sprintf(`
+			{
+			  "message": {
+				"attributes": {
+				  "bucketId": "foo",
+				  "objectId": "bar",
+				  "payloadFormat": "JSON_API_V1"
 				},
-			},
+				"data" : %q
+			  },
+			  "subscription": "test_subscription"
+			}
+			`, base64.StdEncoding.EncodeToString([]byte(`{
+				"metadata": {
+				  "git-commit": "test-github-commit",
+				  "triggered-timestamp": "2023-04-25T17:44:57",
+				  "git-workflow-sha": "test-workflow-sha",
+				  "git-workflow": "test-workflow",
+				  "git-repo": "test-github-repo"
+				}
+			  }`)))),
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			gcsObjectMetadataBytes: getFakeMetadata(),
-			wantStatusCode:         http.StatusCreated,
-			wantRespBodySubstr:     "OK",
+			wantStatusCode:     http.StatusCreated,
+			wantRespBodySubstr: "OK",
 		},
 		{
-			name:                   "invalid_request_body",
-			PubSubMessageBytes:     []byte(`}`),
-			gcsObjectBytes:         nil,
-			gcsObjectMetadataBytes: nil,
-			wantStatusCode:         http.StatusBadRequest,
-			wantRespBodySubstr:     "invalid character",
+			name:               "invalid_request_body",
+			pubsubMessageBytes: []byte(`}"`),
+			gcsObjectBytes:     nil,
+			wantStatusCode:     http.StatusBadRequest,
+			wantRespBodySubstr: "invalid character",
 		},
 		{
 			name: "failed_handle_event",
-			pubsubMessage: &PubSubMessage{
-				Subscription: "test_subscription",
-				Message: struct {
-					Data       []byte            "json:\"data,omitempty\""
-					Attributes map[string]string "json:\"attributes\""
-				}{
-					Data: getFakeMetadata(),
-					Attributes: map[string]string{
-						"bucketId": "foo",
-						"objectId": "bar2",
-					},
+			pubsubMessageBytes: []byte(fmt.Sprintf(`
+			{
+			  "message": {
+				"attributes": {
+				  "bucketId": "foo",
+				  "objectId": "bar2",
+				  "payloadFormat": "JSON_API_V1"
 				},
-			},
+				"data" : %q
+			  },
+			  "subscription": "test_subscription"
+			}
+			`, base64.StdEncoding.EncodeToString([]byte(`{
+				"metadata": {
+				  "git-commit": "test-github-commit",
+				  "triggered-timestamp": "2023-04-25T17:44:57",
+				  "git-workflow-sha": "test-workflow-sha",
+				  "git-workflow": "test-workflow",
+				  "git-repo": "test-github-repo"
+				}
+			  }`)))),
 			wantStatusCode:     http.StatusInternalServerError,
 			wantRespBodySubstr: "failed to get GCS object",
 		},
 		{
 			name: "invalid_pubsubmessage_data",
-			pubsubMessage: &PubSubMessage{
-				Subscription: "test_subscription",
-				Message: struct {
-					Data       []byte            "json:\"data,omitempty\""
-					Attributes map[string]string "json:\"attributes\""
-				}{
-					Data: []byte("}"),
-					Attributes: map[string]string{
-						"bucketId": "foo",
-						"objectId": "bar",
-					},
+			pubsubMessageBytes: []byte(fmt.Sprintf(`
+			{
+			  "message": {
+				"attributes": {
+				  "bucketId": "foo",
+				  "objectId": "bar",
+				  "payloadFormat": "JSON_API_V1"
 				},
-			},
+				"data" : %q
+			  },
+			  "subscription": "test_subscription"
+			}
+			`, base64.StdEncoding.EncodeToString([]byte(`{
+				"metadata": {
+					""
+				}
+			  }`)))),
 			wantStatusCode:     http.StatusInternalServerError,
 			wantRespBodySubstr: "failed to unmarshal payloadMetadata",
 		},
@@ -172,7 +188,7 @@ isOK: true`),
 			t.Parallel()
 
 			// Setup fake storage client.
-			hc, done := newTestServer(handleObjectRead(t, tc.gcsObjectBytes, tc.gcsObjectMetadataBytes))
+			hc, done := newTestServer(handleObjectRead(t, tc.gcsObjectBytes))
 			defer done()
 			c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
 			if err != nil {
@@ -183,16 +199,7 @@ isOK: true`),
 			if err != nil {
 				t.Fatalf("failed to create event handler %v", err)
 			}
-			var pubsubMessageBytes []byte
-			if tc.PubSubMessageBytes != nil {
-				pubsubMessageBytes = tc.PubSubMessageBytes
-			} else {
-				pubsubMessageBytes, err = json.Marshal(tc.pubsubMessage)
-				if err != nil {
-					t.Fatalf("failed to marshal pubsubMessage to json: %v", err)
-				}
-			}
-			req := httptest.NewRequest(http.MethodPost, "/test", bytes.NewReader(pubsubMessageBytes))
+			req := httptest.NewRequest(http.MethodPost, "/test", bytes.NewReader(tc.pubsubMessageBytes))
 			resp := httptest.NewRecorder()
 			h.HTTPHandler().ServeHTTP(resp, req)
 
@@ -238,22 +245,20 @@ contacts:
   email:
   - test.gmail.com
 `),
-			githubSourceBytes: getFakeMetadata(),
-			processors:        []Processor[*structpb.Struct]{&successProcessor{}},
-			successMessenger:  &NoopMessenger{},
+			processors:       []Processor[*structpb.Struct]{&successProcessor{}},
+			successMessenger: &NoopMessenger{},
 		},
 		{
 			name: "failed_send_downstream",
 			notification: pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "payloadFormat": "JSON_API_V1"},
 				Data:       getFakeMetadata(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			githubSourceBytes: getFakeMetadata(),
-			processors:        []Processor[*structpb.Struct]{&successProcessor{}},
-			successMessenger:  &failMessenger{},
-			wantErrSubstr:     "failed to send succuss event downstream",
+			processors:       []Processor[*structpb.Struct]{&successProcessor{}},
+			successMessenger: &failMessenger{},
+			wantErrSubstr:    "failed to send succuss event downstream",
 		},
 		{
 			name: "missing_bucket_id",
@@ -261,9 +266,25 @@ isOK: true`),
 				Attributes: map[string]string{"objectId": "bar"},
 				Data:       getFakeMetadata(),
 			},
-			githubSourceBytes: getFakeMetadata(),
-			successMessenger:  &NoopMessenger{},
-			wantErrSubstr:     "bucket ID not found",
+			successMessenger: &NoopMessenger{},
+			wantErrSubstr:    "bucket ID not found",
+		},
+		{
+			name: "failed_parsing_timestamp",
+			notification: pubsub.Message{
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "payloadFormat": "JSON_API_V1"},
+				Data: []byte(`{
+					"metadata": {
+					  "git-commit": "test-github-commit",
+					  "triggered-timestamp": "2023",
+					  "git-workflow-sha": "test-workflow-sha",
+					  "git-workflow": "test-workflow",
+					  "git-repo": "test-github-repo"
+					}
+				  }`),
+			},
+			successMessenger: &NoopMessenger{},
+			wantErrSubstr:    "failed converting date",
 		},
 		{
 			name: "missing_object_id",
@@ -271,9 +292,8 @@ isOK: true`),
 				Attributes: map[string]string{"bucketId": "foo"},
 				Data:       getFakeMetadata(),
 			},
-			githubSourceBytes: getFakeMetadata(),
-			successMessenger:  &NoopMessenger{},
-			wantErrSubstr:     "object ID not found",
+			successMessenger: &NoopMessenger{},
+			wantErrSubstr:    "object ID not found",
 		},
 		{
 			name: "bucket_not_exist",
@@ -281,9 +301,8 @@ isOK: true`),
 				Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar"},
 				Data:       getFakeMetadata(),
 			},
-			githubSourceBytes: getFakeMetadata(),
-			successMessenger:  &NoopMessenger{},
-			wantErrSubstr:     "failed to create GCS object reader",
+			successMessenger: &NoopMessenger{},
+			wantErrSubstr:    "failed to create GCS object reader",
 		},
 		{
 			name: "invalid_yaml_format",
@@ -291,21 +310,20 @@ isOK: true`),
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
 				Data:       getFakeMetadata(),
 			},
-			gcsObjectBytes:    []byte(`foo, bar`),
-			githubSourceBytes: getFakeMetadata(),
-			successMessenger:  &NoopMessenger{},
-			wantErrSubstr:     "failed to unmarshal object yaml",
+			gcsObjectBytes:   []byte(`foo, bar`),
+			successMessenger: &NoopMessenger{},
+			wantErrSubstr:    "failed to unmarshal object yaml",
 		},
 		{
 			name: "invalid_object_metadata",
 			notification: pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "payloadFormat": "JSON_API_V1"},
+				Data:       []byte("}"),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			githubSourceBytes: []byte(`foo, bar`),
-			successMessenger:  &NoopMessenger{},
-			wantErrSubstr:     "failed to parse metadata",
+			successMessenger: &NoopMessenger{},
+			wantErrSubstr:    "failed to parse metadata",
 		},
 		{
 			name: "failed_process",
@@ -315,9 +333,8 @@ isOK: true`),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			githubSourceBytes: getFakeMetadata(),
-			processors:        []Processor[*structpb.Struct]{&failProcessor{}},
-			successMessenger:  &NoopMessenger{},
+			processors:       []Processor[*structpb.Struct]{&failProcessor{}},
+			successMessenger: &NoopMessenger{},
 		},
 		{
 			name: "failed_process_and_send",
@@ -327,11 +344,10 @@ isOK: true`),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			githubSourceBytes: getFakeMetadata(),
-			processors:        []Processor[*structpb.Struct]{&failProcessor{}},
-			successMessenger:  &NoopMessenger{},
-			failureMessenger:  &failMessenger{},
-			wantErrSubstr:     "failed to send failure event downstream",
+			processors:       []Processor[*structpb.Struct]{&failProcessor{}},
+			successMessenger: &NoopMessenger{},
+			failureMessenger: &failMessenger{},
+			wantErrSubstr:    "failed to send failure event downstream",
 		},
 	}
 
@@ -344,7 +360,7 @@ isOK: true`),
 			ctx := context.Background()
 
 			// Create fake http client for storage client.
-			hc, done := newTestServer(handleObjectRead(t, tc.gcsObjectBytes, tc.githubSourceBytes))
+			hc, done := newTestServer(handleObjectRead(t, tc.gcsObjectBytes))
 			defer done()
 
 			// Setup test handler with fake storage client.
@@ -402,7 +418,7 @@ func getFakeMetadata() []byte {
 }
 
 // Returns a fake http func that writes the data in http response.
-func handleObjectRead(t *testing.T, data, metadata []byte) func(w http.ResponseWriter, r *http.Request) {
+func handleObjectRead(t *testing.T, data []byte) func(w http.ResponseWriter, r *http.Request) {
 	t.Helper()
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -412,12 +428,6 @@ func handleObjectRead(t *testing.T, data, metadata []byte) func(w http.ResponseW
 			_, err := w.Write(data)
 			if err != nil {
 				t.Fatalf("failed to write response for object info: %v", err)
-			}
-		// This is for getting object's metadata
-		case "/storage/v1/b/foo/o/bar":
-			_, err := w.Write(metadata)
-			if err != nil {
-				t.Fatalf("failed to write response for object metadata: %v", err)
 			}
 		default:
 			http.Error(w, "injected error", http.StatusNotFound)

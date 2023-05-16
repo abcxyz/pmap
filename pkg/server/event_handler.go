@@ -150,10 +150,10 @@ func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P]
 
 // PubSubMessage is the payload of a [Pub/Sub message].
 //
-// [Pub/Sub message]: https://cloud.google.com/pubsub/docs/reference/rest/v1/PubsubMessage
-// [Attributes]: includes bucketID and objectID info.
-// [Data]: https://cloud.google.com/storage/docs/json_api/v1/objects#resource-representations
 // GCS objects' custom metadata will be included in [Data].
+// [Attributes]: includes bucketID and objectID info.
+// [Pub/Sub message]: https://cloud.google.com/pubsub/docs/reference/rest/v1/PubsubMessage
+// [Data]: https://cloud.google.com/storage/docs/json_api/v1/objects#resource-representations
 type PubSubMessage struct {
 	Message struct {
 		Data       []byte            `json:"data,omitempty"`
@@ -235,9 +235,12 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 		return fmt.Errorf("failed to convert object to pmap event payload: %w", err)
 	}
 
-	gr, err := parseGitHubSource(ctx, m.Data)
-	if err != nil {
-		return fmt.Errorf("failed to parse metadata: %w", err)
+	var gr *v1alpha1.GitHubSource
+	if m.Attributes["payloadFormat"] == "JSON_API_V1" {
+		gr, err = parseGitHubSource(ctx, m.Data)
+		if err != nil {
+			return fmt.Errorf("failed to parse metadata: %w", err)
+		}
 	}
 
 	event := &v1alpha1.PmapEvent{
@@ -306,39 +309,37 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 }
 
 type payloadMetadata struct {
-	Metadata map[string]string
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 func parseGitHubSource(ctx context.Context, data []byte) (*v1alpha1.GitHubSource, error) {
-	pm := &payloadMetadata{}
-	if err := json.Unmarshal(data, pm); err != nil {
+	var pm payloadMetadata
+	if err := json.Unmarshal(data, &pm); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal payloadMetadata %w", err)
 	}
 
 	r := &v1alpha1.GitHubSource{}
 
-	c, found := pm.Metadata["git-commit"]
-	if found {
+	if c, found := pm.Metadata["git-commit"]; found {
 		r.Commit = c
 	}
-	r.Commit = c
-	rn, found := pm.Metadata["git-repo"]
-	if found {
+
+	if rn, found := pm.Metadata["git-repo"]; found {
 		r.RepoName = rn
 	}
-	w, found := pm.Metadata["git-workflow"]
-	if found {
+
+	if w, found := pm.Metadata["git-workflow"]; found {
 		r.Workflow = w
 	}
-	ws, found := pm.Metadata["git-workflow-sha"]
-	if found {
+
+	if ws, found := pm.Metadata["git-workflow-sha"]; found {
 		r.WorkflowSha = ws
 	}
-	t, found := pm.Metadata["triggered-timestamp"]
-	if found {
+
+	if t, found := pm.Metadata["triggered-timestamp"]; found {
 		date, err := time.Parse("2006-01-02T15:04:05", t)
 		if err != nil {
-			return nil, fmt.Errorf("error converting date %w", err)
+			return nil, fmt.Errorf("failed converting date %w", err)
 		}
 		r.TriggeredTimestamp = timestamppb.New(date)
 	}

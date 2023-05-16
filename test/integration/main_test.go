@@ -32,6 +32,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sethvargo/go-retry"
 	"google.golang.org/api/iterator"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -186,8 +187,8 @@ contacts:
 			cmpOpts := []cmp.Option{
 				protocmp.Transform(),
 				protocmp.IgnoreFields(&v1alpha1.ResourceMapping{}, "annotations"),
-				protocmp.IgnoreFields(&v1alpha1.GitHubSource{}),
-				protocmp.IgnoreFields(&timestamppb.Timestamp{}),
+				cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{}),
+				cmpopts.IgnoreUnexported(timestamppb.Timestamp{}),
 			}
 			if diff := cmp.Diff(tc.wantResourceMapping, resourceMapping, cmpOpts...); diff != "" {
 				t.Errorf("resourcemapping(ignore annotation) unexpected diff (-want,+got):\n%s", diff)
@@ -296,9 +297,8 @@ deletion_timeline:
 				t.Errorf("gotPayload unexpected diff (-want,+got):\n%s", diff)
 			}
 			cmpOpts := []cmp.Option{
-				protocmp.Transform(),
-				protocmp.IgnoreFields(&v1alpha1.GitHubSource{}),
-				protocmp.IgnoreFields(&timestamppb.Timestamp{}),
+				cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{}),
+				cmpopts.IgnoreUnexported(timestamppb.Timestamp{}),
 			}
 			if diff := cmp.Diff(wantGithubSource, gotPmapEvent.GetGithubSource(), cmpOpts...); diff != "" {
 				t.Errorf("githubSource unexpected diff (-want, +got):\n%s", diff)
