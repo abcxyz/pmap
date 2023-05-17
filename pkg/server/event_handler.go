@@ -321,12 +321,12 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 	return p, nil
 }
 
-type payloadMetadata struct {
+type notificationPayload struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 func parseGitHubSource(ctx context.Context, data []byte) (*v1alpha1.GitHubSource, error) {
-	var pm payloadMetadata
+	var pm *notificationPayload
 	if err := json.Unmarshal(data, &pm); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal payloadMetadata %w", err)
 	}
