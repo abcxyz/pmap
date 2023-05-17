@@ -422,7 +422,7 @@ func testParseTime(tb testing.TB, ts string) *timestamppb.Timestamp {
 	tb.Helper()
 	t, err := time.Parse(time.RFC3339, ts)
 	if err != nil {
-		tb.Fatal("failed to parse timestamp string to time")
+		tb.Fatal(err)
 	}
 	return timestamppb.New(t)
 }

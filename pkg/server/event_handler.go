@@ -66,7 +66,7 @@ const (
 	MetadataKeyGitHubRepo                 = "git-repo"
 	MetadataKeyWorkflow                   = "git-workflow"
 	MetadataKeyWorkflowSha                = "git-workflow-sha"
-	MetadataKeyWorkflowTriggeredTimestamp = "workflow-triggered-timestamp"
+	MetadataKeyWorkflowTriggeredTimestamp = "git-workflow-triggered-timestamp"
 )
 
 // An interface for sending pmap event downstream.

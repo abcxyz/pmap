@@ -100,8 +100,8 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 			name: "success",
 			pubsubMessageBytes: testToJSON(t, &PubSubMessage{
 				Message: struct {
-					Data       []byte            "json:\"data,omitempty\""
-					Attributes map[string]string "json:\"attributes\""
+					Data       []byte            `json:"data,omitempty"`
+					Attributes map[string]string `json:"attributes"`
 				}{
 					Attributes: map[string]string{
 						"bucketId":      "foo",
@@ -111,7 +111,7 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 					Data: []byte(`{
 						"metadata": {
 							"git-commit": "test-github-commit",
-							"workflow-triggered-timestamp": "2023-04-25T17:44:57Z",
+							"git-workflow-triggered-timestamp": "2023-04-25T17:44:57Z",
 							"git-workflow-sha": "test-workflow-sha",
 							"git-workflow": "test-workflow",
 							"git-repo": "test-github-repo"
@@ -135,8 +135,8 @@ isOK: true`),
 			name: "failed_handle_event",
 			pubsubMessageBytes: testToJSON(t, &PubSubMessage{
 				Message: struct {
-					Data       []byte            "json:\"data,omitempty\""
-					Attributes map[string]string "json:\"attributes\""
+					Data       []byte            `json:"data,omitempty"`
+					Attributes map[string]string `json:"attributes"`
 				}{
 					Attributes: map[string]string{
 						"bucketId":      "foo",
@@ -146,7 +146,7 @@ isOK: true`),
 					Data: []byte(`{
 						"metadata": {
 							"git-commit": "test-github-commit",
-							"workflow-triggered-timestamp": "2023-04-25T17:44:57Z",
+							"git-workflow-triggered-timestamp": "2023-04-25T17:44:57Z",
 							"git-workflow-sha": "test-workflow-sha",
 							"git-workflow": "test-workflow",
 							"git-repo": "test-github-repo"
@@ -161,8 +161,8 @@ isOK: true`),
 			name: "invalid_pubsubmessage_data",
 			pubsubMessageBytes: testToJSON(t, &PubSubMessage{
 				Message: struct {
-					Data       []byte            "json:\"data,omitempty\""
-					Attributes map[string]string "json:\"attributes\""
+					Data       []byte            `json:"data,omitempty"`
+					Attributes map[string]string `json:"attributes"`
 				}{
 					Attributes: map[string]string{
 						"bucketId":      "foo",
@@ -219,7 +219,7 @@ func TestEventHandler_Handle(t *testing.T) {
 
 	cases := []struct {
 		name              string
-		notification      pubsub.Message
+		notification      *pubsub.Message
 		gcsObjectBytes    []byte
 		githubSourceBytes []byte
 		processors        []Processor[*structpb.Struct]
@@ -229,7 +229,7 @@ func TestEventHandler_Handle(t *testing.T) {
 	}{
 		{
 			name: "success",
-			notification: pubsub.Message{
+			notification: &pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
 				Data:       testGCSMetadataBytes(),
 			},
@@ -250,7 +250,7 @@ contacts:
 		},
 		{
 			name: "failed_send_downstream",
-			notification: pubsub.Message{
+			notification: &pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "payloadFormat": "JSON_API_V1"},
 				Data:       testGCSMetadataBytes(),
 			},
@@ -262,7 +262,7 @@ isOK: true`),
 		},
 		{
 			name: "missing_bucket_id",
-			notification: pubsub.Message{
+			notification: &pubsub.Message{
 				Attributes: map[string]string{"objectId": "bar"},
 				Data:       testGCSMetadataBytes(),
 			},
@@ -271,12 +271,12 @@ isOK: true`),
 		},
 		{
 			name: "failed_parsing_timestamp",
-			notification: pubsub.Message{
+			notification: &pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "payloadFormat": "JSON_API_V1"},
 				Data: []byte(`{
 					"metadata": {
 					  "git-commit": "test-github-commit",
-					  "workflow-triggered-timestamp": "2023",
+					  "git-workflow-triggered-timestamp": "2023",
 					  "git-workflow-sha": "test-workflow-sha",
 					  "git-workflow": "test-workflow",
 					  "git-repo": "test-github-repo"
@@ -288,7 +288,7 @@ isOK: true`),
 		},
 		{
 			name: "missing_object_id",
-			notification: pubsub.Message{
+			notification: &pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo"},
 				Data:       testGCSMetadataBytes(),
 			},
@@ -297,7 +297,7 @@ isOK: true`),
 		},
 		{
 			name: "bucket_not_exist",
-			notification: pubsub.Message{
+			notification: &pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar"},
 				Data:       testGCSMetadataBytes(),
 			},
@@ -306,7 +306,7 @@ isOK: true`),
 		},
 		{
 			name: "invalid_yaml_format",
-			notification: pubsub.Message{
+			notification: &pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
 				Data:       testGCSMetadataBytes(),
 			},
@@ -316,7 +316,7 @@ isOK: true`),
 		},
 		{
 			name: "invalid_object_metadata",
-			notification: pubsub.Message{
+			notification: &pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "payloadFormat": "JSON_API_V1"},
 				Data:       []byte("}"),
 			},
@@ -327,7 +327,7 @@ isOK: true`),
 		},
 		{
 			name: "failed_process",
-			notification: pubsub.Message{
+			notification: &pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
 				Data:       testGCSMetadataBytes(),
 			},
@@ -338,7 +338,7 @@ isOK: true`),
 		},
 		{
 			name: "failed_process_and_send",
-			notification: pubsub.Message{
+			notification: &pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
 				Data:       testGCSMetadataBytes(),
 			},
@@ -378,7 +378,7 @@ isOK: true`),
 			}
 
 			// Run test.
-			gotErr := h.Handle(ctx, tc.notification)
+			gotErr := h.Handle(ctx, *tc.notification)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
 			}

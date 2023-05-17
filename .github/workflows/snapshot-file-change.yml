@@ -75,7 +75,7 @@ jobs:
             x-goog-meta-git-repo: ${{ github.repository }}
             x-goog-meta-git-workflow: ${{ github.workflow }}
             x-goog-meta-git-workflow-sha: ${{ github.workflow_sha }}
-            x-goog-meta-workflow-triggered-timestamp: ${{ env.CUR_TIMESTAMP }}
+            x-goog-meta-git-workflow-triggered-timestamp: ${{ env.CUR_TIMESTAMP }}
       - name: 'List all uploaded files'
         run: |-
           echo "all gcs uploaded files"
