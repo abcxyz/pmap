@@ -26,16 +26,28 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/abcxyz/pmap/pkg/server"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sethvargo/go-retry"
 	"google.golang.org/api/iterator"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+const (
+	testGithubCommitValue          = "test-github-commit"
+	testGithubRepoValue            = "test-github-repo"
+	testWorkflowValue              = "test-workflow"
+	testWorkflowShaValue           = "test-workflow-sha"
+	testWorkflowTriggeredTimeValue = "2023-04-25T17:44:57Z"
 )
 
 var (
@@ -97,6 +109,7 @@ func TestMappingEventHandling(t *testing.T) {
 		resourceName        string
 		bigqueryTable       string
 		wantCAISProcessed   bool
+		wantGithubSource    *v1alpha1.GitHubSource
 		wantResourceMapping *v1alpha1.ResourceMapping
 	}{
 		{
@@ -111,6 +124,13 @@ func TestMappingEventHandling(t *testing.T) {
 				},
 				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
 			},
+			wantGithubSource: &v1alpha1.GitHubSource{
+				RepoName:                   testGithubRepoValue,
+				Commit:                     testGithubCommitValue,
+				Workflow:                   testWorkflowValue,
+				WorkflowSha:                testWorkflowShaValue,
+				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
+			},
 		},
 		{
 			name:          "mapping_failure_event",
@@ -122,6 +142,13 @@ func TestMappingEventHandling(t *testing.T) {
 					Name:     fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
 				},
 				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
+			},
+			wantGithubSource: &v1alpha1.GitHubSource{
+				RepoName:                   testGithubRepoValue,
+				Commit:                     testGithubCommitValue,
+				Workflow:                   testWorkflowValue,
+				WorkflowSha:                testWorkflowShaValue,
+				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
 			},
 		},
 	}
@@ -172,9 +199,15 @@ contacts:
 			cmpOpts := []cmp.Option{
 				protocmp.Transform(),
 				protocmp.IgnoreFields(&v1alpha1.ResourceMapping{}, "annotations"),
+				cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{}),
+				cmpopts.IgnoreUnexported(timestamppb.Timestamp{}),
 			}
 			if diff := cmp.Diff(tc.wantResourceMapping, resourceMapping, cmpOpts...); diff != "" {
 				t.Errorf("resourcemapping(ignore annotation) unexpected diff (-want,+got):\n%s", diff)
+			}
+
+			if diff := cmp.Diff(tc.wantGithubSource, gotPmapEvent.GetGithubSource(), cmpOpts...); diff != "" {
+				t.Errorf("githubSource unexpected diff (-want, +got):\n%s", diff)
 			}
 
 			// Resources that don't exist won't pass the validation of CAIS processor,
@@ -196,13 +229,21 @@ contacts:
 func TestPolicyEventHandling(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name          string
-		bigqueryTable string
-		wantPolicyID  string
+		name             string
+		bigqueryTable    string
+		wantPolicyID     string
+		wantGithubSource *v1alpha1.GitHubSource
 	}{
 		{
 			name:          "policy_success_event",
 			bigqueryTable: cfg.PolicyTableID,
+			wantGithubSource: &v1alpha1.GitHubSource{
+				RepoName:                   testGithubRepoValue,
+				Commit:                     testGithubCommitValue,
+				Workflow:                   testWorkflowValue,
+				WorkflowSha:                testWorkflowShaValue,
+				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
+			},
 		},
 	}
 
@@ -261,6 +302,13 @@ deletion_timeline:
 
 			if diff := cmp.Diff(wantPayload, gotPayload, protocmp.Transform()); diff != "" {
 				t.Errorf("gotPayload unexpected diff (-want,+got):\n%s", diff)
+			}
+			cmpOpts := []cmp.Option{
+				cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{}),
+				cmpopts.IgnoreUnexported(timestamppb.Timestamp{}),
+			}
+			if diff := cmp.Diff(tc.wantGithubSource, gotPmapEvent.GetGithubSource(), cmpOpts...); diff != "" {
+				t.Errorf("githubSource unexpected diff (-want, +got):\n%s", diff)
 			}
 		})
 	}
@@ -347,12 +395,19 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 
 	// TODO: #41 set up GCS upload retry.
 	o := gcsClient.Bucket(bucket).Object(object)
-
 	// For an object that does not yet exist, set the DoesNotExist precondition.
 	o = o.If(storage.Conditions{DoesNotExist: true})
 
 	// Upload an object with storage.Writer.
 	wc := o.NewWriter(ctx)
+	wc.Metadata = map[string]string{
+		server.MetadataKeyGitHubCommit:               testGithubCommitValue,
+		server.MetadataKeyGitHubRepo:                 testGithubRepoValue,
+		server.MetadataKeyWorkflow:                   testWorkflowValue,
+		server.MetadataKeyWorkflowSha:                testWorkflowShaValue,
+		server.MetadataKeyWorkflowTriggeredTimestamp: testWorkflowTriggeredTimeValue,
+	}
+
 	if _, err := io.Copy(wc, data); err != nil {
 		return fmt.Errorf("failed to copy bytes: %w", err)
 	}
@@ -361,4 +416,13 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 	}
 
 	return nil
+}
+
+func testParseTime(tb testing.TB, ts string) *timestamppb.Timestamp {
+	tb.Helper()
+	t, err := time.Parse(time.RFC3339, ts)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	return timestamppb.New(t)
 }

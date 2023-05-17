@@ -38,7 +38,7 @@ jobs:
           service_account: '${{ inputs.service_account }}'
       - name: 'Set current timestamp'
         run: |
-          echo "CUR_TIMESTAMP=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
+          echo "CUR_TIMESTAMP=$(date +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
       - name: 'GCS upload files'
         id: 'gcs-upload-file'
         uses: 'google-github-actions/upload-cloud-storage@a5b77a3bf84da1791719585d327e5f90ae5cb53c' # ratchet:google-github-actions/upload-cloud-storage@v1
@@ -53,7 +53,7 @@ jobs:
             x-goog-meta-git-repo: ${{ github.repository }}
             x-goog-meta-git-workflow: ${{ github.workflow }}
             x-goog-meta-git-workflow-sha: ${{ github.workflow_sha }}
-            x-goog-meta-triggered-timestamp: ${{ env.CUR_TIMESTAMP }}
+            x-goog-meta-git-workflow-triggered-timestamp: ${{ env.CUR_TIMESTAMP }}
       - name: 'List all uploaded files'
         run: |-
           echo "all gcs uploaded files"

@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
@@ -30,6 +31,7 @@ import (
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -58,6 +60,18 @@ type Processor[P proto.Message] interface {
 type StoppableProcessor[P proto.Message] interface {
 	Stop() error
 }
+
+// These are metadatas for GCS objects that were uploaded.
+// These customs keys are defined in snapshot-file-change
+// and snapshot-file-copy workflow.
+// https://github.com/abcxyz/pmap/blob/main/.github/workflows/snapshot-file-change.yml#L74-L78
+const (
+	MetadataKeyGitHubCommit               = "git-commit"
+	MetadataKeyGitHubRepo                 = "git-repo"
+	MetadataKeyWorkflow                   = "git-workflow"
+	MetadataKeyWorkflowSha                = "git-workflow-sha"
+	MetadataKeyWorkflowTriggeredTimestamp = "git-workflow-triggered-timestamp"
+)
 
 // An interface for sending pmap event downstream.
 type Messenger interface {
@@ -152,7 +166,10 @@ func NewHandler[T any, P ProtoWrapper[T]](ctx context.Context, ps []Processor[P]
 
 // PubSubMessage is the payload of a [Pub/Sub message].
 //
+// GCS objects' custom metadata will be included in [Data].
+// [Attributes]: includes bucketID and objectID info.
 // [Pub/Sub message]: https://cloud.google.com/pubsub/docs/reference/rest/v1/PubsubMessage
+// [Data]: https://cloud.google.com/storage/docs/json_api/v1/objects#resource-representations
 type PubSubMessage struct {
 	Message struct {
 		Data       []byte            `json:"data,omitempty"`
@@ -163,6 +180,8 @@ type PubSubMessage struct {
 
 // HTTPHandler provides an [http.Handler] that accepts [GCS notifications]
 // in HTTP requests and calls [Handle] to handle the events.
+//
+// Object's metadata change will be included in payload of the notification.
 //
 // [GCS notifications]: https://cloud.google.com/storage/docs/pubsub-notifications#format
 func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
@@ -232,9 +251,18 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 	if err != nil {
 		return fmt.Errorf("failed to convert object to pmap event payload: %w", err)
 	}
-	// TODO(#21): Add additional metadata to pmap event.
+
+	var gr *v1alpha1.GitHubSource
+	if m.Attributes["payloadFormat"] == "JSON_API_V1" {
+		gr, err = parseGitHubSource(ctx, m.Data)
+		if err != nil {
+			return fmt.Errorf("failed to parse metadata: %w", err)
+		}
+	}
+
 	event := &v1alpha1.PmapEvent{
-		Payload: payload,
+		Payload:      payload,
+		GithubSource: gr,
 	}
 
 	if processErr != nil {
@@ -297,6 +325,44 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 		return nil, fmt.Errorf("failed to unmarshal object yaml: %w", err)
 	}
 	return p, nil
+}
+
+type notificationPayload struct {
+	Metadata map[string]string `json:"metadata,omitempty"`
+}
+
+func parseGitHubSource(ctx context.Context, data []byte) (*v1alpha1.GitHubSource, error) {
+	var pm *notificationPayload
+	if err := json.Unmarshal(data, &pm); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal payloadMetadata %w", err)
+	}
+
+	var r v1alpha1.GitHubSource
+
+	if c, found := pm.Metadata[MetadataKeyGitHubCommit]; found {
+		r.Commit = c
+	}
+
+	if rn, found := pm.Metadata[MetadataKeyGitHubRepo]; found {
+		r.RepoName = rn
+	}
+
+	if w, found := pm.Metadata[MetadataKeyWorkflow]; found {
+		r.Workflow = w
+	}
+
+	if ws, found := pm.Metadata[MetadataKeyWorkflowSha]; found {
+		r.WorkflowSha = ws
+	}
+
+	if t, found := pm.Metadata[MetadataKeyWorkflowTriggeredTimestamp]; found {
+		date, err := time.Parse(time.RFC3339, t)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse date %w", err)
+		}
+		r.WorkflowTriggeredTimestamp = timestamppb.New(date)
+	}
+	return &r, nil
 }
 
 // NoopMessenger is a no-op implementation of Messenger interface.

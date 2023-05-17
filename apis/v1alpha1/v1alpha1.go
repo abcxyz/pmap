@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate protoc -I../../protos/v1alpha1 --go_out=. --go-grpc_out=. --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative resource_mapping.proto
+//go:generate protoc -I../../protos/v1alpha1 --go_out=. --go-grpc_out=. --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative resource_mapping.proto pmap_event.proto
 
 // Package v1alpha1 contains versioned pmap contracts, e.g. resource mapping definition.
 package v1alpha1
