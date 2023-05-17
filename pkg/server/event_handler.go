@@ -57,6 +57,14 @@ type Processor[P proto.Message] interface {
 	Stop() error
 }
 
+const (
+	MetadataKeyGitHubCommit       = "git-commit"
+	MetadataKeyGitHubRepo         = "git-repo"
+	MetadataKeyWorkflow           = "git-workflow"
+	MetadataKeyWorkflowSha        = "git-workflow-sha"
+	MetadataKeyTriggeredTimestamp = "triggered-timestamp"
+)
+
 // An interface for sending pmap event downstream.
 type Messenger interface {
 	Send(context.Context, *v1alpha1.PmapEvent) error
@@ -320,24 +328,24 @@ func parseGitHubSource(ctx context.Context, data []byte) (*v1alpha1.GitHubSource
 
 	r := &v1alpha1.GitHubSource{}
 
-	if c, found := pm.Metadata["git-commit"]; found {
+	if c, found := pm.Metadata[MetadataKeyGitHubCommit]; found {
 		r.Commit = c
 	}
 
-	if rn, found := pm.Metadata["git-repo"]; found {
+	if rn, found := pm.Metadata[MetadataKeyGitHubRepo]; found {
 		r.RepoName = rn
 	}
 
-	if w, found := pm.Metadata["git-workflow"]; found {
+	if w, found := pm.Metadata[MetadataKeyWorkflow]; found {
 		r.Workflow = w
 	}
 
-	if ws, found := pm.Metadata["git-workflow-sha"]; found {
+	if ws, found := pm.Metadata[MetadataKeyWorkflowSha]; found {
 		r.WorkflowSha = ws
 	}
 
-	if t, found := pm.Metadata["triggered-timestamp"]; found {
-		date, err := time.Parse("2006-01-02T15:04:05", t)
+	if t, found := pm.Metadata[MetadataKeyTriggeredTimestamp]; found {
+		date, err := time.Parse(time.RFC3339, t)
 		if err != nil {
 			return nil, fmt.Errorf("failed converting date %w", err)
 		}

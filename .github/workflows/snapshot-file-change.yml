@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 0 # OR "2" -> To retrieve the preceding commit.
       - name: 'Set current timestamp'
         run: |
-          echo "CUR_TIMESTAMP=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
+          echo "CUR_TIMESTAMP=$(date +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
       - name: 'Get changed yaml files'
         id: 'changed-yaml-files'
         uses: 'tj-actions/changed-files@84ed30e2f4daf616144de7e0c1db59d5b33025e3' # ratchet:tj-actions/changed-files@v35

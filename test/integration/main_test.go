@@ -131,8 +131,8 @@ func TestMappingEventHandling(t *testing.T) {
 
 	for _, tc := range cases {
 		tc := tc
-		wantTS := "2023-04-25T17:44:57"
-		wantT, err := time.Parse("2006-01-02T15:04:05", wantTS)
+		wantTS := "2023-04-25T17:44:57Z"
+		wantT, err := time.Parse(time.RFC3339, wantTS)
 		if err != nil {
 			t.Fatalf("failed to parse timestamp str to timestamppb")
 		}
@@ -234,8 +234,8 @@ func TestPolicyEventHandling(t *testing.T) {
 			t.Parallel()
 
 			ctx := context.Background()
-			wantTS := "2023-04-25T17:44:57"
-			wantT, err := time.Parse("2006-01-02T15:04:05", wantTS)
+			wantTS := "2023-04-25T17:44:57Z"
+			wantT, err := time.Parse(time.RFC3339, wantTS)
 			if err != nil {
 				t.Fatalf("failed to parse timestamp str to timestamppb")
 			}
@@ -398,7 +398,7 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 		"git-repo":            "test-github-repo",
 		"git-workflow":        "test-workflow",
 		"git-workflow-sha":    "test-workflow-sha",
-		"triggered-timestamp": "2023-04-25T17:44:57",
+		"triggered-timestamp": "2023-04-25T17:44:57Z",
 	}
 
 	if _, err := io.Copy(wc, data); err != nil {

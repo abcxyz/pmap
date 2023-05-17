@@ -113,7 +113,7 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 			`, base64.StdEncoding.EncodeToString([]byte(`{
 				"metadata": {
 				  "git-commit": "test-github-commit",
-				  "triggered-timestamp": "2023-04-25T17:44:57",
+				  "triggered-timestamp": "2023-04-25T17:44:57Z",
 				  "git-workflow-sha": "test-workflow-sha",
 				  "git-workflow": "test-workflow",
 				  "git-repo": "test-github-repo"
@@ -148,7 +148,7 @@ isOK: true`),
 			`, base64.StdEncoding.EncodeToString([]byte(`{
 				"metadata": {
 				  "git-commit": "test-github-commit",
-				  "triggered-timestamp": "2023-04-25T17:44:57",
+				  "triggered-timestamp": "2023-04-25T17:44:57Z",
 				  "git-workflow-sha": "test-workflow-sha",
 				  "git-workflow": "test-workflow",
 				  "git-repo": "test-github-repo"
@@ -409,7 +409,7 @@ func getFakeMetadata() []byte {
 	return []byte(`{
 		"metadata": {
 		  "git-commit": "test-github-commit",
-		  "triggered-timestamp": "2023-04-25T17:44:57",
+		  "triggered-timestamp": "2023-04-25T17:44:57Z",
 		  "git-workflow-sha": "test-workflow-sha",
 		  "git-workflow": "test-workflow",
 		  "git-repo": "test-github-repo"
