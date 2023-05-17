@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -98,27 +98,27 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 	}{
 		{
 			name: "success",
-			pubsubMessageBytes: []byte(fmt.Sprintf(`
-			{
-			  "message": {
-				"attributes": {
-				  "bucketId": "foo",
-				  "objectId": "bar",
-				  "payloadFormat": "JSON_API_V1"
+			pubsubMessageBytes: testToJSON(t, &PubSubMessage{
+				Message: struct {
+					Data       []byte            "json:\"data,omitempty\""
+					Attributes map[string]string "json:\"attributes\""
+				}{
+					Attributes: map[string]string{
+						"bucketId":      "foo",
+						"objectId":      "bar",
+						"payloadFormat": "JSON_API_V1",
+					},
+					Data: []byte(`{
+						"metadata": {
+							"git-commit": "test-github-commit",
+							"workflow-triggered-timestamp": "2023-04-25T17:44:57Z",
+							"git-workflow-sha": "test-workflow-sha",
+							"git-workflow": "test-workflow",
+							"git-repo": "test-github-repo"
+						}
+					}`),
 				},
-				"data" : %q
-			  },
-			  "subscription": "test_subscription"
-			}
-			`, base64.StdEncoding.EncodeToString([]byte(`{
-				"metadata": {
-				  "git-commit": "test-github-commit",
-				  "triggered-timestamp": "2023-04-25T17:44:57Z",
-				  "git-workflow-sha": "test-workflow-sha",
-				  "git-workflow": "test-workflow",
-				  "git-repo": "test-github-repo"
-				}
-			  }`)))),
+			}),
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
 			wantStatusCode:     http.StatusCreated,
@@ -133,49 +133,49 @@ isOK: true`),
 		},
 		{
 			name: "failed_handle_event",
-			pubsubMessageBytes: []byte(fmt.Sprintf(`
-			{
-			  "message": {
-				"attributes": {
-				  "bucketId": "foo",
-				  "objectId": "bar2",
-				  "payloadFormat": "JSON_API_V1"
+			pubsubMessageBytes: testToJSON(t, &PubSubMessage{
+				Message: struct {
+					Data       []byte            "json:\"data,omitempty\""
+					Attributes map[string]string "json:\"attributes\""
+				}{
+					Attributes: map[string]string{
+						"bucketId":      "foo",
+						"objectId":      "bar2",
+						"payloadFormat": "JSON_API_V1",
+					},
+					Data: []byte(`{
+						"metadata": {
+							"git-commit": "test-github-commit",
+							"workflow-triggered-timestamp": "2023-04-25T17:44:57Z",
+							"git-workflow-sha": "test-workflow-sha",
+							"git-workflow": "test-workflow",
+							"git-repo": "test-github-repo"
+						}
+					}`),
 				},
-				"data" : %q
-			  },
-			  "subscription": "test_subscription"
-			}
-			`, base64.StdEncoding.EncodeToString([]byte(`{
-				"metadata": {
-				  "git-commit": "test-github-commit",
-				  "triggered-timestamp": "2023-04-25T17:44:57Z",
-				  "git-workflow-sha": "test-workflow-sha",
-				  "git-workflow": "test-workflow",
-				  "git-repo": "test-github-repo"
-				}
-			  }`)))),
+			}),
 			wantStatusCode:     http.StatusInternalServerError,
 			wantRespBodySubstr: "failed to get GCS object",
 		},
 		{
 			name: "invalid_pubsubmessage_data",
-			pubsubMessageBytes: []byte(fmt.Sprintf(`
-			{
-			  "message": {
-				"attributes": {
-				  "bucketId": "foo",
-				  "objectId": "bar",
-				  "payloadFormat": "JSON_API_V1"
+			pubsubMessageBytes: testToJSON(t, &PubSubMessage{
+				Message: struct {
+					Data       []byte            "json:\"data,omitempty\""
+					Attributes map[string]string "json:\"attributes\""
+				}{
+					Attributes: map[string]string{
+						"bucketId":      "foo",
+						"objectId":      "bar",
+						"payloadFormat": "JSON_API_V1",
+					},
+					Data: []byte(`{
+						"metadata": {
+							"key" : 12
+						}
+					}`),
 				},
-				"data" : %q
-			  },
-			  "subscription": "test_subscription"
-			}
-			`, base64.StdEncoding.EncodeToString([]byte(`{
-				"metadata": {
-					"key": 12
-				}
-			  }`)))),
+			}),
 			wantStatusCode:     http.StatusInternalServerError,
 			wantRespBodySubstr: "failed to unmarshal payloadMetadata",
 		},
@@ -276,7 +276,7 @@ isOK: true`),
 				Data: []byte(`{
 					"metadata": {
 					  "git-commit": "test-github-commit",
-					  "triggered-timestamp": "2023",
+					  "workflow-triggered-timestamp": "2023",
 					  "git-workflow-sha": "test-workflow-sha",
 					  "git-workflow": "test-workflow",
 					  "git-repo": "test-github-repo"
@@ -284,7 +284,7 @@ isOK: true`),
 				  }`),
 			},
 			successMessenger: &NoopMessenger{},
-			wantErrSubstr:    "failed converting date",
+			wantErrSubstr:    "failed to parse date",
 		},
 		{
 			name: "missing_object_id",
@@ -433,6 +433,17 @@ func testHandleObjectRead(t *testing.T, data []byte) func(w http.ResponseWriter,
 			http.Error(w, "injected error", http.StatusNotFound)
 		}
 	}
+}
+
+func testToJSON(tb testing.TB, in any) []byte {
+	tb.Helper()
+
+	b, err := json.Marshal(in)
+	if err != nil {
+		tb.Fatal(err)
+	}
+
+	return b
 }
 
 type failProcessor struct{}

@@ -31,6 +31,7 @@ import (
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/abcxyz/pmap/pkg/server"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sethvargo/go-retry"
@@ -39,6 +40,14 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+const (
+	testGithubCommitValue          = "test-github-commit"
+	testGithubRepoValue            = "test-github-repo"
+	testWorkflowValue              = "test-workflow"
+	testWorkflowShaValue           = "test-workflow-sha"
+	testWorkflowTriggeredTimeValue = "2023-04-25T17:44:57Z"
 )
 
 var (
@@ -100,6 +109,7 @@ func TestMappingEventHandling(t *testing.T) {
 		resourceName        string
 		bigqueryTable       string
 		wantCAISProcessed   bool
+		wantGithubSource    *v1alpha1.GitHubSource
 		wantResourceMapping *v1alpha1.ResourceMapping
 	}{
 		{
@@ -114,6 +124,13 @@ func TestMappingEventHandling(t *testing.T) {
 				},
 				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
 			},
+			wantGithubSource: &v1alpha1.GitHubSource{
+				RepoName:                   testGithubRepoValue,
+				Commit:                     testGithubCommitValue,
+				Workflow:                   testWorkflowValue,
+				WorkflowSha:                testWorkflowShaValue,
+				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
+			},
 		},
 		{
 			name:          "mapping_failure_event",
@@ -126,23 +143,18 @@ func TestMappingEventHandling(t *testing.T) {
 				},
 				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
 			},
+			wantGithubSource: &v1alpha1.GitHubSource{
+				RepoName:                   testGithubRepoValue,
+				Commit:                     testGithubCommitValue,
+				Workflow:                   testWorkflowValue,
+				WorkflowSha:                testWorkflowShaValue,
+				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
+			},
 		},
 	}
 
 	for _, tc := range cases {
 		tc := tc
-		wantTS := "2023-04-25T17:44:57Z"
-		wantT, err := time.Parse(time.RFC3339, wantTS)
-		if err != nil {
-			t.Fatalf("failed to parse timestamp str to timestamppb")
-		}
-		wantGithubSource := &v1alpha1.GitHubSource{
-			RepoName:           "test-github-repo",
-			Commit:             "test-github-commit",
-			Workflow:           "test-workflow",
-			WorkflowSha:        "test-workflow-sha",
-			TriggeredTimestamp: timestamppb.New(wantT),
-		}
 
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -194,7 +206,7 @@ contacts:
 				t.Errorf("resourcemapping(ignore annotation) unexpected diff (-want,+got):\n%s", diff)
 			}
 
-			if diff := cmp.Diff(wantGithubSource, gotPmapEvent.GetGithubSource(), cmpOpts...); diff != "" {
+			if diff := cmp.Diff(tc.wantGithubSource, gotPmapEvent.GetGithubSource(), cmpOpts...); diff != "" {
 				t.Errorf("githubSource unexpected diff (-want, +got):\n%s", diff)
 			}
 
@@ -217,13 +229,21 @@ contacts:
 func TestPolicyEventHandling(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name          string
-		bigqueryTable string
-		wantPolicyID  string
+		name             string
+		bigqueryTable    string
+		wantPolicyID     string
+		wantGithubSource *v1alpha1.GitHubSource
 	}{
 		{
 			name:          "policy_success_event",
 			bigqueryTable: cfg.PolicyTableID,
+			wantGithubSource: &v1alpha1.GitHubSource{
+				RepoName:                   testGithubRepoValue,
+				Commit:                     testGithubCommitValue,
+				Workflow:                   testWorkflowValue,
+				WorkflowSha:                testWorkflowShaValue,
+				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
+			},
 		},
 	}
 
@@ -234,19 +254,6 @@ func TestPolicyEventHandling(t *testing.T) {
 			t.Parallel()
 
 			ctx := context.Background()
-			wantTS := "2023-04-25T17:44:57Z"
-			wantT, err := time.Parse(time.RFC3339, wantTS)
-			if err != nil {
-				t.Fatalf("failed to parse timestamp str to timestamppb")
-			}
-
-			wantGithubSource := &v1alpha1.GitHubSource{
-				RepoName:           "test-github-repo",
-				Commit:             "test-github-commit",
-				Workflow:           "test-workflow",
-				WorkflowSha:        "test-workflow-sha",
-				TriggeredTimestamp: timestamppb.New(wantT),
-			}
 
 			traceID, err := rand.Int(rand.Reader, big.NewInt(100000))
 			if err != nil {
@@ -300,7 +307,7 @@ deletion_timeline:
 				cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{}),
 				cmpopts.IgnoreUnexported(timestamppb.Timestamp{}),
 			}
-			if diff := cmp.Diff(wantGithubSource, gotPmapEvent.GetGithubSource(), cmpOpts...); diff != "" {
+			if diff := cmp.Diff(tc.wantGithubSource, gotPmapEvent.GetGithubSource(), cmpOpts...); diff != "" {
 				t.Errorf("githubSource unexpected diff (-want, +got):\n%s", diff)
 			}
 		})
@@ -394,11 +401,11 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 	// Upload an object with storage.Writer.
 	wc := o.NewWriter(ctx)
 	wc.Metadata = map[string]string{
-		"git-commit":          "test-github-commit",
-		"git-repo":            "test-github-repo",
-		"git-workflow":        "test-workflow",
-		"git-workflow-sha":    "test-workflow-sha",
-		"triggered-timestamp": "2023-04-25T17:44:57Z",
+		server.MetadataKeyGitHubCommit:               testGithubCommitValue,
+		server.MetadataKeyGitHubRepo:                 testGithubRepoValue,
+		server.MetadataKeyWorkflow:                   testWorkflowValue,
+		server.MetadataKeyWorkflowSha:                testWorkflowShaValue,
+		server.MetadataKeyWorkflowTriggeredTimestamp: testWorkflowTriggeredTimeValue,
 	}
 
 	if _, err := io.Copy(wc, data); err != nil {
@@ -409,4 +416,13 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 	}
 
 	return nil
+}
+
+func testParseTime(tb testing.TB, ts string) *timestamppb.Timestamp {
+	tb.Helper()
+	t, err := time.Parse(time.RFC3339, ts)
+	if err != nil {
+		tb.Fatal("failed to parse timestamp string to time")
+	}
+	return timestamppb.New(t)
 }

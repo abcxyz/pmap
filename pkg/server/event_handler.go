@@ -57,12 +57,16 @@ type Processor[P proto.Message] interface {
 	Stop() error
 }
 
+// These are metadatas for GCS objects that were uploaded.
+// These customs keys are defined in snapshot-file-change
+// and snapshot-file-copy workflow.
+// https://github.com/abcxyz/pmap/blob/main/.github/workflows/snapshot-file-change.yml#L74-L78
 const (
-	MetadataKeyGitHubCommit       = "git-commit"
-	MetadataKeyGitHubRepo         = "git-repo"
-	MetadataKeyWorkflow           = "git-workflow"
-	MetadataKeyWorkflowSha        = "git-workflow-sha"
-	MetadataKeyTriggeredTimestamp = "triggered-timestamp"
+	MetadataKeyGitHubCommit               = "git-commit"
+	MetadataKeyGitHubRepo                 = "git-repo"
+	MetadataKeyWorkflow                   = "git-workflow"
+	MetadataKeyWorkflowSha                = "git-workflow-sha"
+	MetadataKeyWorkflowTriggeredTimestamp = "workflow-triggered-timestamp"
 )
 
 // An interface for sending pmap event downstream.
@@ -327,7 +331,7 @@ func parseGitHubSource(ctx context.Context, data []byte) (*v1alpha1.GitHubSource
 		return nil, fmt.Errorf("failed to unmarshal payloadMetadata %w", err)
 	}
 
-	r := &v1alpha1.GitHubSource{}
+	var r v1alpha1.GitHubSource
 
 	if c, found := pm.Metadata[MetadataKeyGitHubCommit]; found {
 		r.Commit = c
@@ -345,14 +349,14 @@ func parseGitHubSource(ctx context.Context, data []byte) (*v1alpha1.GitHubSource
 		r.WorkflowSha = ws
 	}
 
-	if t, found := pm.Metadata[MetadataKeyTriggeredTimestamp]; found {
+	if t, found := pm.Metadata[MetadataKeyWorkflowTriggeredTimestamp]; found {
 		date, err := time.Parse(time.RFC3339, t)
 		if err != nil {
-			return nil, fmt.Errorf("failed converting date %w", err)
+			return nil, fmt.Errorf("failed to parse date %w", err)
 		}
-		r.TriggeredTimestamp = timestamppb.New(date)
+		r.WorkflowTriggeredTimestamp = timestamppb.New(date)
 	}
-	return r, nil
+	return &r, nil
 }
 
 // NoopMessenger is a no-op implementation of Messenger interface.

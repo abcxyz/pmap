@@ -46,11 +46,14 @@ message GitHubSource {
   string commit = 3;
 
   // Required. The github workflow that triggered the pmap event.
+  // Example: pmap-snapshot-file-change
   string workflow = 4;
 
   // Required. The sha for the github workflow.
+  // Example: 6a558007186d9a4ceb17590166a40f173e5df3ff
   string workflow_sha = 5;
 
   // Required. The timestamp when workflow is triggered.
-  google.protobuf.Timestamp triggered_timestamp = 6;
+  // Example: 2023-04-25T17:44:57Z
+  google.protobuf.Timestamp workflow_triggered_timestamp = 6;
 }
