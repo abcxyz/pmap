@@ -40,7 +40,7 @@ func TestEventHandler_NewHandler(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup fake storage client.
-	hc, done := newTestServer(handleObjectRead(t, []byte("test")))
+	hc, done := newTestServer(testHandleObjectRead(t, []byte("test")))
 	defer done()
 	c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
 	if err != nil {
@@ -173,7 +173,7 @@ isOK: true`),
 			}
 			`, base64.StdEncoding.EncodeToString([]byte(`{
 				"metadata": {
-					""
+					"key": 12
 				}
 			  }`)))),
 			wantStatusCode:     http.StatusInternalServerError,
@@ -188,7 +188,7 @@ isOK: true`),
 			t.Parallel()
 
 			// Setup fake storage client.
-			hc, done := newTestServer(handleObjectRead(t, tc.gcsObjectBytes))
+			hc, done := newTestServer(testHandleObjectRead(t, tc.gcsObjectBytes))
 			defer done()
 			c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
 			if err != nil {
@@ -231,7 +231,7 @@ func TestEventHandler_Handle(t *testing.T) {
 			name: "success",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
-				Data:       getFakeMetadata(),
+				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(
 				`
@@ -252,7 +252,7 @@ contacts:
 			name: "failed_send_downstream",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "payloadFormat": "JSON_API_V1"},
-				Data:       getFakeMetadata(),
+				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
@@ -264,7 +264,7 @@ isOK: true`),
 			name: "missing_bucket_id",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"objectId": "bar"},
-				Data:       getFakeMetadata(),
+				Data:       testGCSMetadataBytes(),
 			},
 			successMessenger: &NoopMessenger{},
 			wantErrSubstr:    "bucket ID not found",
@@ -290,7 +290,7 @@ isOK: true`),
 			name: "missing_object_id",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo"},
-				Data:       getFakeMetadata(),
+				Data:       testGCSMetadataBytes(),
 			},
 			successMessenger: &NoopMessenger{},
 			wantErrSubstr:    "object ID not found",
@@ -299,7 +299,7 @@ isOK: true`),
 			name: "bucket_not_exist",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar"},
-				Data:       getFakeMetadata(),
+				Data:       testGCSMetadataBytes(),
 			},
 			successMessenger: &NoopMessenger{},
 			wantErrSubstr:    "failed to create GCS object reader",
@@ -308,7 +308,7 @@ isOK: true`),
 			name: "invalid_yaml_format",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
-				Data:       getFakeMetadata(),
+				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes:   []byte(`foo, bar`),
 			successMessenger: &NoopMessenger{},
@@ -329,7 +329,7 @@ isOK: true`),
 			name: "failed_process",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
-				Data:       getFakeMetadata(),
+				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
@@ -340,7 +340,7 @@ isOK: true`),
 			name: "failed_process_and_send",
 			notification: pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
-				Data:       getFakeMetadata(),
+				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
@@ -360,7 +360,7 @@ isOK: true`),
 			ctx := context.Background()
 
 			// Create fake http client for storage client.
-			hc, done := newTestServer(handleObjectRead(t, tc.gcsObjectBytes))
+			hc, done := newTestServer(testHandleObjectRead(t, tc.gcsObjectBytes))
 			defer done()
 
 			// Setup test handler with fake storage client.
@@ -405,7 +405,7 @@ func newTestServer(handler func(w http.ResponseWriter, r *http.Request)) (*http.
 }
 
 // Returns fake metadata that include github resource info.
-func getFakeMetadata() []byte {
+func testGCSMetadataBytes() []byte {
 	return []byte(`{
 		"metadata": {
 		  "git-commit": "test-github-commit",
@@ -418,7 +418,7 @@ func getFakeMetadata() []byte {
 }
 
 // Returns a fake http func that writes the data in http response.
-func handleObjectRead(t *testing.T, data []byte) func(w http.ResponseWriter, r *http.Request) {
+func testHandleObjectRead(t *testing.T, data []byte) func(w http.ResponseWriter, r *http.Request) {
 	t.Helper()
 
 	return func(w http.ResponseWriter, r *http.Request) {

@@ -173,8 +173,9 @@ type PubSubMessage struct {
 // HTTPHandler provides an [http.Handler] that accepts [GCS notifications]
 // in HTTP requests and calls [Handle] to handle the events.
 //
-// [GCS notifications]: https://cloud.google.com/storage/docs/pubsub-notifications#format
 // Object's metadata change will be included in payload of the notification.
+//
+// [GCS notifications]: https://cloud.google.com/storage/docs/pubsub-notifications#format
 func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
