@@ -49,7 +49,7 @@ builds:
 dockers:
   -
     ids:
-      - 'pmap'
+    - 'pmap'
     use: 'buildx'
     goos: 'linux'
     goarch: 'amd64'
@@ -69,7 +69,7 @@ dockers:
 
   -
     ids:
-      - 'pmap'
+    - 'pmap'
     use: 'buildx'
     goos: 'linux'
     goarch: 'arm64'
