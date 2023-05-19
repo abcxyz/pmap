@@ -94,7 +94,7 @@ docker_manifests:
       - '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-amd64'
       - '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-arm64'
 
-# TODO: Follow up on signing.
+# TODO: Follow up on signing debug.
 
 # Disable SCM release we only want docker release here.
 release:
