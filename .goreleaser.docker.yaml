@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#      http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,7 @@ env:
 
 before:
   hooks:
-    - go mod tidy
+    - 'go mod tidy'
 
 builds:
   -
@@ -34,12 +34,14 @@ builds:
     ldflags:
       - '-s'
       - '-w'
-      - '-X={{ .ModulePath }}/pkg/version.Name=pmap'
-      - '-X={{ .ModulePath }}/pkg/version.Version={{ .Version }}'
-      - '-X={{ .ModulePath }}/pkg/version.Commit={{ .Commit }}'
+      - '-X={{ .ModulePath }}/internal/version.Name=pmap'
+      - '-X={{ .ModulePath }}/internal/version.Version={{ .Version }}'
+      - '-X={{ .ModulePath }}/internal/version.Commit={{ .Commit }}'
       - '-extldflags=-static'
     goos:
+      - 'darwin'
       - 'linux'
+      - 'windows'
     goarch:
       - 'amd64'
       - 'arm64'
@@ -47,36 +49,37 @@ builds:
 dockers:
   -
     ids:
-    - pmap
+    - 'pmap'
     use: 'buildx'
     goos: 'linux'
     goarch: 'amd64'
     image_templates:
-      - '{{ .Env.DOCKER_REPO }}/pmap:{{ .Env.DOCKER_TAG }}-amd64'
+      - '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-amd64'
     build_flag_templates:
       - '--platform=linux/amd64'
       - '--pull'
       - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
-      - '--label=org.opencontainers.image.description=Privacy data mapping tool.'
+      - '--label=org.opencontainers.image.description=Privacy data mapping tool'
       - '--label=org.opencontainers.image.licenses=Apache-2.0'
       - '--label=org.opencontainers.image.name=pmap'
       - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
       - '--label=org.opencontainers.image.source={{ .GitURL }}'
       - '--label=org.opencontainers.image.title=pmap'
       - '--label=org.opencontainers.image.version={{ .Version }}'
+
   -
     ids:
-    - pmap
+    - 'pmap'
     use: 'buildx'
     goos: 'linux'
     goarch: 'arm64'
     image_templates:
-      - '{{ .Env.DOCKER_REPO }}/pmap:{{ .Env.DOCKER_TAG }}-arm64'
+      - '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-arm64'
     build_flag_templates:
       - '--platform=linux/arm64'
       - '--pull'
       - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
-      - '--label=org.opencontainers.image.description=Privacy data mapping tool.'
+      - '--label=org.opencontainers.image.description=Privacy data mapping tool'
       - '--label=org.opencontainers.image.licenses=Apache-2.0'
       - '--label=org.opencontainers.image.name=pmap'
       - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
@@ -85,9 +88,11 @@ dockers:
       - '--label=org.opencontainers.image.version={{ .Version }}'
 
 docker_manifests:
-  - image_templates:
-      - '{{ .Env.DOCKER_REPO }}/pmap:{{ .Env.DOCKER_TAG }}-amd64'
-      - '{{ .Env.DOCKER_REPO }}/pmap:{{ .Env.DOCKER_TAG }}-arm64'
+  -
+    name_template: '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}'
+    image_templates:
+      - '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-amd64'
+      - '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-arm64'
 
 # TODO: Follow up on signing.
 
