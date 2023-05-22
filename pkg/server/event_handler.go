@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -66,11 +67,14 @@ type StoppableProcessor[P proto.Message] interface {
 // and snapshot-file-copy workflow.
 // https://github.com/abcxyz/pmap/blob/main/.github/workflows/snapshot-file-change.yml#L74-L78
 const (
-	MetadataKeyGitHubCommit               = "git-commit"
-	MetadataKeyGitHubRepo                 = "git-repo"
-	MetadataKeyWorkflow                   = "git-workflow"
-	MetadataKeyWorkflowSha                = "git-workflow-sha"
-	MetadataKeyWorkflowTriggeredTimestamp = "git-workflow-triggered-timestamp"
+	MetadataKeyGitHubCommit               = "github-commit"
+	MetadataKeyGitHubRepo                 = "github-repo"
+	MetadataKeyWorkflow                   = "github-workflow"
+	MetadataKeyWorkflowSha                = "github-workflow-sha"
+	MetadataKeyWorkflowTriggeredTimestamp = "github-workflow-triggered-timestamp"
+	MetadataKeyWorkflowRunID              = "github-run-id"
+	MetadataKeyWorkflowRunAttempt         = "github-run-attempt"
+	MetadataKeyFilePath                   = "gcs-file-path"
 )
 
 // An interface for sending pmap event downstream.
@@ -353,6 +357,20 @@ func parseGitHubSource(ctx context.Context, data []byte) (*v1alpha1.GitHubSource
 
 	if ws, found := pm.Metadata[MetadataKeyWorkflowSha]; found {
 		r.WorkflowSha = ws
+	}
+
+	if ra, found := pm.Metadata[MetadataKeyWorkflowRunAttempt]; found {
+		if value, err := strconv.ParseInt(ra, 10, 64); err == nil {
+			r.WorkflowRunAttempt = value
+		}
+	}
+
+	if ri, found := pm.Metadata[MetadataKeyWorkflowRunID]; found {
+		r.WorkflowRunId = ri
+	}
+
+	if fp, found := pm.Metadata[MetadataKeyFilePath]; found {
+		r.FilePath = fp
 	}
 
 	if t, found := pm.Metadata[MetadataKeyWorkflowTriggeredTimestamp]; found {

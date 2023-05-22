@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 0 # OR "2" -> To retrieve the preceding commit.
       - name: 'Set current timestamp'
         run: |
-          echo "CUR_TIMESTAMP=$(date +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+          echo "CUR_TIMESTAMP=$(date --rfc-3339=seconds | sed 's/ /T/')" >> $GITHUB_ENV
       - name: 'Get changed yaml files'
         id: 'changed-yaml-files'
         uses: 'tj-actions/changed-files@84ed30e2f4daf616144de7e0c1db59d5b33025e3' # ratchet:tj-actions/changed-files@v35
@@ -71,11 +71,14 @@ jobs:
           destination: '${{ inputs.destination_prefix }}/pmap-file-change-${{ github.run_id }}-${{ github.run_attempt }}'
           headers: |-
             content-type: application/json
-            x-goog-meta-git-commit: ${{ github.sha }}
-            x-goog-meta-git-repo: ${{ github.repository }}
-            x-goog-meta-git-workflow: ${{ github.workflow }}
-            x-goog-meta-git-workflow-sha: ${{ github.workflow_sha }}
-            x-goog-meta-git-workflow-triggered-timestamp: ${{ env.CUR_TIMESTAMP }}
+            x-goog-meta-github-commit: ${{ github.sha }}
+            x-goog-meta-github-repo: ${{ github.repository }}
+            x-goog-meta-github-run-attempt: ${{github.run_attempt}}
+            x-goog-meta-github-run-id: ${{github.run_id}}
+            x-goog-meta-github-workflow: ${{ github.workflow }}
+            x-goog-meta-github-workflow-sha: ${{ github.workflow_sha }}
+            x-goog-meta-github-workflow-triggered-timestamp: ${{ env.CUR_TIMESTAMP }}
+            x-goog-meta-gcs-file-path: ${{ inputs.destination_prefix }}/pmap-file-change-${{ github.run_id }}-${{ github.run_attempt }}/${{inputs.path}}
       - name: 'List all uploaded files'
         run: |-
           echo "all gcs uploaded files"

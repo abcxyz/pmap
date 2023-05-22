@@ -47,7 +47,10 @@ const (
 	testGithubRepoValue            = "test-github-repo"
 	testWorkflowValue              = "test-workflow"
 	testWorkflowShaValue           = "test-workflow-sha"
-	testWorkflowTriggeredTimeValue = "2023-04-25T17:44:57Z"
+	testWorkflowTriggeredTimeValue = "2023-04-25T17:44:57+00:00"
+	testWorkflowRunID              = "5050509831"
+	testWorkflowRunAttempt         = "1"
+	testGCSFilePath                = "test-file-path"
 )
 
 var (
@@ -130,6 +133,9 @@ func TestMappingEventHandling(t *testing.T) {
 				Workflow:                   testWorkflowValue,
 				WorkflowSha:                testWorkflowShaValue,
 				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
+				WorkflowRunId:              testWorkflowRunID,
+				WorkflowRunAttempt:         1,
+				FilePath:                   testGCSFilePath,
 			},
 		},
 		{
@@ -149,6 +155,9 @@ func TestMappingEventHandling(t *testing.T) {
 				Workflow:                   testWorkflowValue,
 				WorkflowSha:                testWorkflowShaValue,
 				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
+				WorkflowRunId:              testWorkflowRunID,
+				WorkflowRunAttempt:         1,
+				FilePath:                   testGCSFilePath,
 			},
 		},
 	}
@@ -243,6 +252,9 @@ func TestPolicyEventHandling(t *testing.T) {
 				Workflow:                   testWorkflowValue,
 				WorkflowSha:                testWorkflowShaValue,
 				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
+				WorkflowRunId:              testWorkflowRunID,
+				WorkflowRunAttempt:         1,
+				FilePath:                   testGCSFilePath,
 			},
 		},
 	}
@@ -406,6 +418,9 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 		server.MetadataKeyWorkflow:                   testWorkflowValue,
 		server.MetadataKeyWorkflowSha:                testWorkflowShaValue,
 		server.MetadataKeyWorkflowTriggeredTimestamp: testWorkflowTriggeredTimeValue,
+		server.MetadataKeyWorkflowRunAttempt:         testWorkflowRunAttempt,
+		server.MetadataKeyWorkflowRunID:              testWorkflowRunID,
+		server.MetadataKeyFilePath:                   testGCSFilePath,
 	}
 
 	if _, err := io.Copy(wc, data); err != nil {

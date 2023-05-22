@@ -110,11 +110,14 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 					},
 					Data: []byte(`{
 						"metadata": {
-							"git-commit": "test-github-commit",
-							"git-workflow-triggered-timestamp": "2023-04-25T17:44:57Z",
-							"git-workflow-sha": "test-workflow-sha",
-							"git-workflow": "test-workflow",
-							"git-repo": "test-github-repo"
+							"github-commit": "test-github-commit",
+							"github-workflow-triggered-timestamp": "2023-04-25T17:44:57+00:00",
+							"github-workflow-sha": "test-workflow-sha",
+							"github-workflow": "test-workflow",
+							"github-repo": "test-github-repo",
+							"github-run-id": "5050509831",
+							"github-run-attempt": "1",
+							"gcs-file-path": "test-file-path"
 						}
 					}`),
 				},
@@ -146,10 +149,13 @@ isOK: true`),
 					Data: []byte(`{
 						"metadata": {
 							"git-commit": "test-github-commit",
-							"git-workflow-triggered-timestamp": "2023-04-25T17:44:57Z",
+							"git-workflow-triggered-timestamp": "2023-04-25T17:44:57+00:00",
 							"git-workflow-sha": "test-workflow-sha",
 							"git-workflow": "test-workflow",
-							"git-repo": "test-github-repo"
+							"git-repo": "test-github-repo",
+							"github-run-id": "5050509831",
+							"github-run-attempt": "1",
+							"gcs-file-path": "test-file-path"
 						}
 					}`),
 				},
@@ -275,11 +281,14 @@ isOK: true`),
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "payloadFormat": "JSON_API_V1"},
 				Data: []byte(`{
 					"metadata": {
-					  "git-commit": "test-github-commit",
-					  "git-workflow-triggered-timestamp": "2023",
-					  "git-workflow-sha": "test-workflow-sha",
-					  "git-workflow": "test-workflow",
-					  "git-repo": "test-github-repo"
+					  "github-commit": "test-github-commit",
+					  "github-workflow-triggered-timestamp": "2023",
+					  "github-workflow-sha": "test-workflow-sha",
+					  "github-workflow": "test-workflow",
+					  "github-repo": "test-github-repo",
+					  "github-run-id": "5050509831",
+					  "github-run-attempt": "1",
+					  "gcs-file-path": "test-file-path"
 					}
 				  }`),
 			},
@@ -408,11 +417,14 @@ func newTestServer(handler func(w http.ResponseWriter, r *http.Request)) (*http.
 func testGCSMetadataBytes() []byte {
 	return []byte(`{
 		"metadata": {
-		  "git-commit": "test-github-commit",
-		  "triggered-timestamp": "2023-04-25T17:44:57Z",
-		  "git-workflow-sha": "test-workflow-sha",
-		  "git-workflow": "test-workflow",
-		  "git-repo": "test-github-repo"
+		  "github-commit": "test-github-commit",
+		  "github-workflow-triggered-timestamp": "2023-04-25T17:44:57+00:00",
+		  "github-workflow-sha": "test-workflow-sha",
+		  "github-workflow": "test-workflow",
+		  "github-repo": "test-github-repo",
+		  "github-run-id": "5050509831",
+		  "github-run-attempt": "1",
+		  "gcs-file-path": "test-file-path"
 		}
 	  }`)
 }
