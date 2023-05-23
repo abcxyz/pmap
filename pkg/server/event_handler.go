@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -66,11 +68,14 @@ type StoppableProcessor[P proto.Message] interface {
 // and snapshot-file-copy workflow.
 // https://github.com/abcxyz/pmap/blob/main/.github/workflows/snapshot-file-change.yml#L74-L78
 const (
-	MetadataKeyGitHubCommit               = "git-commit"
-	MetadataKeyGitHubRepo                 = "git-repo"
-	MetadataKeyWorkflow                   = "git-workflow"
-	MetadataKeyWorkflowSha                = "git-workflow-sha"
-	MetadataKeyWorkflowTriggeredTimestamp = "git-workflow-triggered-timestamp"
+	MetadataKeyGitHubCommit               = "github-commit"
+	MetadataKeyGitHubRepo                 = "github-repo"
+	MetadataKeyWorkflow                   = "github-workflow"
+	MetadataKeyWorkflowSha                = "github-workflow-sha"
+	MetadataKeyWorkflowTriggeredTimestamp = "github-workflow-triggered-timestamp"
+	MetadataKeyWorkflowRunID              = "github-run-id"
+	MetadataKeyWorkflowRunAttempt         = "github-run-attempt"
+	GCSPathSeparatorKey                   = "/gh-prefix/"
 )
 
 // An interface for sending pmap event downstream.
@@ -254,7 +259,7 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 
 	var gr *v1alpha1.GitHubSource
 	if m.Attributes["payloadFormat"] == "JSON_API_V1" {
-		gr, err = parseGitHubSource(ctx, m.Data)
+		gr, err = parseGitHubSource(ctx, m.Data, m.Attributes)
 		if err != nil {
 			return fmt.Errorf("failed to parse metadata: %w", err)
 		}
@@ -331,7 +336,7 @@ type notificationPayload struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
-func parseGitHubSource(ctx context.Context, data []byte) (*v1alpha1.GitHubSource, error) {
+func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]string) (*v1alpha1.GitHubSource, error) {
 	var pm *notificationPayload
 	if err := json.Unmarshal(data, &pm); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal payloadMetadata %w", err)
@@ -353,6 +358,25 @@ func parseGitHubSource(ctx context.Context, data []byte) (*v1alpha1.GitHubSource
 
 	if ws, found := pm.Metadata[MetadataKeyWorkflowSha]; found {
 		r.WorkflowSha = ws
+	}
+
+	ra, found := pm.Metadata[MetadataKeyWorkflowRunAttempt]
+	if found {
+		if value, err := strconv.ParseInt(ra, 10, 64); err == nil {
+			r.WorkflowRunAttempt = value
+		}
+	}
+
+	ri, found := pm.Metadata[MetadataKeyWorkflowRunID]
+	if found {
+		r.WorkflowRunId = ri
+	}
+
+	if objectID, found := objAttrs["objectId"]; found {
+		parts := strings.Split(objectID, "/gh-prefix/")
+		if len(parts) == 2 {
+			r.FilePath = parts[1]
+		}
 	}
 
 	if t, found := pm.Metadata[MetadataKeyWorkflowTriggeredTimestamp]; found {

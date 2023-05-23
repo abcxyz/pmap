@@ -47,7 +47,9 @@ const (
 	testGithubRepoValue            = "test-github-repo"
 	testWorkflowValue              = "test-workflow"
 	testWorkflowShaValue           = "test-workflow-sha"
-	testWorkflowTriggeredTimeValue = "2023-04-25T17:44:57Z"
+	testWorkflowTriggeredTimeValue = "2023-04-25T17:44:57+00:00"
+	testWorkflowRunID              = "5050509831"
+	testWorkflowRunAttempt         = "1"
 )
 
 var (
@@ -130,6 +132,8 @@ func TestMappingEventHandling(t *testing.T) {
 				Workflow:                   testWorkflowValue,
 				WorkflowSha:                testWorkflowShaValue,
 				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
+				WorkflowRunId:              testWorkflowRunID,
+				WorkflowRunAttempt:         1,
 			},
 		},
 		{
@@ -149,6 +153,8 @@ func TestMappingEventHandling(t *testing.T) {
 				Workflow:                   testWorkflowValue,
 				WorkflowSha:                testWorkflowShaValue,
 				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
+				WorkflowRunId:              testWorkflowRunID,
+				WorkflowRunAttempt:         1,
 			},
 		},
 	}
@@ -167,6 +173,9 @@ func TestMappingEventHandling(t *testing.T) {
 			}
 			t.Logf("using trace ID %s", traceID.String())
 
+			filePath := fmt.Sprintf("test-dir/traceID-%s.yaml", traceID)
+			tc.wantGithubSource.FilePath = filePath
+
 			data := []byte(fmt.Sprintf(`
 resource:
   name: %s
@@ -177,7 +186,7 @@ contacts:
   email:
   - group@example.com
 `, tc.resourceName, traceID.String()))
-			gcsObject := fmt.Sprintf("mapping/%s/traceID-%s.yaml", cfg.ObjectPrefix, traceID)
+			gcsObject := fmt.Sprintf("mapping/%s/gh-prefix/%s", cfg.ObjectPrefix, filePath)
 			// Upload data to GCS, this should trigger the pmap event handler via GCS notification behind the scenes.
 			if err := testUploadFile(ctx, t, cfg.GCSBucketID, gcsObject, bytes.NewReader(data)); err != nil {
 				t.Fatalf("failed to upload object %s to bucket %s: %v", gcsObject, cfg.GCSBucketID, err)
@@ -243,6 +252,8 @@ func TestPolicyEventHandling(t *testing.T) {
 				Workflow:                   testWorkflowValue,
 				WorkflowSha:                testWorkflowShaValue,
 				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
+				WorkflowRunId:              testWorkflowRunID,
+				WorkflowRunAttempt:         1,
 			},
 		},
 	}
@@ -261,6 +272,9 @@ func TestPolicyEventHandling(t *testing.T) {
 			}
 			t.Logf("using trace ID %s", traceID.String())
 
+			filePath := fmt.Sprintf("test-dir/traceID-%s.yaml", traceID)
+			tc.wantGithubSource.FilePath = filePath
+
 			data := []byte(fmt.Sprintf(`
 policy_id: fake-policy-123
 annotations:
@@ -269,7 +283,7 @@ deletion_timeline:
   - 356 days
   - 1 day
 `, traceID.String()))
-			gcsObject := fmt.Sprintf("policy/%s/traceID-%s.yaml", cfg.ObjectPrefix, traceID)
+			gcsObject := fmt.Sprintf("policy/%s/gh-prefix/%s", cfg.ObjectPrefix, filePath)
 			// Upload data to GCS, this should trigger the pmap event handler via GCS notification behind the scenes.
 			if err := testUploadFile(ctx, t, cfg.GCSBucketID, gcsObject, bytes.NewReader(data)); err != nil {
 				t.Fatalf("failed to upload object %s to bucket %s: %v", gcsObject, cfg.GCSBucketID, err)
@@ -304,9 +318,11 @@ deletion_timeline:
 				t.Errorf("gotPayload unexpected diff (-want,+got):\n%s", diff)
 			}
 			cmpOpts := []cmp.Option{
+				protocmp.Transform(),
 				cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{}),
 				cmpopts.IgnoreUnexported(timestamppb.Timestamp{}),
 			}
+
 			if diff := cmp.Diff(tc.wantGithubSource, gotPmapEvent.GetGithubSource(), cmpOpts...); diff != "" {
 				t.Errorf("githubSource unexpected diff (-want, +got):\n%s", diff)
 			}
@@ -406,6 +422,8 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 		server.MetadataKeyWorkflow:                   testWorkflowValue,
 		server.MetadataKeyWorkflowSha:                testWorkflowShaValue,
 		server.MetadataKeyWorkflowTriggeredTimestamp: testWorkflowTriggeredTimeValue,
+		server.MetadataKeyWorkflowRunAttempt:         testWorkflowRunAttempt,
+		server.MetadataKeyWorkflowRunID:              testWorkflowRunID,
 	}
 
 	if _, err := io.Copy(wc, data); err != nil {
