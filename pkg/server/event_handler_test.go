@@ -105,16 +105,18 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 				}{
 					Attributes: map[string]string{
 						"bucketId":      "foo",
-						"objectId":      "bar",
+						"objectId":      "pmap-test/gh-prefix/dir1/dir2/bar",
 						"payloadFormat": "JSON_API_V1",
 					},
 					Data: []byte(`{
 						"metadata": {
-							"git-commit": "test-github-commit",
-							"git-workflow-triggered-timestamp": "2023-04-25T17:44:57Z",
-							"git-workflow-sha": "test-workflow-sha",
-							"git-workflow": "test-workflow",
-							"git-repo": "test-github-repo"
+							"github-commit": "test-github-commit",
+							"github-workflow-triggered-timestamp": "2023-04-25T17:44:57+00:00",
+							"github-workflow-sha": "test-workflow-sha",
+							"github-workflow": "test-workflow",
+							"github-repo": "test-github-repo",
+							"github-run-id": "5050509831",
+							"github-run-attempt": "1"
 						}
 					}`),
 				},
@@ -140,16 +142,18 @@ isOK: true`),
 				}{
 					Attributes: map[string]string{
 						"bucketId":      "foo",
-						"objectId":      "bar2",
+						"objectId":      "pmap-test/gh-prefix/dir1/dir2/bar2",
 						"payloadFormat": "JSON_API_V1",
 					},
 					Data: []byte(`{
 						"metadata": {
 							"git-commit": "test-github-commit",
-							"git-workflow-triggered-timestamp": "2023-04-25T17:44:57Z",
+							"git-workflow-triggered-timestamp": "2023-04-25T17:44:57+00:00",
 							"git-workflow-sha": "test-workflow-sha",
 							"git-workflow": "test-workflow",
-							"git-repo": "test-github-repo"
+							"git-repo": "test-github-repo",
+							"github-run-id": "5050509831",
+							"github-run-attempt": "1",
 						}
 					}`),
 				},
@@ -166,7 +170,7 @@ isOK: true`),
 				}{
 					Attributes: map[string]string{
 						"bucketId":      "foo",
-						"objectId":      "bar",
+						"objectId":      "pmap-test/gh-prefix/dir1/dir2/bar",
 						"payloadFormat": "JSON_API_V1",
 					},
 					Data: []byte(`{
@@ -230,7 +234,7 @@ func TestEventHandler_Handle(t *testing.T) {
 		{
 			name: "success",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
 				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(
@@ -251,7 +255,7 @@ contacts:
 		{
 			name: "failed_send_downstream",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "payloadFormat": "JSON_API_V1"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
 				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
@@ -263,7 +267,7 @@ isOK: true`),
 		{
 			name: "missing_bucket_id",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"objectId": "bar"},
+				Attributes: map[string]string{"objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
 				Data:       testGCSMetadataBytes(),
 			},
 			successMessenger: &NoopMessenger{},
@@ -272,14 +276,16 @@ isOK: true`),
 		{
 			name: "failed_parsing_timestamp",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "payloadFormat": "JSON_API_V1"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
 				Data: []byte(`{
 					"metadata": {
-					  "git-commit": "test-github-commit",
-					  "git-workflow-triggered-timestamp": "2023",
-					  "git-workflow-sha": "test-workflow-sha",
-					  "git-workflow": "test-workflow",
-					  "git-repo": "test-github-repo"
+					  "github-commit": "test-github-commit",
+					  "github-workflow-triggered-timestamp": "2023",
+					  "github-workflow-sha": "test-workflow-sha",
+					  "github-workflow": "test-workflow",
+					  "github-repo": "test-github-repo",
+					  "github-run-id": "5050509831",
+					  "github-run-attempt": "1"
 					}
 				  }`),
 			},
@@ -298,7 +304,7 @@ isOK: true`),
 		{
 			name: "bucket_not_exist",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo2", "objectId": "bar"},
+				Attributes: map[string]string{"bucketId": "foo2", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
 				Data:       testGCSMetadataBytes(),
 			},
 			successMessenger: &NoopMessenger{},
@@ -307,7 +313,7 @@ isOK: true`),
 		{
 			name: "invalid_yaml_format",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
 				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes:   []byte(`foo, bar`),
@@ -317,7 +323,7 @@ isOK: true`),
 		{
 			name: "invalid_object_metadata",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar", "payloadFormat": "JSON_API_V1"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
 				Data:       []byte("}"),
 			},
 			gcsObjectBytes: []byte(`foo: bar
@@ -328,7 +334,7 @@ isOK: true`),
 		{
 			name: "failed_process",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
 				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
@@ -339,7 +345,7 @@ isOK: true`),
 		{
 			name: "failed_process_and_send",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
 				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
@@ -408,11 +414,13 @@ func newTestServer(handler func(w http.ResponseWriter, r *http.Request)) (*http.
 func testGCSMetadataBytes() []byte {
 	return []byte(`{
 		"metadata": {
-		  "git-commit": "test-github-commit",
-		  "triggered-timestamp": "2023-04-25T17:44:57Z",
-		  "git-workflow-sha": "test-workflow-sha",
-		  "git-workflow": "test-workflow",
-		  "git-repo": "test-github-repo"
+		  "github-commit": "test-github-commit",
+		  "github-workflow-triggered-timestamp": "2023-04-25T17:44:57+00:00",
+		  "github-workflow-sha": "test-workflow-sha",
+		  "github-workflow": "test-workflow",
+		  "github-repo": "test-github-repo",
+		  "github-run-id": "5050509831",
+		  "github-run-attempt": "1"
 		}
 	  }`)
 }
@@ -424,7 +432,7 @@ func testHandleObjectRead(t *testing.T, data []byte) func(w http.ResponseWriter,
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		// This is for getting object info
-		case "/foo/bar":
+		case "/foo/pmap-test/gh-prefix/dir1/dir2/bar":
 			_, err := w.Write(data)
 			if err != nil {
 				t.Fatalf("failed to write response for object info: %v", err)

@@ -56,4 +56,12 @@ message GitHubSource {
   // Required. The timestamp when workflow is triggered.
   // Example: 2023-04-25T17:44:57Z
   google.protobuf.Timestamp workflow_triggered_timestamp = 6;
+
+  // Required. The workflow run id.
+  // Example: 5050509831
+  string workflow_run_id = 7;
+
+  // Required. The workflow run attempts.
+  // Example: 1
+  int64 workflow_run_attempt = 8;
 }

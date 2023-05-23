@@ -30,9 +30,10 @@ jobs:
       - uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
         with:
           fetch-depth: 0 # OR "2" -> To retrieve the preceding commit.
+      # set timestamp with format: 2023-05-23T03:38:33+00:00
       - name: 'Set current timestamp'
         run: |
-          echo "CUR_TIMESTAMP=$(date +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+          echo "CUR_TIMESTAMP=$(date --rfc-3339=seconds | sed 's/ /T/')" >> $GITHUB_ENV
       - name: 'Get changed yaml files'
         id: 'changed-yaml-files'
         uses: 'tj-actions/changed-files@84ed30e2f4daf616144de7e0c1db59d5b33025e3' # ratchet:tj-actions/changed-files@v35
@@ -68,14 +69,17 @@ jobs:
         with:
           path: '${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change'
           parent: false
-          destination: '${{ inputs.destination_prefix }}/pmap-file-change-${{ github.run_id }}-${{ github.run_attempt }}'
+          # we use gh-prefix as the separator so we can retrive each file's original path after it's uploaded to GCS.
+          destination: '${{ inputs.destination_prefix }}/change-${{ github.run_id }}-${{ github.run_attempt }}/gh-prefix'
           headers: |-
             content-type: application/json
-            x-goog-meta-git-commit: ${{ github.sha }}
-            x-goog-meta-git-repo: ${{ github.repository }}
-            x-goog-meta-git-workflow: ${{ github.workflow }}
-            x-goog-meta-git-workflow-sha: ${{ github.workflow_sha }}
-            x-goog-meta-git-workflow-triggered-timestamp: ${{ env.CUR_TIMESTAMP }}
+            x-goog-meta-github-commit: ${{ github.sha }}
+            x-goog-meta-github-repo: ${{ github.repository }}
+            x-goog-meta-github-run-attempt: ${{github.run_attempt}}
+            x-goog-meta-github-run-id: ${{github.run_id}}
+            x-goog-meta-github-workflow: ${{ github.workflow }}
+            x-goog-meta-github-workflow-sha: ${{ github.workflow_sha }}
+            x-goog-meta-github-workflow-triggered-timestamp: ${{ env.CUR_TIMESTAMP }}
       - name: 'List all uploaded files'
         run: |-
           echo "all gcs uploaded files"
