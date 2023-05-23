@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -76,7 +75,7 @@ const (
 	MetadataKeyWorkflowTriggeredTimestamp = "github-workflow-triggered-timestamp"
 	MetadataKeyWorkflowRunID              = "github-run-id"
 	MetadataKeyWorkflowRunAttempt         = "github-run-attempt"
-	MetadataKeyFilePath                   = "gcs-file-path"
+	GCSPathSeparatorKey                   = "/gh-prefix/"
 )
 
 // An interface for sending pmap event downstream.
@@ -374,11 +373,9 @@ func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]str
 	}
 
 	if objectID, found := objAttrs["objectId"]; found {
-		prefix := fmt.Sprintf("%s-%s/", ri, ra)
-		i := strings.Index(objectID, prefix)
-		if i != -1 {
-			fp := filepath.Clean(objectID[strings.Index(objectID, prefix)+len(prefix):])
-			r.FilePath = filepath.Clean(fp)
+		parts := strings.Split(objectID, "/gh-prefix/")
+		if len(parts) == 2 {
+			r.FilePath = parts[1]
 		}
 	}
 

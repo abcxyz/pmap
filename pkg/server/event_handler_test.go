@@ -105,7 +105,7 @@ func TestEventHandler_HttpHandler(t *testing.T) {
 				}{
 					Attributes: map[string]string{
 						"bucketId":      "foo",
-						"objectId":      "pmap-test/file-copy/pmap-file-copy-5050509831-1/dir1/dir2/bar",
+						"objectId":      "pmap-test/gh-prefix/dir1/dir2/bar",
 						"payloadFormat": "JSON_API_V1",
 					},
 					Data: []byte(`{
@@ -142,7 +142,7 @@ isOK: true`),
 				}{
 					Attributes: map[string]string{
 						"bucketId":      "foo",
-						"objectId":      "pmap-test/file-copy/pmap-file-copy-5050509831-1/dir1/dir2/bar2",
+						"objectId":      "pmap-test/gh-prefix/dir1/dir2/bar2",
 						"payloadFormat": "JSON_API_V1",
 					},
 					Data: []byte(`{
@@ -154,7 +154,6 @@ isOK: true`),
 							"git-repo": "test-github-repo",
 							"github-run-id": "5050509831",
 							"github-run-attempt": "1",
-							"gcs-file-path": "test-file-path"
 						}
 					}`),
 				},
@@ -171,7 +170,7 @@ isOK: true`),
 				}{
 					Attributes: map[string]string{
 						"bucketId":      "foo",
-						"objectId":      "pmap-test/file-copy/pmap-file-copy-5050509831-1/dir1/dir2/bar",
+						"objectId":      "pmap-test/gh-prefix/dir1/dir2/bar",
 						"payloadFormat": "JSON_API_V1",
 					},
 					Data: []byte(`{
@@ -235,7 +234,7 @@ func TestEventHandler_Handle(t *testing.T) {
 		{
 			name: "success",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/file-copy/pmap-file-copy-5050509831-1/dir1/dir2/bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
 				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(
@@ -256,7 +255,7 @@ contacts:
 		{
 			name: "failed_send_downstream",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/file-copy/pmap-file-copy-5050509831-1/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
 				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
@@ -268,7 +267,7 @@ isOK: true`),
 		{
 			name: "missing_bucket_id",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"objectId": "pmap-test/file-copy/pmap-file-copy-5050509831-1/dir1/dir2/bar"},
+				Attributes: map[string]string{"objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
 				Data:       testGCSMetadataBytes(),
 			},
 			successMessenger: &NoopMessenger{},
@@ -277,7 +276,7 @@ isOK: true`),
 		{
 			name: "failed_parsing_timestamp",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/file-copy/pmap-file-copy-5050509831-1/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
 				Data: []byte(`{
 					"metadata": {
 					  "github-commit": "test-github-commit",
@@ -306,7 +305,7 @@ isOK: true`),
 		{
 			name: "bucket_not_exist",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo2", "objectId": "pmap-test/file-copy/pmap-file-copy-5050509831-1/dir1/dir2/bar"},
+				Attributes: map[string]string{"bucketId": "foo2", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
 				Data:       testGCSMetadataBytes(),
 			},
 			successMessenger: &NoopMessenger{},
@@ -315,7 +314,7 @@ isOK: true`),
 		{
 			name: "invalid_yaml_format",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/file-copy/pmap-file-copy-5050509831-1/dir1/dir2/bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
 				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes:   []byte(`foo, bar`),
@@ -325,7 +324,7 @@ isOK: true`),
 		{
 			name: "invalid_object_metadata",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/file-copy/pmap-file-copy-5050509831-1/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
 				Data:       []byte("}"),
 			},
 			gcsObjectBytes: []byte(`foo: bar
@@ -336,7 +335,7 @@ isOK: true`),
 		{
 			name: "failed_process",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/file-copy/pmap-file-copy-5050509831-1/dir1/dir2/bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
 				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
@@ -347,7 +346,7 @@ isOK: true`),
 		{
 			name: "failed_process_and_send",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/file-copy/pmap-file-copy-5050509831-1/dir1/dir2/bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
 				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
@@ -434,7 +433,7 @@ func testHandleObjectRead(t *testing.T, data []byte) func(w http.ResponseWriter,
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		// This is for getting object info
-		case "/foo/pmap-test/file-copy/pmap-file-copy-5050509831-1/dir1/dir2/bar":
+		case "/foo/pmap-test/gh-prefix/dir1/dir2/bar":
 			_, err := w.Write(data)
 			if err != nil {
 				t.Fatalf("failed to write response for object info: %v", err)

@@ -69,7 +69,7 @@ jobs:
         with:
           path: '${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change'
           parent: false
-          destination: '${{ inputs.destination_prefix }}/pmap-file-change-${{ github.run_id }}-${{ github.run_attempt }}'
+          destination: '${{ inputs.destination_prefix }}/change-${{ github.run_id }}-${{ github.run_attempt }}/gh-prefix'
           headers: |-
             content-type: application/json
             x-goog-meta-github-commit: ${{ github.sha }}

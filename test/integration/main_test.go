@@ -50,7 +50,6 @@ const (
 	testWorkflowTriggeredTimeValue = "2023-04-25T17:44:57+00:00"
 	testWorkflowRunID              = "5050509831"
 	testWorkflowRunAttempt         = "1"
-	testGCSFilePath                = "test-file-path"
 )
 
 var (
@@ -184,7 +183,7 @@ contacts:
   email:
   - group@example.com
 `, tc.resourceName, traceID.String()))
-			gcsObject := fmt.Sprintf("mapping/%s/test-event-%s-%s/test-dir/traceID-%s.yaml", cfg.ObjectPrefix, testWorkflowRunID, testWorkflowRunAttempt, traceID)
+			gcsObject := fmt.Sprintf("mapping/%s/gh-prefix/test-dir/traceID-%s.yaml", cfg.ObjectPrefix, traceID)
 			// Upload data to GCS, this should trigger the pmap event handler via GCS notification behind the scenes.
 			if err := testUploadFile(ctx, t, cfg.GCSBucketID, gcsObject, bytes.NewReader(data)); err != nil {
 				t.Fatalf("failed to upload object %s to bucket %s: %v", gcsObject, cfg.GCSBucketID, err)
@@ -258,7 +257,6 @@ func TestPolicyEventHandling(t *testing.T) {
 				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
 				WorkflowRunId:              testWorkflowRunID,
 				WorkflowRunAttempt:         1,
-				FilePath:                   testGCSFilePath,
 			},
 		},
 	}
@@ -285,7 +283,7 @@ deletion_timeline:
   - 356 days
   - 1 day
 `, traceID.String()))
-			gcsObject := fmt.Sprintf("policy/%s/test-event-%s-%s/test-dir/traceID-%s.yaml", cfg.ObjectPrefix, testWorkflowRunID, testWorkflowRunAttempt, traceID)
+			gcsObject := fmt.Sprintf("policy/%s/gh-prefix/test-dir/traceID-%s.yaml", cfg.ObjectPrefix, traceID)
 			// Upload data to GCS, this should trigger the pmap event handler via GCS notification behind the scenes.
 			if err := testUploadFile(ctx, t, cfg.GCSBucketID, gcsObject, bytes.NewReader(data)); err != nil {
 				t.Fatalf("failed to upload object %s to bucket %s: %v", gcsObject, cfg.GCSBucketID, err)
@@ -431,7 +429,6 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 		server.MetadataKeyWorkflowTriggeredTimestamp: testWorkflowTriggeredTimeValue,
 		server.MetadataKeyWorkflowRunAttempt:         testWorkflowRunAttempt,
 		server.MetadataKeyWorkflowRunID:              testWorkflowRunID,
-		server.MetadataKeyFilePath:                   testGCSFilePath,
 	}
 
 	if _, err := io.Copy(wc, data); err != nil {
