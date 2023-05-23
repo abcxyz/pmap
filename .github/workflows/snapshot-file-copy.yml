@@ -36,6 +36,7 @@ jobs:
         with:
           workload_identity_provider: '${{ inputs.workload_identity_provider }}'
           service_account: '${{ inputs.service_account }}'
+      # set timestamp with format: 2023-05-23T03:38:33+00:00
       - name: 'Set current timestamp'
         run: |
           echo "CUR_TIMESTAMP=$(date --rfc-3339=seconds | sed 's/ /T/')" >> $GITHUB_ENV
