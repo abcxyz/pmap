@@ -69,6 +69,7 @@ jobs:
         with:
           path: '${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change'
           parent: false
+          # we use gh-prefix as the separator so we can retrive each file's original path after it's uploaded to GCS.
           destination: '${{ inputs.destination_prefix }}/change-${{ github.run_id }}-${{ github.run_attempt }}/gh-prefix'
           headers: |-
             content-type: application/json

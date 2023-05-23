@@ -285,8 +285,7 @@ isOK: true`),
 					  "github-workflow": "test-workflow",
 					  "github-repo": "test-github-repo",
 					  "github-run-id": "5050509831",
-					  "github-run-attempt": "1",
-					  "gcs-file-path": "test-file-path"
+					  "github-run-attempt": "1"
 					}
 				  }`),
 			},
