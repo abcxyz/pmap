@@ -39,23 +39,13 @@ jobs:
       - name: 'Set current timestamp'
         run: |
           echo "CUR_TIMESTAMP=$(date --rfc-3339=seconds | sed 's/ /T/')" >> $GITHUB_ENV
-      - name: 'Copy added and changed files'
-        id: 'copy-yaml-files'
-        run: |
-          echo ${{ env.RUNNER_TEMP }}
-          sudo mkdir -p ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-copy
-          for file in ${{ inputs.path }}; do
-            echo "$file was added"
-            sudo cp -r --parents $file ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-copy
-            echo "$file was copied to ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-copy"
-          done
       - name: 'GCS upload files'
         id: 'gcs-upload-file'
         uses: 'google-github-actions/upload-cloud-storage@a5b77a3bf84da1791719585d327e5f90ae5cb53c' # ratchet:google-github-actions/upload-cloud-storage@v1
         with:
-          path: '${{ env.RUNNER_TEMP }}/pmap/snapshot-file-copy'
+          path: ${{inputs.path}}
+          destination: '${{ inputs.destination_prefix }}/pmap-file-copy-${{ github.run_id }}-${{ github.run_attempt }}/${{inputs.path}}'
           parent: false
-          destination: '${{ inputs.destination_prefix }}/pmap-file-copy-${{ github.run_id }}-${{ github.run_attempt }}'
           glob: |
             **/*.{yml,yaml}
           headers: |-
@@ -67,7 +57,6 @@ jobs:
             x-goog-meta-github-workflow: ${{ github.workflow }}
             x-goog-meta-github-workflow-sha: ${{ github.workflow_sha }}
             x-goog-meta-github-workflow-triggered-timestamp: ${{ env.CUR_TIMESTAMP }}
-            x-goog-meta-gcs-file-path: ${{inputs.destination_prefix}}/pmap-file-copy-${{github.run_id}}-${{github.run_attempt}}/${{inputs.path}}
       - name: 'List all uploaded files'
         run: |-
           echo "all gcs uploaded files"

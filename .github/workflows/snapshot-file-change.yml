@@ -78,7 +78,6 @@ jobs:
             x-goog-meta-github-workflow: ${{ github.workflow }}
             x-goog-meta-github-workflow-sha: ${{ github.workflow_sha }}
             x-goog-meta-github-workflow-triggered-timestamp: ${{ env.CUR_TIMESTAMP }}
-            x-goog-meta-gcs-file-path: ${{ inputs.destination_prefix }}/pmap-file-change-${{ github.run_id }}-${{ github.run_attempt }}/${{inputs.path}}
       - name: 'List all uploaded files'
         run: |-
           echo "all gcs uploaded files"

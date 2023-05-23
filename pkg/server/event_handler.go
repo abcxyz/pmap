@@ -22,7 +22,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -258,7 +260,7 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 
 	var gr *v1alpha1.GitHubSource
 	if m.Attributes["payloadFormat"] == "JSON_API_V1" {
-		gr, err = parseGitHubSource(ctx, m.Data)
+		gr, err = parseGitHubSource(ctx, m.Data, m.Attributes)
 		if err != nil {
 			return fmt.Errorf("failed to parse metadata: %w", err)
 		}
@@ -335,7 +337,7 @@ type notificationPayload struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
-func parseGitHubSource(ctx context.Context, data []byte) (*v1alpha1.GitHubSource, error) {
+func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]string) (*v1alpha1.GitHubSource, error) {
 	var pm *notificationPayload
 	if err := json.Unmarshal(data, &pm); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal payloadMetadata %w", err)
@@ -359,18 +361,25 @@ func parseGitHubSource(ctx context.Context, data []byte) (*v1alpha1.GitHubSource
 		r.WorkflowSha = ws
 	}
 
-	if ra, found := pm.Metadata[MetadataKeyWorkflowRunAttempt]; found {
+	ra, found := pm.Metadata[MetadataKeyWorkflowRunAttempt]
+	if found {
 		if value, err := strconv.ParseInt(ra, 10, 64); err == nil {
 			r.WorkflowRunAttempt = value
 		}
 	}
 
-	if ri, found := pm.Metadata[MetadataKeyWorkflowRunID]; found {
+	ri, found := pm.Metadata[MetadataKeyWorkflowRunID]
+	if found {
 		r.WorkflowRunId = ri
 	}
 
-	if fp, found := pm.Metadata[MetadataKeyFilePath]; found {
-		r.FilePath = fp
+	if objectID, found := objAttrs["objectId"]; found {
+		prefix := fmt.Sprintf("%s-%s/", ri, ra)
+		i := strings.Index(objectID, prefix)
+		if i != -1 {
+			fp := filepath.Clean(objectID[strings.Index(objectID, prefix)+len(prefix):])
+			r.FilePath = filepath.Clean(fp)
+		}
 	}
 
 	if t, found := pm.Metadata[MetadataKeyWorkflowTriggeredTimestamp]; found {

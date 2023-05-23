@@ -135,7 +135,7 @@ func TestMappingEventHandling(t *testing.T) {
 				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
 				WorkflowRunId:              testWorkflowRunID,
 				WorkflowRunAttempt:         1,
-				FilePath:                   testGCSFilePath,
+				// FilePath:                   fmt.Sprintf("%s/traceID-%s.yaml", cfg.ObjectPrefix, traceID),
 			},
 		},
 		{
@@ -157,7 +157,7 @@ func TestMappingEventHandling(t *testing.T) {
 				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
 				WorkflowRunId:              testWorkflowRunID,
 				WorkflowRunAttempt:         1,
-				FilePath:                   testGCSFilePath,
+				// FilePath:                   testGCSFilePath,
 			},
 		},
 	}
@@ -186,7 +186,7 @@ contacts:
   email:
   - group@example.com
 `, tc.resourceName, traceID.String()))
-			gcsObject := fmt.Sprintf("mapping/%s/traceID-%s.yaml", cfg.ObjectPrefix, traceID)
+			gcsObject := fmt.Sprintf("mapping/integtest-%s-%s/%s/traceID-%s.yaml", testWorkflowRunID, testWorkflowRunAttempt, cfg.ObjectPrefix, traceID)
 			// Upload data to GCS, this should trigger the pmap event handler via GCS notification behind the scenes.
 			if err := testUploadFile(ctx, t, cfg.GCSBucketID, gcsObject, bytes.NewReader(data)); err != nil {
 				t.Fatalf("failed to upload object %s to bucket %s: %v", gcsObject, cfg.GCSBucketID, err)
@@ -210,6 +210,7 @@ contacts:
 				protocmp.IgnoreFields(&v1alpha1.ResourceMapping{}, "annotations"),
 				cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{}),
 				cmpopts.IgnoreUnexported(timestamppb.Timestamp{}),
+				protocmp.IgnoreFields(&v1alpha1.GitHubSource{}, "file_path"),
 			}
 			if diff := cmp.Diff(tc.wantResourceMapping, resourceMapping, cmpOpts...); diff != "" {
 				t.Errorf("resourcemapping(ignore annotation) unexpected diff (-want,+got):\n%s", diff)
@@ -217,6 +218,11 @@ contacts:
 
 			if diff := cmp.Diff(tc.wantGithubSource, gotPmapEvent.GetGithubSource(), cmpOpts...); diff != "" {
 				t.Errorf("githubSource unexpected diff (-want, +got):\n%s", diff)
+			}
+			// gotPmapEvent.GetGithubSource
+			wantFilePath := fmt.Sprintf("%s/traceID-%s.yaml", cfg.ObjectPrefix, traceID)
+			if diff := cmp.Diff(wantFilePath, gotPmapEvent.GetGithubSource().FilePath); diff != "" {
+				t.Errorf("githubSource filePath unexpected diff (-want, +got):\n%s", diff)
 			}
 
 			// Resources that don't exist won't pass the validation of CAIS processor,
@@ -281,7 +287,7 @@ deletion_timeline:
   - 356 days
   - 1 day
 `, traceID.String()))
-			gcsObject := fmt.Sprintf("policy/%s/traceID-%s.yaml", cfg.ObjectPrefix, traceID)
+			gcsObject := fmt.Sprintf("policy/integtest-%s-%s/%s/traceID-%s.yaml", testWorkflowRunID, testWorkflowRunAttempt, cfg.ObjectPrefix, traceID)
 			// Upload data to GCS, this should trigger the pmap event handler via GCS notification behind the scenes.
 			if err := testUploadFile(ctx, t, cfg.GCSBucketID, gcsObject, bytes.NewReader(data)); err != nil {
 				t.Fatalf("failed to upload object %s to bucket %s: %v", gcsObject, cfg.GCSBucketID, err)
@@ -318,9 +324,15 @@ deletion_timeline:
 			cmpOpts := []cmp.Option{
 				cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{}),
 				cmpopts.IgnoreUnexported(timestamppb.Timestamp{}),
+				cmpopts.IgnoreFields(v1alpha1.GitHubSource{}, "file_path"),
 			}
+
 			if diff := cmp.Diff(tc.wantGithubSource, gotPmapEvent.GetGithubSource(), cmpOpts...); diff != "" {
 				t.Errorf("githubSource unexpected diff (-want, +got):\n%s", diff)
+			}
+			wantFilePath := fmt.Sprintf("%s/traceID-%s.yaml", cfg.ObjectPrefix, traceID)
+			if diff := cmp.Diff(wantFilePath, gotPmapEvent.GetGithubSource().FilePath); diff != "" {
+				t.Errorf("githubSource filePath unexpected diff (-want, +got):\n%s", diff)
 			}
 		})
 	}
