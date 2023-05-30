@@ -33,6 +33,8 @@ type MappingValidateCommand struct {
 	cli.BaseCommand
 
 	flagPath string
+
+	verbosity bool
 }
 
 func (c *MappingValidateCommand) Desc() string {
@@ -46,6 +48,9 @@ Usage: {{ COMMAND }} [options]
   Validate resource mapping YAML files that exists in the given path:
 
       pmap mapping validate -path "/path/to/file"
+
+  Verbose is set to true by default. To turn on verbosity,
+  add flag -verbose=false.
 `
 }
 
@@ -62,6 +67,13 @@ func (c *MappingValidateCommand) Flags() *cli.FlagSet {
 		Usage:   `The path of resource mapping files.`,
 	})
 
+	f.BoolVar(&cli.BoolVar{
+		Name:    "verbose",
+		Target:  &c.verbosity,
+		Example: "false",
+		Usage:   `False for no verbosity`,
+		Default: true,
+	})
 	return set
 }
 
@@ -94,9 +106,11 @@ func (c *MappingValidateCommand) validateResourceMappings() error {
 		// the changed yaml files. Removing the temp directory to avoid the
 		// confusion in the error msgs of pmap check.yml workflow.
 		originFile := strings.TrimPrefix(file, dir+string(os.PathSeparator))
-		// TODO(#64) Enable verbosity conctrol for pmap cli
-		// By default, we probably don't want to output such messages.
-		c.Outf("processing file %q", originFile)
+
+		if c.verbosity {
+			c.Outf("processing file %q", originFile)
+		}
+
 		data, err := os.ReadFile(file)
 		if err != nil {
 			checkErrs = errors.Join(checkErrs, fmt.Errorf("failed to read file from %q, %w", originFile, err))
