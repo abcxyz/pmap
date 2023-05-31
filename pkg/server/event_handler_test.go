@@ -25,13 +25,18 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/api/option"
+	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestEventHandler_NewHandler(t *testing.T) {
@@ -227,14 +232,15 @@ func TestEventHandler_Handle(t *testing.T) {
 		gcsObjectBytes    []byte
 		githubSourceBytes []byte
 		processors        []Processor[*structpb.Struct]
-		successMessenger  Messenger
-		failureMessenger  Messenger
+		successMessenger  *testMessenger
+		failureMessenger  *testMessenger
 		wantErrSubstr     string
+		wantPmapEvent     *v1alpha1.PmapEvent
 	}{
 		{
 			name: "success",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
 				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(
@@ -249,8 +255,22 @@ contacts:
   email:
   - test.gmail.com
 `),
-			processors:       []Processor[*structpb.Struct]{&successProcessor{}},
-			successMessenger: &NoopMessenger{},
+			processors: []Processor[*structpb.Struct]{&successProcessor{}},
+			successMessenger: &testMessenger{
+				gotPmapEvent: &v1alpha1.PmapEvent{},
+			},
+			wantPmapEvent: &v1alpha1.PmapEvent{
+				GithubSource: &v1alpha1.GitHubSource{
+					RepoName:                   "test-github-repo",
+					Commit:                     "test-github-commit",
+					Workflow:                   "test-workflow",
+					WorkflowSha:                "test-workflow-sha",
+					WorkflowTriggeredTimestamp: timestamppb.New(time.Date(2023, time.April, 25, 17, 44, 57, 0, time.UTC)),
+					WorkflowRunId:              "5050509831",
+					WorkflowRunAttempt:         1,
+					FilePath:                   "dir1/dir2/bar",
+				},
+			},
 		},
 		{
 			name: "failed_send_downstream",
@@ -260,9 +280,12 @@ contacts:
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors:       []Processor[*structpb.Struct]{&successProcessor{}},
-			successMessenger: &failMessenger{},
-			wantErrSubstr:    "failed to send succuss event downstream",
+			processors: []Processor[*structpb.Struct]{&successProcessor{}},
+			successMessenger: &testMessenger{
+				gotPmapEvent: &v1alpha1.PmapEvent{},
+				returnErr:    fmt.Errorf("always fail"),
+			},
+			wantErrSubstr: "failed to send succuss event downstream",
 		},
 		{
 			name: "missing_bucket_id",
@@ -270,27 +293,31 @@ isOK: true`),
 				Attributes: map[string]string{"objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
 				Data:       testGCSMetadataBytes(),
 			},
-			successMessenger: &NoopMessenger{},
-			wantErrSubstr:    "bucket ID not found",
+			successMessenger: &testMessenger{
+				gotPmapEvent: &v1alpha1.PmapEvent{},
+			},
+			wantErrSubstr: "bucket ID not found",
 		},
 		{
 			name: "failed_parsing_timestamp",
 			notification: &pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
 				Data: []byte(`{
-					"metadata": {
-					  "github-commit": "test-github-commit",
-					  "github-workflow-triggered-timestamp": "2023",
-					  "github-workflow-sha": "test-workflow-sha",
-					  "github-workflow": "test-workflow",
-					  "github-repo": "test-github-repo",
-					  "github-run-id": "5050509831",
-					  "github-run-attempt": "1"
-					}
-				  }`),
+									"metadata": {
+									  "github-commit": "test-github-commit",
+									  "github-workflow-triggered-timestamp": "2023",
+									  "github-workflow-sha": "test-workflow-sha",
+									  "github-workflow": "test-workflow",
+									  "github-repo": "test-github-repo",
+									  "github-run-id": "5050509831",
+									  "github-run-attempt": "1"
+									}
+								  }`),
 			},
-			successMessenger: &NoopMessenger{},
-			wantErrSubstr:    "failed to parse date",
+			successMessenger: &testMessenger{
+				gotPmapEvent: &v1alpha1.PmapEvent{},
+			},
+			wantErrSubstr: "failed to parse date",
 		},
 		{
 			name: "missing_object_id",
@@ -298,27 +325,31 @@ isOK: true`),
 				Attributes: map[string]string{"bucketId": "foo"},
 				Data:       testGCSMetadataBytes(),
 			},
-			successMessenger: &NoopMessenger{},
+			successMessenger: &testMessenger{},
 			wantErrSubstr:    "object ID not found",
 		},
 		{
 			name: "bucket_not_exist",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo2", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
+				Attributes: map[string]string{"bucketId": "foo2", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
 				Data:       testGCSMetadataBytes(),
 			},
-			successMessenger: &NoopMessenger{},
-			wantErrSubstr:    "failed to create GCS object reader",
+			successMessenger: &testMessenger{
+				gotPmapEvent: &v1alpha1.PmapEvent{},
+			},
+			wantErrSubstr: "failed to create GCS object reader",
 		},
 		{
 			name: "invalid_yaml_format",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
 				Data:       testGCSMetadataBytes(),
 			},
-			gcsObjectBytes:   []byte(`foo, bar`),
-			successMessenger: &NoopMessenger{},
-			wantErrSubstr:    "failed to unmarshal object yaml",
+			gcsObjectBytes: []byte(`foo, bar`),
+			successMessenger: &testMessenger{
+				gotPmapEvent: &v1alpha1.PmapEvent{},
+			},
+			wantErrSubstr: "failed to unmarshal object yaml",
 		},
 		{
 			name: "invalid_object_metadata",
@@ -328,8 +359,10 @@ isOK: true`),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			successMessenger: &NoopMessenger{},
-			wantErrSubstr:    "failed to parse metadata",
+			successMessenger: &testMessenger{
+				gotPmapEvent: &v1alpha1.PmapEvent{},
+			},
+			wantErrSubstr: "failed to parse metadata",
 		},
 		{
 			name: "failed_process",
@@ -339,21 +372,27 @@ isOK: true`),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors:       []Processor[*structpb.Struct]{&failProcessor{}},
-			successMessenger: &NoopMessenger{},
+			processors: []Processor[*structpb.Struct]{&failProcessor{}},
+			successMessenger: &testMessenger{
+				gotPmapEvent: &v1alpha1.PmapEvent{},
+			},
 		},
 		{
 			name: "failed_process_and_send",
 			notification: &pubsub.Message{
-				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
 				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors:       []Processor[*structpb.Struct]{&failProcessor{}},
-			successMessenger: &NoopMessenger{},
-			failureMessenger: &failMessenger{},
-			wantErrSubstr:    "failed to send failure event downstream",
+			processors: []Processor[*structpb.Struct]{&failProcessor{}},
+			successMessenger: &testMessenger{
+				gotPmapEvent: &v1alpha1.PmapEvent{},
+			},
+			failureMessenger: &testMessenger{
+				returnErr: fmt.Errorf("always fail"),
+			},
+			wantErrSubstr: "failed to send failure event downstream",
 		},
 	}
 
@@ -387,6 +426,18 @@ isOK: true`),
 			gotErr := h.Handle(ctx, *tc.notification)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
+			}
+
+			cmpOpts := []cmp.Option{
+				protocmp.Transform(),
+				protocmp.IgnoreFields(&v1alpha1.PmapEvent{}, "payload"),
+				cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{}),
+				cmpopts.IgnoreUnexported(timestamppb.Timestamp{}),
+			}
+			if tc.wantPmapEvent != nil {
+				if diff := cmp.Diff(tc.wantPmapEvent, tc.successMessenger.getPmapEvent(), cmpOpts...); diff != "" {
+					t.Errorf("successMessenger got unexpected pmapEvent diff (-want, +got):\n%s", diff)
+				}
 			}
 		})
 	}
@@ -467,13 +518,23 @@ func (p *successProcessor) Process(_ context.Context, m *structpb.Struct) error 
 	return nil
 }
 
-// failMessenger Send always fail.
-type failMessenger struct{}
-
-func (m *failMessenger) Send(_ context.Context, _ *v1alpha1.PmapEvent) error {
-	return fmt.Errorf("always fail")
+type testMessenger struct {
+	gotPmapEvent *v1alpha1.PmapEvent
+	returnErr    error
 }
 
-func (m *failMessenger) Cleanup() error {
+func (m *testMessenger) Send(_ context.Context, p *v1alpha1.PmapEvent) error {
+	if m == nil {
+		return nil
+	}
+	m.gotPmapEvent = p
+	return m.returnErr
+}
+
+func (m *testMessenger) Cleanup() error {
 	return nil
+}
+
+func (m *testMessenger) getPmapEvent() *v1alpha1.PmapEvent {
+	return m.gotPmapEvent
 }
