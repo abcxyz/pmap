@@ -32,7 +32,6 @@ import (
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/api/option"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -286,6 +285,18 @@ isOK: true`),
 				returnErr:    fmt.Errorf("always fail"),
 			},
 			wantErrSubstr: "failed to send succuss event downstream",
+			wantPmapEvent: &v1alpha1.PmapEvent{
+				GithubSource: &v1alpha1.GitHubSource{
+					RepoName:                   "test-github-repo",
+					Commit:                     "test-github-commit",
+					Workflow:                   "test-workflow",
+					WorkflowSha:                "test-workflow-sha",
+					WorkflowTriggeredTimestamp: timestamppb.New(time.Date(2023, time.April, 25, 17, 44, 57, 0, time.UTC)),
+					WorkflowRunId:              "5050509831",
+					WorkflowRunAttempt:         1,
+					FilePath:                   "dir1/dir2/bar",
+				},
+			},
 		},
 		{
 			name: "missing_bucket_id",
@@ -297,6 +308,7 @@ isOK: true`),
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
 			wantErrSubstr: "bucket ID not found",
+			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
 			name: "failed_parsing_timestamp",
@@ -318,6 +330,7 @@ isOK: true`),
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
 			wantErrSubstr: "failed to parse date",
+			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
 			name: "missing_object_id",
@@ -338,6 +351,7 @@ isOK: true`),
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
 			wantErrSubstr: "failed to create GCS object reader",
+			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
 			name: "invalid_yaml_format",
@@ -350,6 +364,7 @@ isOK: true`),
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
 			wantErrSubstr: "failed to unmarshal object yaml",
+			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
 			name: "invalid_object_metadata",
@@ -363,6 +378,7 @@ isOK: true`),
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
 			wantErrSubstr: "failed to parse metadata",
+			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
 			name: "failed_process",
@@ -376,6 +392,7 @@ isOK: true`),
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
+			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
 			name: "failed_process_and_send",
@@ -393,6 +410,7 @@ isOK: true`),
 				returnErr: fmt.Errorf("always fail"),
 			},
 			wantErrSubstr: "failed to send failure event downstream",
+			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 	}
 
@@ -431,13 +449,9 @@ isOK: true`),
 			cmpOpts := []cmp.Option{
 				protocmp.Transform(),
 				protocmp.IgnoreFields(&v1alpha1.PmapEvent{}, "payload"),
-				cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{}),
-				cmpopts.IgnoreUnexported(timestamppb.Timestamp{}),
 			}
-			if tc.wantPmapEvent != nil {
-				if diff := cmp.Diff(tc.wantPmapEvent, tc.successMessenger.getPmapEvent(), cmpOpts...); diff != "" {
-					t.Errorf("successMessenger got unexpected pmapEvent diff (-want, +got):\n%s", diff)
-				}
+			if diff := cmp.Diff(tc.wantPmapEvent, tc.successMessenger.getPmapEvent(), cmpOpts...); diff != "" {
+				t.Errorf("successMessenger got unexpected pmapEvent diff (-want, +got):\n%s", diff)
 			}
 		})
 	}
