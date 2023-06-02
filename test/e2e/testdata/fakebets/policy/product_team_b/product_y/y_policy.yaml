@@ -1,5 +1,5 @@
 resource:
-  name: policy
+  name: 'policy'
 contacts:
   email:
-    - pmap.policy@gmail.com
+    - 'pmap.policy@gmail.com'

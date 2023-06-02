@@ -21,7 +21,7 @@ on:
 
 jobs:
   snapshot:
-    runs-on: ubuntu-latest
+    runs-on: 'ubuntu-latest'
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -44,7 +44,7 @@ jobs:
         id: 'gcs-upload-file'
         uses: 'google-github-actions/upload-cloud-storage@a5b77a3bf84da1791719585d327e5f90ae5cb53c' # ratchet:google-github-actions/upload-cloud-storage@v1
         with:
-          path: ${{inputs.path}}
+          path: '${{ inputs.path }}'
           # we use gh-prefix as the separator so we can retrive each file's original path after it's uploaded to GCS.
           destination: '${{ inputs.destination_prefix }}/copy-${{ github.run_id }}-${{ github.run_attempt }}/gh-prefix/${{ inputs.path }}'
           parent: false
