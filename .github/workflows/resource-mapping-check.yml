@@ -48,4 +48,4 @@ jobs:
         run: 'go install github.com/abcxyz/pmap/cmd/pmap@latest'
       - id: 'run-check'
         shell: 'bash'
-        run: 'pmap validate -type ResourceMapping -path ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change'
+        run: 'pmap mapping validate -type ResourceMapping -path ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change'
