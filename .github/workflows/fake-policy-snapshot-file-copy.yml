@@ -1,10 +1,10 @@
-name: 'fake-bets-policy-snapshot-file-copy'
+name: 'fake-policy-snapshot-file-copy'
 
 on:
   workflow_dispatch:
 
 # Don't cancel in progress since we don't want to have half-baked file change snapshot.
-concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-fake-bets-policy-snapshot-file-copy'
+concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-fake-policy-snapshot-file-copy'
 
 jobs:
   snapshot:

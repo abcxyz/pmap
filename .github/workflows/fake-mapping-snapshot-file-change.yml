@@ -1,10 +1,10 @@
-name: 'fake-bets-mapping-snapshot-file-change'
+name: 'fake-mapping-snapshot-file-change'
 
 on:
   workflow_dispatch:
 
 # Don't cancel in progress since we don't want to have half-baked file change snapshot.
-concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-fake-bets-mapping-snapshot-file-change'
+concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-fake-mapping-snapshot-file-change'
 
 jobs:
   snapshot:

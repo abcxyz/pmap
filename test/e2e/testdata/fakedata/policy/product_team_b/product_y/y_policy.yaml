@@ -1,7 +1,7 @@
 resource:
   name: 'policy'
 annotations:
-  traceID: 'fake-bets-pmap-dev-manual-test-policy'
+  traceID: 'fake-pmap-dev-manual-test-policy'
 contacts:
   email:
     - 'pmap.policy@gmail.com'

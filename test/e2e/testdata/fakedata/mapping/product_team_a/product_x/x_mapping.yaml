@@ -2,7 +2,7 @@ resource:
   name: '//storage.googleapis.com/pmap-dev-manual-bucket'
   provider: 'gcp'
 annotations:
-  traceID: 'fake-bets-pmap-dev-manual-test-mapping'
+  traceID: 'fake-pmap-dev-manual-test-mapping'
 contacts:
   email:
     - 'pmap.mapping@gmail.com'
