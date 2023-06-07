@@ -72,8 +72,11 @@ func TestPubSubMessenger_Send(t *testing.T) {
 			if _, err := msger.client.CreateTopic(ctx, serverTopicID); err != nil {
 				t.Fatalf("failed to create test PubSub topic: %v", err)
 			}
-
-			gotErr := msger.Send(ctx, tc.event)
+			eventBytes, err := parsePmapEvent(tc.event)
+			if err != nil {
+				t.Errorf("%v", err)
+			}
+			gotErr := msger.Send(ctx, eventBytes, map[string]string{})
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
 			}

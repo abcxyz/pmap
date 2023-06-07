@@ -33,6 +33,7 @@ import (
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/api/option"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -407,7 +408,8 @@ isOK: true`),
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
 			failureMessenger: &testMessenger{
-				returnErr: fmt.Errorf("always fail"),
+				gotPmapEvent: &v1alpha1.PmapEvent{},
+				returnErr:    fmt.Errorf("always fail"),
 			},
 			wantErrSubstr: "failed to send failure event downstream",
 			wantPmapEvent: &v1alpha1.PmapEvent{},
@@ -537,16 +539,15 @@ type testMessenger struct {
 	returnErr    error
 }
 
-func (m *testMessenger) Send(_ context.Context, p *v1alpha1.PmapEvent) error {
+func (m *testMessenger) Send(_ context.Context, data []byte, _ map[string]string) error {
 	if m == nil {
 		return nil
 	}
-	m.gotPmapEvent = p
+	err := protojson.Unmarshal(data, m.gotPmapEvent)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal to PmapEvent: %w", err)
+	}
 	return m.returnErr
-}
-
-func (m *testMessenger) Cleanup() error {
-	return nil
 }
 
 func (m *testMessenger) getPmapEvent() *v1alpha1.PmapEvent {

@@ -18,7 +18,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,6 +30,7 @@ import (
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/protoutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -80,8 +80,7 @@ const (
 
 // An interface for sending pmap event downstream.
 type Messenger interface {
-	Send(context.Context, *v1alpha1.PmapEvent) error
-	Cleanup() error
+	Send(context.Context, []byte, map[string]string) error
 }
 
 // EventHandler retrieves GCS objects upon receiving GCS notifications
@@ -272,33 +271,15 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 
 	if processErr != nil {
 		logger.Errorw(processErr.Error(), "bucketId", m.Attributes["bucketId"], "objectId", m.Attributes["objectId"])
-		if err := h.failureMessenger.Send(ctx, event); err != nil {
-			return fmt.Errorf("failed to send failure event downstream: %w", err)
+		if err := h.sendFailureMessage(ctx, event); err != nil {
+			return err
 		}
 		return nil
 	}
-	if err := h.successMessenger.Send(ctx, event); err != nil {
-		return fmt.Errorf("failed to send succuss event downstream: %w", err)
+	if err := h.sendSuccessMessage(ctx, event); err != nil {
+		return err
 	}
 	return nil
-}
-
-// Cleanup handles the graceful shutdown of the EventHandler.
-func (h *EventHandler[T, P]) Cleanup() (retErr error) {
-	if err := h.successMessenger.Cleanup(); err != nil {
-		retErr = errors.Join(retErr, fmt.Errorf("failed to close success event messenger: %w", err))
-	}
-	if err := h.failureMessenger.Cleanup(); err != nil {
-		retErr = errors.Join(retErr, fmt.Errorf("failed to close failure event messenger: %w", err))
-	}
-	for _, p := range h.processors {
-		if stoppable, ok := p.(StoppableProcessor[P]); ok {
-			if err := stoppable.Stop(); err != nil {
-				retErr = errors.Join(retErr, fmt.Errorf("failed to stop processor: %w", err))
-			}
-		}
-	}
-	return
 }
 
 // getGCSObjectProto calls the GCS storage client with objAttrs information, and returns the object as a proto message.
@@ -332,8 +313,38 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 	return p, nil
 }
 
+func (h *EventHandler[T, P]) sendSuccessMessage(ctx context.Context, event *v1alpha1.PmapEvent) error {
+	eventByte, err := parsePmapEvent(event)
+	if err != nil {
+		return err
+	}
+	if err := h.successMessenger.Send(ctx, eventByte, map[string]string{}); err != nil {
+		return fmt.Errorf("failed to send succuss event downstream: %w", err)
+	}
+	return nil
+}
+
+func (h *EventHandler[T, P]) sendFailureMessage(ctx context.Context, event *v1alpha1.PmapEvent) error {
+	eventByte, err := parsePmapEvent(event)
+	if err != nil {
+		return err
+	}
+	if err := h.failureMessenger.Send(ctx, eventByte, map[string]string{}); err != nil {
+		return fmt.Errorf("failed to send failed event downstream: %w", err)
+	}
+	return nil
+}
+
 type notificationPayload struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
+}
+
+func parsePmapEvent(event *v1alpha1.PmapEvent) ([]byte, error) {
+	eventBytes, err := protojson.Marshal(event)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal event json: %w", err)
+	}
+	return eventBytes, nil
 }
 
 func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]string) (*v1alpha1.GitHubSource, error) {
@@ -392,10 +403,6 @@ func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]str
 // NoopMessenger is a no-op implementation of Messenger interface.
 type NoopMessenger struct{}
 
-func (m *NoopMessenger) Send(_ context.Context, _ *v1alpha1.PmapEvent) error {
-	return nil
-}
-
-func (m *NoopMessenger) Cleanup() error {
+func (m *NoopMessenger) Send(_ context.Context, _ []byte, _ map[string]string) error {
 	return nil
 }

@@ -117,12 +117,6 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		return nil, nil, closer, fmt.Errorf("server.NewHandler: %w", err)
 	}
 
-	closer = func() {
-		if err := handler.Cleanup(); err != nil {
-			logger.Errorw("failed to close clean up handler", "error", err)
-		}
-	}
-
 	srv, err := serving.New(c.cfg.Port)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create serving infrastructure: %w", err)

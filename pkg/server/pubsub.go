@@ -19,9 +19,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/pubsub"
-	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"google.golang.org/api/option"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // PubSubMessenger implements the Messenger interface for Google Cloud PubSub.
@@ -43,14 +41,16 @@ func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...
 }
 
 // Send sends a pmap event to a Google Cloud PubSub topic.
-func (p *PubSubMessenger) Send(ctx context.Context, event *v1alpha1.PmapEvent) error {
-	eventBytes, err := protojson.Marshal(event)
-	if err != nil {
-		return fmt.Errorf("failed to marshal event json: %w", err)
-	}
+// (ctx, bytes)
 
+//	strcut {
+//		PmapEvent
+//		error
+//	}
+func (p *PubSubMessenger) Send(ctx context.Context, data []byte, attr map[string]string) error {
 	result := p.topic.Publish(ctx, &pubsub.Message{
-		Data: eventBytes,
+		Data:       data,
+		Attributes: attr,
 	})
 
 	if _, err := result.Get(ctx); err != nil {
