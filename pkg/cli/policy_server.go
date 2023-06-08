@@ -16,11 +16,9 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 
-	"cloud.google.com/go/pubsub"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/serving"
@@ -35,9 +33,6 @@ type PolicyServerCommand struct {
 	cli.BaseCommand
 
 	cfg *server.HandlerConfig
-
-	successTopic  *pubsub.Topic
-	successClient *pubsub.Client
 
 	// testFlagSetOpts is only used for testing.
 	testFlagSetOpts []cli.Option
@@ -93,13 +88,12 @@ func (c *PolicyServerCommand) RunUnstarted(ctx context.Context, args []string) (
 	}
 	logger.Debugw("loaded configuration", "config", c.cfg)
 
-	var err error
-	c.successClient, c.successTopic, err = createMessangerClientAndTopic(ctx, c.cfg.ProjectID, c.cfg.SuccessTopicID)
+	successTopic, err := createMessangerTopic(ctx, c.cfg.ProjectID, c.cfg.SuccessTopicID)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create success event messenger: %w", err)
 	}
 
-	successMessenger := server.NewPubSubMessenger(c.successClient, c.successTopic)
+	successMessenger := server.NewPubSubMessenger(successTopic)
 
 	handler, err := server.NewHandler(ctx, []server.Processor[*structpb.Struct]{}, successMessenger)
 	if err != nil {
@@ -107,9 +101,7 @@ func (c *PolicyServerCommand) RunUnstarted(ctx context.Context, args []string) (
 	}
 
 	closer = func() {
-		if err := c.Cleanup(); err != nil {
-			logger.Errorw("failed to clean up resources", "error", err)
-		}
+		successTopic.Stop()
 	}
 
 	srv, err := serving.New(c.cfg.Port)
@@ -117,12 +109,4 @@ func (c *PolicyServerCommand) RunUnstarted(ctx context.Context, args []string) (
 		return nil, nil, closer, fmt.Errorf("failed to create serving infrastructure: %w", err)
 	}
 	return srv, handler.HTTPHandler(), closer, nil
-}
-
-func (c *PolicyServerCommand) Cleanup() (retErr error) {
-	c.successTopic.Stop()
-	if err := c.successClient.Close(); err != nil {
-		retErr = errors.Join(retErr, fmt.Errorf("failed to close success event messenger: %w", err))
-	}
-	return
 }

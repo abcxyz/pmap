@@ -28,7 +28,6 @@ import (
 	"github.com/abcxyz/pmap/internal/version"
 	"github.com/abcxyz/pmap/pkg/mapping/processors"
 	"github.com/abcxyz/pmap/pkg/server"
-	"google.golang.org/api/option"
 
 	asset "cloud.google.com/go/asset/apiv1"
 )
@@ -39,14 +38,6 @@ type MappingServerCommand struct {
 	cli.BaseCommand
 
 	cfg *server.HandlerConfig
-
-	successTopic  *pubsub.Topic
-	successClient *pubsub.Client
-
-	failureTopic  *pubsub.Topic
-	failureClient *pubsub.Client
-
-	processorClient *asset.Client
 
 	// testFlagSetOpts is only used for testing.
 	testFlagSetOpts []cli.Option
@@ -106,27 +97,26 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	if c.cfg.FailureTopicID == "" {
 		return nil, nil, closer, fmt.Errorf("missing PMAP_FAILURE_TOPIC_ID in config")
 	}
-	var err error
-	c.successClient, c.successTopic, err = createMessangerClientAndTopic(ctx, c.cfg.ProjectID, c.cfg.SuccessTopicID)
+	successTopic, err := createMessangerTopic(ctx, c.cfg.ProjectID, c.cfg.SuccessTopicID)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create success event pubsub client and topic: %w", err)
 	}
 
-	successMessenger := server.NewPubSubMessenger(c.successClient, c.successTopic)
+	successMessenger := server.NewPubSubMessenger(successTopic)
 
-	c.failureClient, c.failureTopic, err = createMessangerClientAndTopic(ctx, c.cfg.ProjectID, c.cfg.FailureTopicID)
+	failureTopic, err := createMessangerTopic(ctx, c.cfg.ProjectID, c.cfg.FailureTopicID)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create failure event pubsub client and topic: %w", err)
 	}
 
-	failureMessenger := server.NewPubSubMessenger(c.failureClient, c.failureTopic)
+	failureMessenger := server.NewPubSubMessenger(failureTopic)
 
-	c.processorClient, err = asset.NewClient(ctx)
+	processorClient, err := asset.NewClient(ctx)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create the Asset Inventory client: %w", err)
 	}
 
-	processor, err := processors.NewAssetInventoryProcessor(ctx, c.processorClient, fmt.Sprintf("projects/%s", c.cfg.ProjectID))
+	processor, err := processors.NewAssetInventoryProcessor(ctx, processorClient, fmt.Sprintf("projects/%s", c.cfg.ProjectID))
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create asset inventory processor: %w", err)
 	}
@@ -145,7 +135,13 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 
 	closer = func() {
-		if err := c.Cleanup(); err != nil {
+		var retErr error
+		successTopic.Stop()
+		failureTopic.Stop()
+		if err := processorClient.Close(); err != nil {
+			retErr = errors.Join(retErr, fmt.Errorf("failed to stop processor: %w", err))
+		}
+		if retErr != nil {
 			logger.Errorw("failed to clean up resources", "error", err)
 		}
 	}
@@ -153,26 +149,11 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	return srv, handler.HTTPHandler(), closer, nil
 }
 
-func createMessangerClientAndTopic(ctx context.Context, projectID, topicID string, opts ...option.ClientOption) (*pubsub.Client, *pubsub.Topic, error) {
-	client, err := pubsub.NewClient(ctx, projectID, opts...)
+func createMessangerTopic(ctx context.Context, projectID, topicID string) (*pubsub.Topic, error) {
+	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create new pubsub client: %w", err)
+		return nil, fmt.Errorf("failed to create new pubsub client: %w", err)
 	}
 	topic := client.Topic(topicID)
-	return client, topic, nil
-}
-
-func (c *MappingServerCommand) Cleanup() (retErr error) {
-	c.successTopic.Stop()
-	if err := c.successClient.Close(); err != nil {
-		retErr = errors.Join(retErr, fmt.Errorf("failed to close Success PubSub client: %w", err))
-	}
-	c.failureTopic.Stop()
-	if err := c.failureClient.Close(); err != nil {
-		retErr = errors.Join(retErr, fmt.Errorf("failed to close Failure PubSub client: %w", err))
-	}
-	if err := c.processorClient.Close(); err != nil {
-		retErr = errors.Join(retErr, fmt.Errorf("failed to stop processor: %w", err))
-	}
-	return
+	return topic, nil
 }

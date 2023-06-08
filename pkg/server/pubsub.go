@@ -23,13 +23,12 @@ import (
 
 // PubSubMessenger implements the Messenger interface for Google Cloud PubSub.
 type PubSubMessenger struct {
-	client *pubsub.Client
-	topic  *pubsub.Topic
+	topic *pubsub.Topic
 }
 
 // NewPubSubMessenger creates a new instance of the PubSubMessenger.
-func NewPubSubMessenger(client *pubsub.Client, topic *pubsub.Topic) *PubSubMessenger {
-	return &PubSubMessenger{client: client, topic: topic}
+func NewPubSubMessenger(topic *pubsub.Topic) *PubSubMessenger {
+	return &PubSubMessenger{topic: topic}
 }
 
 // Send sends a pmap event to a Google Cloud PubSub topic.
