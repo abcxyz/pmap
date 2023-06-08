@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
-	asset "cloud.google.com/go/asset/apiv1"
+	"cloud.google.com/go/pubsub"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/serving"
@@ -28,6 +28,9 @@ import (
 	"github.com/abcxyz/pmap/internal/version"
 	"github.com/abcxyz/pmap/pkg/mapping/processors"
 	"github.com/abcxyz/pmap/pkg/server"
+	"google.golang.org/api/option"
+
+	asset "cloud.google.com/go/asset/apiv1"
 )
 
 var _ cli.Command = (*MappingServerCommand)(nil)
@@ -36,6 +39,14 @@ type MappingServerCommand struct {
 	cli.BaseCommand
 
 	cfg *server.HandlerConfig
+
+	successTopic  *pubsub.Topic
+	successClient *pubsub.Client
+
+	failureTopic  *pubsub.Topic
+	failureClient *pubsub.Client
+
+	processorClient *asset.Client
 
 	// testFlagSetOpts is only used for testing.
 	testFlagSetOpts []cli.Option
@@ -64,9 +75,6 @@ func (c *MappingServerCommand) Run(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	// defer func() {
-	//     err = logger.Sync()
-	// }()
 	defer closer()
 
 	return srv.StartHTTPHandler(ctx, handler)
@@ -98,23 +106,27 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	if c.cfg.FailureTopicID == "" {
 		return nil, nil, closer, fmt.Errorf("missing PMAP_FAILURE_TOPIC_ID in config")
 	}
-
-	successMessenger, err := server.NewPubSubMessenger(ctx, c.cfg.ProjectID, c.cfg.SuccessTopicID)
+	var err error
+	c.successClient, c.successTopic, err = createMessangerClientAndTopic(ctx, c.cfg.ProjectID, c.cfg.SuccessTopicID)
 	if err != nil {
-		return nil, nil, closer, fmt.Errorf("failed to create success event messenger: %w", err)
+		return nil, nil, closer, fmt.Errorf("failed to create success event pubsub client and topic: %w", err)
 	}
 
-	failureMessenger, err := server.NewPubSubMessenger(ctx, c.cfg.ProjectID, c.cfg.FailureTopicID)
+	successMessenger := server.NewPubSubMessenger(c.successClient, c.successTopic)
+
+	c.failureClient, c.failureTopic, err = createMessangerClientAndTopic(ctx, c.cfg.ProjectID, c.cfg.FailureTopicID)
 	if err != nil {
-		return nil, nil, closer, fmt.Errorf("failed to create failure event messenger: %w", err)
+		return nil, nil, closer, fmt.Errorf("failed to create failure event pubsub client and topic: %w", err)
 	}
 
-	client, err := asset.NewClient(ctx)
+	failureMessenger := server.NewPubSubMessenger(c.failureClient, c.failureTopic)
+
+	c.processorClient, err = asset.NewClient(ctx)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create the Asset Inventory client: %w", err)
 	}
 
-	processor, err := processors.NewAssetInventoryProcessor(ctx, fmt.Sprintf("projects/%s", c.cfg.ProjectID), client)
+	processor, err := processors.NewAssetInventoryProcessor(ctx, c.processorClient, fmt.Sprintf("projects/%s", c.cfg.ProjectID))
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create asset inventory processor: %w", err)
 	}
@@ -133,18 +145,34 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 
 	closer = func() {
-		var retErr error
-		if err := successMessenger.Cleanup(); err != nil {
-			retErr = errors.Join(retErr, fmt.Errorf("failed to close success event messenger: %w", err))
+		if err := c.Cleanup(); err != nil {
+			logger.Errorw("failed to clean up resources", "error", err)
 		}
-		if err := failureMessenger.Cleanup(); err != nil {
-			retErr = errors.Join(retErr, fmt.Errorf("failed to close failure event messenger: %w", err))
-		}
-		if err := processor.Stop(); err != nil {
-			retErr = errors.Join(retErr, fmt.Errorf("failed to stop processor: %w", err))
-		}
-		logger.Errorw("failed to close clean up handler", "error", retErr)
 	}
 
 	return srv, handler.HTTPHandler(), closer, nil
+}
+
+func createMessangerClientAndTopic(ctx context.Context, projectID, topicID string, opts ...option.ClientOption) (*pubsub.Client, *pubsub.Topic, error) {
+	client, err := pubsub.NewClient(ctx, projectID, opts...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create new pubsub client: %w", err)
+	}
+	topic := client.Topic(topicID)
+	return client, topic, nil
+}
+
+func (c *MappingServerCommand) Cleanup() (retErr error) {
+	c.successTopic.Stop()
+	if err := c.successClient.Close(); err != nil {
+		retErr = errors.Join(retErr, fmt.Errorf("failed to close Success PubSub client: %w", err))
+	}
+	c.failureTopic.Stop()
+	if err := c.failureClient.Close(); err != nil {
+		retErr = errors.Join(retErr, fmt.Errorf("failed to close Failure PubSub client: %w", err))
+	}
+	if err := c.processorClient.Close(); err != nil {
+		retErr = errors.Join(retErr, fmt.Errorf("failed to stop processor: %w", err))
+	}
+	return
 }

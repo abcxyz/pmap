@@ -16,8 +16,10 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
+	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/pubsub/pstest"
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
@@ -63,7 +65,12 @@ func TestPubSubMessenger_Send(t *testing.T) {
 			t.Parallel()
 
 			conn := newTestPubSubGrpcConn(ctx, t, tc.pubSubServerOption)
-			msger, err := NewPubSubMessenger(ctx, serverProjectID, serverTopicID, option.WithGRPCConn(conn))
+			testClient, testTopic, err := createTestMessangerClientAndTopic(ctx, serverProjectID, serverTopicID, option.WithGRPCConn(conn))
+			if err != nil {
+				t.Fatalf("failed to create new pubsub client and topic: %v", err)
+			}
+			msger := NewPubSubMessenger(testClient, testTopic)
+			// msger, err := NewPubSubMessenger(ctx, serverProjectID, serverTopicID, option.WithGRPCConn(conn))
 			if err != nil {
 				t.Fatalf("failed to create new PubSubMessenger: %v", err)
 			}
@@ -80,8 +87,10 @@ func TestPubSubMessenger_Send(t *testing.T) {
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
 			}
-			if err := msger.Cleanup(); err != nil {
-				t.Errorf("Process(%+v) failed to cleanup: %v", tc.name, err)
+
+			testTopic.Stop()
+			if err := testClient.Close(); err != nil {
+				t.Errorf("failed to close PubSub client: %v", err)
 			}
 		})
 	}
@@ -108,4 +117,13 @@ func newTestPubSubGrpcConn(ctx context.Context, t *testing.T, opts ...pstest.Ser
 	}
 
 	return conn
+}
+
+func createTestMessangerClientAndTopic(ctx context.Context, projectID, topicID string, opts ...option.ClientOption) (*pubsub.Client, *pubsub.Topic, error) {
+	client, err := pubsub.NewClient(ctx, projectID, opts...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create new pubsub client: %w", err)
+	}
+	topic := client.Topic(topicID)
+	return client, topic, nil
 }

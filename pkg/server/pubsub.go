@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/pubsub"
-	"google.golang.org/api/option"
 )
 
 // PubSubMessenger implements the Messenger interface for Google Cloud PubSub.
@@ -29,15 +28,8 @@ type PubSubMessenger struct {
 }
 
 // NewPubSubMessenger creates a new instance of the PubSubMessenger.
-func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...option.ClientOption) (*PubSubMessenger, error) {
-	client, err := pubsub.NewClient(ctx, projectID, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create new pubsub client: %w", err)
-	}
-
-	topic := client.Topic(topicID)
-
-	return &PubSubMessenger{client: client, topic: topic}, nil
+func NewPubSubMessenger(client *pubsub.Client, topic *pubsub.Topic) *PubSubMessenger {
+	return &PubSubMessenger{client: client, topic: topic}
 }
 
 // Send sends a pmap event to a Google Cloud PubSub topic.
@@ -49,15 +41,6 @@ func (p *PubSubMessenger) Send(ctx context.Context, data []byte, attr map[string
 
 	if _, err := result.Get(ctx); err != nil {
 		return fmt.Errorf("pubsub: failed to get result returned from publish : %w", err)
-	}
-	return nil
-}
-
-// Cleanup handles the graceful shutdown of the PubSub client.
-func (p *PubSubMessenger) Cleanup() error {
-	p.topic.Stop()
-	if err := p.client.Close(); err != nil {
-		return fmt.Errorf("failed to close PubSub client: %w", err)
 	}
 	return nil
 }

@@ -60,7 +60,7 @@ func WithClient(client *asset.Client) Option {
 // NewAssetInventoryProcessor creates a new AssetInventoryProcessor with the given options.
 // Need defaultResourceScope because resources such as GCS bucket won't include Project info in its resource name.
 // See details: https://cloud.google.com/asset-inventory/docs/resource-name-format.
-func NewAssetInventoryProcessor(ctx context.Context, defaultResourceScope string, client *asset.Client, opts ...Option) (*AssetInventoryProcessor, error) {
+func NewAssetInventoryProcessor(ctx context.Context, client *asset.Client, defaultResourceScope string, opts ...Option) (*AssetInventoryProcessor, error) {
 	p := &AssetInventoryProcessor{defaultResourceScope: defaultResourceScope}
 	for _, opt := range opts {
 		var err error
@@ -226,14 +226,6 @@ func (p *AssetInventoryProcessor) getSingleResource(ctx context.Context, req *as
 		return nil, fmt.Errorf("%d matched resources found, expected %d matched resource", got, want)
 	}
 	return resources[0], nil
-}
-
-// Stop stops the processor.
-func (p *AssetInventoryProcessor) Stop() error {
-	if err := p.client.Close(); err != nil {
-		return fmt.Errorf("failed to stop Asset Inventory Processor: %w", err)
-	}
-	return nil
 }
 
 // mergeAnnotations merges two annotations represented by structpb.Struct,

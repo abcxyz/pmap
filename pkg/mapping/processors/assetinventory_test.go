@@ -301,7 +301,7 @@ func TestProcessor_UpdatedProcess(t *testing.T) {
 			if err != nil {
 				t.Fatalf("creating client for fake at %q: %v", addr, err)
 			}
-			p, err := NewAssetInventoryProcessor(ctx, "projects/fake-project", fakeAssetClient)
+			p, err := NewAssetInventoryProcessor(ctx, fakeAssetClient, "projects/fake-project")
 			if err != nil {
 				t.Fatalf("failed to create AssetInventoryProcessor: %v", err)
 			}
