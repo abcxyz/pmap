@@ -98,17 +98,14 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		return nil, nil, closer, fmt.Errorf("missing PMAP_FAILURE_TOPIC_ID in config")
 	}
 
-	pubsubClient, err := createPubsubClient(ctx, c.cfg.ProjectID)
+	pubsubClient, err := pubsub.NewClient(ctx, c.cfg.ProjectID)
 	if err != nil {
-		return nil, nil, closer, fmt.Errorf("failed to create success event pubsub client: %w", err)
+		return nil, nil, closer, fmt.Errorf("failed to create pubsub client: %w", err)
 	}
 
 	successTopic := pubsubClient.Topic(c.cfg.SuccessTopicID)
-
 	successMessenger := server.NewPubSubMessenger(successTopic)
-
 	failureTopic := pubsubClient.Topic(c.cfg.FailureTopicID)
-
 	failureMessenger := server.NewPubSubMessenger(failureTopic)
 
 	assetClient, err := asset.NewClient(ctx)
@@ -129,11 +126,6 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		return nil, nil, closer, fmt.Errorf("server.NewHandler: %w", err)
 	}
 
-	srv, err := serving.New(c.cfg.Port)
-	if err != nil {
-		return nil, nil, closer, fmt.Errorf("failed to create serving infrastructure: %w", err)
-	}
-
 	closer = func() {
 		successTopic.Stop()
 		failureTopic.Stop()
@@ -147,13 +139,10 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		}
 	}
 
-	return srv, handler.HTTPHandler(), closer, nil
-}
-
-func createPubsubClient(ctx context.Context, projectID string) (*pubsub.Client, error) {
-	client, err := pubsub.NewClient(ctx, projectID)
+	srv, err := serving.New(c.cfg.Port)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create new pubsub client: %w", err)
+		return nil, nil, closer, fmt.Errorf("failed to create serving infrastructure: %w", err)
 	}
-	return client, nil
+
+	return srv, handler.HTTPHandler(), closer, nil
 }

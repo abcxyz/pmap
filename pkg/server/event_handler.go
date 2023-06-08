@@ -278,9 +278,6 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 
 	if processErr != nil {
 		logger.Errorw(processErr.Error(), "bucketId", m.Attributes["bucketId"], "objectId", m.Attributes["objectId"])
-		// TODO(#110): Need to add a LimitReader to read from processErr
-		// before adding it to attr and published by pubsub.
-		// https://cloud.google.com/pubsub/quotas#resource_limits.
 		if err := h.failureMessenger.Send(ctx, eventBytes, attr); err != nil {
 			return fmt.Errorf("failed to send failure event downstream: %w", err)
 		}

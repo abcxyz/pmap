@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"cloud.google.com/go/pubsub"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/serving"
@@ -88,13 +89,16 @@ func (c *PolicyServerCommand) RunUnstarted(ctx context.Context, args []string) (
 	}
 	logger.Debugw("loaded configuration", "config", c.cfg)
 
-	pubsubClient, err := createPubsubClient(ctx, c.cfg.ProjectID)
+	pubsubClient, err := pubsub.NewClient(ctx, c.cfg.ProjectID)
+	if err != nil {
+		return nil, nil, closer, fmt.Errorf("failed to create new pubsub client: %w", err)
+	}
+
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create pubsub client: %w", err)
 	}
 
 	successTopic := pubsubClient.Topic(c.cfg.SuccessTopicID)
-
 	successMessenger := server.NewPubSubMessenger(successTopic)
 
 	handler, err := server.NewHandler(ctx, []server.Processor[*structpb.Struct]{}, successMessenger)

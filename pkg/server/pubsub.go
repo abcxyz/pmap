@@ -33,6 +33,9 @@ func NewPubSubMessenger(topic *pubsub.Topic) *PubSubMessenger {
 
 // Send sends a pmap event to a Google Cloud PubSub topic.
 func (p *PubSubMessenger) Send(ctx context.Context, data []byte, attr map[string]string) error {
+	// TODO(#110): Need to add a LimitReader to read from processErr
+	// before adding it to attr and published by pubsub.
+	// https://cloud.google.com/pubsub/quotas#resource_limits.
 	result := p.topic.Publish(ctx, &pubsub.Message{
 		Data:       data,
 		Attributes: attr,

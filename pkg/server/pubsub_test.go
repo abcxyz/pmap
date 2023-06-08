@@ -110,7 +110,7 @@ func testCreatePubsubTopic(ctx context.Context, t *testing.T, projectID, topicID
 
 	client, err := pubsub.NewClient(ctx, projectID, opts...)
 	if err != nil {
-		t.Fatalf("failed to create new pubsub client: %v", err)
+		t.Fatalf("failed to create pubsub client: %v", err)
 	}
 	if _, err := client.CreateTopic(ctx, serverTopicID); err != nil {
 		t.Fatalf("failed to create test PubSub topic: %v", err)
@@ -120,7 +120,7 @@ func testCreatePubsubTopic(ctx context.Context, t *testing.T, projectID, topicID
 	t.Cleanup(func() {
 		topic.Stop()
 		if err := client.Close(); err != nil {
-			t.Fatalf("failed to close pubsub client: %v", err)
+			t.Logf("failed to close pubsub client: %v", err)
 		}
 	})
 
