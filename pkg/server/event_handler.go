@@ -269,15 +269,21 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 		GithubSource: gr,
 	}
 
+	eventByte, err := parsePmapEvent(event)
+	if err != nil {
+		return err
+	}
+
 	if processErr != nil {
+		attr := map[string]string{}
 		logger.Errorw(processErr.Error(), "bucketId", m.Attributes["bucketId"], "objectId", m.Attributes["objectId"])
-		if err := h.sendFailureMessage(ctx, event); err != nil {
-			return err
+		if err := h.failureMessenger.Send(ctx, eventByte, attr); err != nil {
+			return fmt.Errorf("failed to send failure event downstream: %w", err)
 		}
 		return nil
 	}
-	if err := h.sendSuccessMessage(ctx, event); err != nil {
-		return err
+	if err := h.successMessenger.Send(ctx, eventByte, map[string]string{}); err != nil {
+		return fmt.Errorf("failed to send succuss event downstream: %w", err)
 	}
 	return nil
 }
@@ -313,38 +319,16 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 	return p, nil
 }
 
-func (h *EventHandler[T, P]) sendSuccessMessage(ctx context.Context, event *v1alpha1.PmapEvent) error {
-	eventByte, err := parsePmapEvent(event)
-	if err != nil {
-		return err
-	}
-	if err := h.successMessenger.Send(ctx, eventByte, map[string]string{}); err != nil {
-		return fmt.Errorf("failed to send succuss event downstream: %w", err)
-	}
-	return nil
-}
-
-func (h *EventHandler[T, P]) sendFailureMessage(ctx context.Context, event *v1alpha1.PmapEvent) error {
-	eventByte, err := parsePmapEvent(event)
-	if err != nil {
-		return err
-	}
-	if err := h.failureMessenger.Send(ctx, eventByte, map[string]string{}); err != nil {
-		return fmt.Errorf("failed to send failed event downstream: %w", err)
-	}
-	return nil
-}
-
 type notificationPayload struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 func parsePmapEvent(event *v1alpha1.PmapEvent) ([]byte, error) {
-	eventBytes, err := protojson.Marshal(event)
+	eventByte, err := protojson.Marshal(event)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal event json: %w", err)
+		return nil, fmt.Errorf("failed to marshal event to byte: %w", err)
 	}
-	return eventBytes, nil
+	return eventByte, nil
 }
 
 func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]string) (*v1alpha1.GitHubSource, error) {

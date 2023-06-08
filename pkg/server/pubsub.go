@@ -41,12 +41,6 @@ func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...
 }
 
 // Send sends a pmap event to a Google Cloud PubSub topic.
-// (ctx, bytes)
-
-//	strcut {
-//		PmapEvent
-//		error
-//	}
 func (p *PubSubMessenger) Send(ctx context.Context, data []byte, attr map[string]string) error {
 	result := p.topic.Publish(ctx, &pubsub.Message{
 		Data:       data,

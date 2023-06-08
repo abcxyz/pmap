@@ -16,6 +16,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -96,6 +97,14 @@ func (c *PolicyServerCommand) RunUnstarted(ctx context.Context, args []string) (
 	handler, err := server.NewHandler(ctx, []server.Processor[*structpb.Struct]{}, successMessenger)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("server.NewHandler: %w", err)
+	}
+
+	closer = func() {
+		var retErr error
+		if err := successMessenger.Cleanup(); err != nil {
+			retErr = errors.Join(retErr, fmt.Errorf("failed to close success event messenger: %w", err))
+		}
+		logger.Errorw("failed to close clean up handler", "error", retErr)
 	}
 
 	srv, err := serving.New(c.cfg.Port)

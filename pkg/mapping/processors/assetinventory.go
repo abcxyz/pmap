@@ -60,7 +60,7 @@ func WithClient(client *asset.Client) Option {
 // NewAssetInventoryProcessor creates a new AssetInventoryProcessor with the given options.
 // Need defaultResourceScope because resources such as GCS bucket won't include Project info in its resource name.
 // See details: https://cloud.google.com/asset-inventory/docs/resource-name-format.
-func NewAssetInventoryProcessor(ctx context.Context, defaultResourceScope string, opts ...Option) (*AssetInventoryProcessor, error) {
+func NewAssetInventoryProcessor(ctx context.Context, defaultResourceScope string, client *asset.Client, opts ...Option) (*AssetInventoryProcessor, error) {
 	p := &AssetInventoryProcessor{defaultResourceScope: defaultResourceScope}
 	for _, opt := range opts {
 		var err error
@@ -70,13 +70,7 @@ func NewAssetInventoryProcessor(ctx context.Context, defaultResourceScope string
 		}
 	}
 
-	if p.client == nil {
-		client, err := asset.NewClient(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create the Asset Inventory client: %w", err)
-		}
-		p.client = client
-	}
+	p.client = client
 	return p, nil
 }
 

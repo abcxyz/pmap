@@ -16,9 +16,11 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
+	asset "cloud.google.com/go/asset/apiv1"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/serving"
@@ -62,6 +64,9 @@ func (c *MappingServerCommand) Run(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	// defer func() {
+	//     err = logger.Sync()
+	// }()
 	defer closer()
 
 	return srv.StartHTTPHandler(ctx, handler)
@@ -104,7 +109,12 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		return nil, nil, closer, fmt.Errorf("failed to create failure event messenger: %w", err)
 	}
 
-	processor, err := processors.NewAssetInventoryProcessor(ctx, fmt.Sprintf("projects/%s", c.cfg.ProjectID))
+	client, err := asset.NewClient(ctx)
+	if err != nil {
+		return nil, nil, closer, fmt.Errorf("failed to create the Asset Inventory client: %w", err)
+	}
+
+	processor, err := processors.NewAssetInventoryProcessor(ctx, fmt.Sprintf("projects/%s", c.cfg.ProjectID), client)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create asset inventory processor: %w", err)
 	}
@@ -121,5 +131,20 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create serving infrastructure: %w", err)
 	}
+
+	closer = func() {
+		var retErr error
+		if err := successMessenger.Cleanup(); err != nil {
+			retErr = errors.Join(retErr, fmt.Errorf("failed to close success event messenger: %w", err))
+		}
+		if err := failureMessenger.Cleanup(); err != nil {
+			retErr = errors.Join(retErr, fmt.Errorf("failed to close failure event messenger: %w", err))
+		}
+		if err := processor.Stop(); err != nil {
+			retErr = errors.Join(retErr, fmt.Errorf("failed to stop processor: %w", err))
+		}
+		logger.Errorw("failed to close clean up handler", "error", retErr)
+	}
+
 	return srv, handler.HTTPHandler(), closer, nil
 }
