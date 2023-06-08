@@ -88,10 +88,12 @@ func (c *PolicyServerCommand) RunUnstarted(ctx context.Context, args []string) (
 	}
 	logger.Debugw("loaded configuration", "config", c.cfg)
 
-	successTopic, err := createMessangerTopic(ctx, c.cfg.ProjectID, c.cfg.SuccessTopicID)
+	pubsubClient, err := createPubsubClient(ctx, c.cfg.ProjectID)
 	if err != nil {
-		return nil, nil, closer, fmt.Errorf("failed to create success event messenger: %w", err)
+		return nil, nil, closer, fmt.Errorf("failed to create pubsub client: %w", err)
 	}
+
+	successTopic := pubsubClient.Topic(c.cfg.SuccessTopicID)
 
 	successMessenger := server.NewPubSubMessenger(successTopic)
 
@@ -102,6 +104,10 @@ func (c *PolicyServerCommand) RunUnstarted(ctx context.Context, args []string) (
 
 	closer = func() {
 		successTopic.Stop()
+
+		if err := pubsubClient.Close(); err != nil {
+			logger.Errorw("failed to close pubsubClient", "error", err)
+		}
 	}
 
 	srv, err := serving.New(c.cfg.Port)

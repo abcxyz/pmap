@@ -269,7 +269,7 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 		GithubSource: gr,
 	}
 
-	eventByte, err := protojson.Marshal(event)
+	eventBytes, err := protojson.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("failed to marshal event to byte: %w", err)
 	}
@@ -278,12 +278,15 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 
 	if processErr != nil {
 		logger.Errorw(processErr.Error(), "bucketId", m.Attributes["bucketId"], "objectId", m.Attributes["objectId"])
-		if err := h.failureMessenger.Send(ctx, eventByte, attr); err != nil {
+		// TODO(#110): Need to add a LimitReader to read from processErr
+		// before adding it to attr and published by pubsub.
+		// https://cloud.google.com/pubsub/quotas#resource_limits.
+		if err := h.failureMessenger.Send(ctx, eventBytes, attr); err != nil {
 			return fmt.Errorf("failed to send failure event downstream: %w", err)
 		}
 		return nil
 	}
-	if err := h.successMessenger.Send(ctx, eventByte, attr); err != nil {
+	if err := h.successMessenger.Send(ctx, eventBytes, attr); err != nil {
 		return fmt.Errorf("failed to send succuss event downstream: %w", err)
 	}
 	return nil

@@ -16,7 +16,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"cloud.google.com/go/pubsub"
@@ -65,29 +64,20 @@ func TestPubSubMessenger_Send(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			conn := newTestPubSubGrpcConn(ctx, t, tc.pubSubServerOption)
-			testTopic, err := createTestMessangerTopic(ctx, serverProjectID, serverTopicID, option.WithGRPCConn(conn))
-			if err != nil {
-				t.Fatalf("failed to create new pubsub client and topic: %v", err)
-			}
+			conn := testNewPubSubGrpcConn(ctx, t, tc.pubSubServerOption)
+			testTopic := testCreatePubsubTopic(ctx, t, serverProjectID, serverTopicID, option.WithGRPCConn(conn))
+
 			msger := NewPubSubMessenger(testTopic)
+
+			eventBytes, err := protojson.Marshal(tc.event)
 			if err != nil {
-				t.Fatalf("failed to create new PubSubMessenger: %v", err)
+				t.Fatalf("failed to marshal event to byte: %v", err)
 			}
 
-			eventByte, err := protojson.Marshal(tc.event)
-			if err != nil {
-				t.Errorf("failed to marshal event to byte: %v", err)
-			}
-			if err != nil {
-				t.Errorf("%v", err)
-			}
-			gotErr := msger.Send(ctx, eventByte, map[string]string{})
+			gotErr := msger.Send(ctx, eventBytes, map[string]string{})
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
 			}
-
-			testTopic.Stop()
 		})
 	}
 }
@@ -95,7 +85,7 @@ func TestPubSubMessenger_Send(t *testing.T) {
 // Creates a GRPC connection with PubSub test server. Note that the GRPC connection is not closed at the end because
 // it is duplicative if the PubSub client is also closing. Please remember to close the connection if the PubSub client
 // will not close.
-func newTestPubSubGrpcConn(ctx context.Context, t *testing.T, opts ...pstest.ServerReactorOption) *grpc.ClientConn {
+func testNewPubSubGrpcConn(ctx context.Context, t *testing.T, opts ...pstest.ServerReactorOption) *grpc.ClientConn {
 	t.Helper()
 
 	// Create PubSub test server.
@@ -115,14 +105,24 @@ func newTestPubSubGrpcConn(ctx context.Context, t *testing.T, opts ...pstest.Ser
 	return conn
 }
 
-func createTestMessangerTopic(ctx context.Context, projectID, topicID string, opts ...option.ClientOption) (*pubsub.Topic, error) {
+func testCreatePubsubTopic(ctx context.Context, t *testing.T, projectID, topicID string, opts ...option.ClientOption) *pubsub.Topic {
+	t.Helper()
+
 	client, err := pubsub.NewClient(ctx, projectID, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create new pubsub client: %w", err)
+		t.Fatalf("failed to create new pubsub client: %v", err)
 	}
 	if _, err := client.CreateTopic(ctx, serverTopicID); err != nil {
-		return nil, fmt.Errorf("failed to create test PubSub topic: %w", err)
+		t.Fatalf("failed to create test PubSub topic: %v", err)
 	}
 	topic := client.Topic(topicID)
-	return topic, nil
+
+	t.Cleanup(func() {
+		topic.Stop()
+		if err := client.Close(); err != nil {
+			t.Fatalf("failed to close pubsub client: %v", err)
+		}
+	})
+
+	return topic
 }

@@ -49,14 +49,6 @@ type AssetInventoryProcessor struct {
 // Option is the option to set up a AssetInventoryProcessor.
 type Option func(p *AssetInventoryProcessor) (*AssetInventoryProcessor, error)
 
-// WithClient provides a asset client to the processor.
-func WithClient(client *asset.Client) Option {
-	return func(p *AssetInventoryProcessor) (*AssetInventoryProcessor, error) {
-		p.client = client
-		return p, nil
-	}
-}
-
 // NewAssetInventoryProcessor creates a new AssetInventoryProcessor with the given options.
 // Need defaultResourceScope because resources such as GCS bucket won't include Project info in its resource name.
 // See details: https://cloud.google.com/asset-inventory/docs/resource-name-format.
