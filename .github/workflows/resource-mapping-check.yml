@@ -47,9 +47,9 @@ jobs:
         uses: 'actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568' # ratchet:actions/setup-go@v3
         with:
           go-version: '${{ inputs.go_version }}'
-      - id: 'install-pmapctl'
-        shell: 'bash'
-        run: 'go install github.com/abcxyz/pmap/cmd/pmap@${{ inputs.pmap_version }}'
       - id: 'run-check'
+        if: '${{ steps.changed-yaml-files.outputs.any_changed == ''true'' }}'
         shell: 'bash'
-        run: 'pmap mapping validate -path ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change'
+        run: |-
+          go install github.com/abcxyz/pmap/cmd/pmap@${{ inputs.pmap_version }}
+          pmap mapping validate -path ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change
