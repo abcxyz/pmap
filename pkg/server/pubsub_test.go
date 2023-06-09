@@ -18,6 +18,7 @@ import (
 	"context"
 	"testing"
 
+	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/pubsub/pstest"
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
@@ -25,6 +26,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const (
@@ -62,23 +64,19 @@ func TestPubSubMessenger_Send(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			conn := newTestPubSubGrpcConn(ctx, t, tc.pubSubServerOption)
-			msger, err := NewPubSubMessenger(ctx, serverProjectID, serverTopicID, option.WithGRPCConn(conn))
+			conn := testNewPubSubGrpcConn(ctx, t, tc.pubSubServerOption)
+			testTopic := testCreatePubsubTopic(ctx, t, serverProjectID, serverTopicID, option.WithGRPCConn(conn))
+
+			msger := NewPubSubMessenger(testTopic)
+
+			eventBytes, err := protojson.Marshal(tc.event)
 			if err != nil {
-				t.Fatalf("failed to create new PubSubMessenger: %v", err)
+				t.Fatalf("failed to marshal event to byte: %v", err)
 			}
 
-			// Create the test topic.
-			if _, err := msger.client.CreateTopic(ctx, serverTopicID); err != nil {
-				t.Fatalf("failed to create test PubSub topic: %v", err)
-			}
-
-			gotErr := msger.Send(ctx, tc.event)
+			gotErr := msger.Send(ctx, eventBytes, map[string]string{})
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
-			}
-			if err := msger.Cleanup(); err != nil {
-				t.Errorf("Process(%+v) failed to cleanup: %v", tc.name, err)
 			}
 		})
 	}
@@ -87,7 +85,7 @@ func TestPubSubMessenger_Send(t *testing.T) {
 // Creates a GRPC connection with PubSub test server. Note that the GRPC connection is not closed at the end because
 // it is duplicative if the PubSub client is also closing. Please remember to close the connection if the PubSub client
 // will not close.
-func newTestPubSubGrpcConn(ctx context.Context, t *testing.T, opts ...pstest.ServerReactorOption) *grpc.ClientConn {
+func testNewPubSubGrpcConn(ctx context.Context, t *testing.T, opts ...pstest.ServerReactorOption) *grpc.ClientConn {
 	t.Helper()
 
 	// Create PubSub test server.
@@ -105,4 +103,26 @@ func newTestPubSubGrpcConn(ctx context.Context, t *testing.T, opts ...pstest.Ser
 	}
 
 	return conn
+}
+
+func testCreatePubsubTopic(ctx context.Context, t *testing.T, projectID, topicID string, opts ...option.ClientOption) *pubsub.Topic {
+	t.Helper()
+
+	client, err := pubsub.NewClient(ctx, projectID, opts...)
+	if err != nil {
+		t.Fatalf("failed to create pubsub client: %v", err)
+	}
+	if _, err := client.CreateTopic(ctx, serverTopicID); err != nil {
+		t.Fatalf("failed to create test PubSub topic: %v", err)
+	}
+	topic := client.Topic(topicID)
+
+	t.Cleanup(func() {
+		topic.Stop()
+		if err := client.Close(); err != nil {
+			t.Logf("failed to close pubsub client: %v", err)
+		}
+	})
+
+	return topic
 }

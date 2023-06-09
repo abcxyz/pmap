@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"cloud.google.com/go/pubsub"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/serving"
@@ -88,10 +89,17 @@ func (c *PolicyServerCommand) RunUnstarted(ctx context.Context, args []string) (
 	}
 	logger.Debugw("loaded configuration", "config", c.cfg)
 
-	successMessenger, err := server.NewPubSubMessenger(ctx, c.cfg.ProjectID, c.cfg.SuccessTopicID)
+	pubsubClient, err := pubsub.NewClient(ctx, c.cfg.ProjectID)
 	if err != nil {
-		return nil, nil, closer, fmt.Errorf("failed to create success event messenger: %w", err)
+		return nil, nil, closer, fmt.Errorf("failed to create new pubsub client: %w", err)
 	}
+
+	if err != nil {
+		return nil, nil, closer, fmt.Errorf("failed to create pubsub client: %w", err)
+	}
+
+	successTopic := pubsubClient.Topic(c.cfg.SuccessTopicID)
+	successMessenger := server.NewPubSubMessenger(successTopic)
 
 	handler, err := server.NewHandler(ctx, []server.Processor[*structpb.Struct]{}, successMessenger)
 	if err != nil {
@@ -99,8 +107,10 @@ func (c *PolicyServerCommand) RunUnstarted(ctx context.Context, args []string) (
 	}
 
 	closer = func() {
-		if err := handler.Cleanup(); err != nil {
-			logger.Errorw("failed to close clean up handler", "error", err)
+		successTopic.Stop()
+
+		if err := pubsubClient.Close(); err != nil {
+			logger.Errorw("failed to close pubsubClient", "error", err)
 		}
 	}
 
