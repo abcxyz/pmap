@@ -19,51 +19,30 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/pubsub"
-	"github.com/abcxyz/pmap/apis/v1alpha1"
-	"google.golang.org/api/option"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // PubSubMessenger implements the Messenger interface for Google Cloud PubSub.
 type PubSubMessenger struct {
-	client *pubsub.Client
-	topic  *pubsub.Topic
+	topic *pubsub.Topic
 }
 
 // NewPubSubMessenger creates a new instance of the PubSubMessenger.
-func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...option.ClientOption) (*PubSubMessenger, error) {
-	client, err := pubsub.NewClient(ctx, projectID, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create new pubsub client: %w", err)
-	}
-
-	topic := client.Topic(topicID)
-
-	return &PubSubMessenger{client: client, topic: topic}, nil
+func NewPubSubMessenger(topic *pubsub.Topic) *PubSubMessenger {
+	return &PubSubMessenger{topic: topic}
 }
 
 // Send sends a pmap event to a Google Cloud PubSub topic.
-func (p *PubSubMessenger) Send(ctx context.Context, event *v1alpha1.PmapEvent) error {
-	eventBytes, err := protojson.Marshal(event)
-	if err != nil {
-		return fmt.Errorf("failed to marshal event json: %w", err)
-	}
-
+func (p *PubSubMessenger) Send(ctx context.Context, data []byte, attr map[string]string) error {
+	// TODO(#110): Need to add a LimitReader to read from processErr
+	// before adding it to attr and published by pubsub.
+	// https://cloud.google.com/pubsub/quotas#resource_limits.
 	result := p.topic.Publish(ctx, &pubsub.Message{
-		Data: eventBytes,
+		Data:       data,
+		Attributes: attr,
 	})
 
 	if _, err := result.Get(ctx); err != nil {
 		return fmt.Errorf("pubsub: failed to get result returned from publish : %w", err)
-	}
-	return nil
-}
-
-// Cleanup handles the graceful shutdown of the PubSub client.
-func (p *PubSubMessenger) Cleanup() error {
-	p.topic.Stop()
-	if err := p.client.Close(); err != nil {
-		return fmt.Errorf("failed to close PubSub client: %w", err)
 	}
 	return nil
 }

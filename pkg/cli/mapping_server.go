@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"cloud.google.com/go/pubsub"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/serving"
@@ -26,6 +27,8 @@ import (
 	"github.com/abcxyz/pmap/internal/version"
 	"github.com/abcxyz/pmap/pkg/mapping/processors"
 	"github.com/abcxyz/pmap/pkg/server"
+
+	asset "cloud.google.com/go/asset/apiv1"
 )
 
 var _ cli.Command = (*MappingServerCommand)(nil)
@@ -62,6 +65,7 @@ func (c *MappingServerCommand) Run(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+
 	defer closer()
 
 	return srv.StartHTTPHandler(ctx, handler)
@@ -94,19 +98,24 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		return nil, nil, closer, fmt.Errorf("missing PMAP_FAILURE_TOPIC_ID in config")
 	}
 
-	successMessenger, err := server.NewPubSubMessenger(ctx, c.cfg.ProjectID, c.cfg.SuccessTopicID)
+	pubsubClient, err := pubsub.NewClient(ctx, c.cfg.ProjectID)
 	if err != nil {
-		return nil, nil, closer, fmt.Errorf("failed to create success event messenger: %w", err)
+		return nil, nil, closer, fmt.Errorf("failed to create pubsub client: %w", err)
 	}
 
-	failureMessenger, err := server.NewPubSubMessenger(ctx, c.cfg.ProjectID, c.cfg.FailureTopicID)
+	successTopic := pubsubClient.Topic(c.cfg.SuccessTopicID)
+	successMessenger := server.NewPubSubMessenger(successTopic)
+	failureTopic := pubsubClient.Topic(c.cfg.FailureTopicID)
+	failureMessenger := server.NewPubSubMessenger(failureTopic)
+
+	assetClient, err := asset.NewClient(ctx)
 	if err != nil {
-		return nil, nil, closer, fmt.Errorf("failed to create failure event messenger: %w", err)
+		return nil, nil, closer, fmt.Errorf("failed to create the assetClient: %w", err)
 	}
 
-	processor, err := processors.NewAssetInventoryProcessor(ctx, fmt.Sprintf("projects/%s", c.cfg.ProjectID))
+	processor, err := processors.NewAssetInventoryProcessor(ctx, assetClient, fmt.Sprintf("projects/%s", c.cfg.ProjectID))
 	if err != nil {
-		return nil, nil, closer, fmt.Errorf("failed to create asset inventory processor: %w", err)
+		return nil, nil, closer, fmt.Errorf("failed to create assetInventoryProcessor: %w", err)
 	}
 
 	handler, err := server.NewHandler(ctx,
@@ -118,8 +127,15 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 
 	closer = func() {
-		if err := handler.Cleanup(); err != nil {
-			logger.Errorw("failed to close clean up handler", "error", err)
+		successTopic.Stop()
+		failureTopic.Stop()
+
+		if err := pubsubClient.Close(); err != nil {
+			logger.Errorw("failed to close pubsub client", "error", err)
+		}
+
+		if err := assetClient.Close(); err != nil {
+			logger.Errorw("failed to stop asset client", "error", err)
 		}
 	}
 
@@ -127,5 +143,6 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create serving infrastructure: %w", err)
 	}
+
 	return srv, handler.HTTPHandler(), closer, nil
 }
