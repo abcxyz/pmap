@@ -96,7 +96,7 @@ func (c *PolicyServerCommand) RunUnstarted(ctx context.Context, args []string) (
 
 	pubsubClient, err := pubsub.NewClient(ctx, c.cfg.ProjectID)
 	if err != nil {
-		return nil, nil, closer, fmt.Errorf("failed to create new pubsub client: %w", err)
+		return nil, nil, closer, fmt.Errorf("failed to create pubsub client: %w", err)
 	}
 	closer = multicloser.Append(closer, pubsubClient.Close)
 
