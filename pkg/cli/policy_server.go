@@ -22,6 +22,7 @@ import (
 	"cloud.google.com/go/pubsub"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
+	"github.com/abcxyz/pkg/multicloser"
 	"github.com/abcxyz/pkg/serving"
 	"github.com/abcxyz/pmap/internal/version"
 	"github.com/abcxyz/pmap/pkg/server"
@@ -59,16 +60,20 @@ func (c *PolicyServerCommand) Flags() *cli.FlagSet {
 
 func (c *PolicyServerCommand) Run(ctx context.Context, args []string) error {
 	srv, handler, closer, err := c.RunUnstarted(ctx, args)
+	defer func() {
+		if err := closer.Close(); err != nil {
+			logging.FromContext(ctx).Errorw("failed to close", "error", err)
+		}
+	}()
 	if err != nil {
 		return err
 	}
-	defer closer()
 
 	return srv.StartHTTPHandler(ctx, handler)
 }
 
-func (c *PolicyServerCommand) RunUnstarted(ctx context.Context, args []string) (*serving.Server, http.Handler, func(), error) {
-	closer := func() {}
+func (c *PolicyServerCommand) RunUnstarted(ctx context.Context, args []string) (*serving.Server, http.Handler, *multicloser.Closer, error) {
+	closer := &multicloser.Closer{}
 
 	f := c.Flags()
 	if err := f.Parse(args); err != nil {
@@ -93,25 +98,15 @@ func (c *PolicyServerCommand) RunUnstarted(ctx context.Context, args []string) (
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create new pubsub client: %w", err)
 	}
-
-	if err != nil {
-		return nil, nil, closer, fmt.Errorf("failed to create pubsub client: %w", err)
-	}
+	closer = multicloser.Append(closer, pubsubClient.Close)
 
 	successTopic := pubsubClient.Topic(c.cfg.SuccessTopicID)
 	successMessenger := server.NewPubSubMessenger(successTopic)
+	closer = multicloser.Append(closer, successTopic.Stop)
 
 	handler, err := server.NewHandler(ctx, []server.Processor[*structpb.Struct]{}, successMessenger)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("server.NewHandler: %w", err)
-	}
-
-	closer = func() {
-		successTopic.Stop()
-
-		if err := pubsubClient.Close(); err != nil {
-			logger.Errorw("failed to close pubsubClient", "error", err)
-		}
 	}
 
 	srv, err := serving.New(c.cfg.Port)

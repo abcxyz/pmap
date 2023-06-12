@@ -22,6 +22,7 @@ import (
 	"cloud.google.com/go/pubsub"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
+	"github.com/abcxyz/pkg/multicloser"
 	"github.com/abcxyz/pkg/serving"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"github.com/abcxyz/pmap/internal/version"
@@ -62,17 +63,20 @@ func (c *MappingServerCommand) Flags() *cli.FlagSet {
 
 func (c *MappingServerCommand) Run(ctx context.Context, args []string) error {
 	srv, handler, closer, err := c.RunUnstarted(ctx, args)
+	defer func() {
+		if err := closer.Close(); err != nil {
+			logging.FromContext(ctx).Errorw("failed to close", "error", err)
+		}
+	}()
 	if err != nil {
 		return err
 	}
 
-	defer closer()
-
 	return srv.StartHTTPHandler(ctx, handler)
 }
 
-func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) (*serving.Server, http.Handler, func(), error) {
-	closer := func() {}
+func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) (*serving.Server, http.Handler, *multicloser.Closer, error) {
+	closer := &multicloser.Closer{}
 
 	f := c.Flags()
 	if err := f.Parse(args); err != nil {
@@ -102,16 +106,19 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create pubsub client: %w", err)
 	}
+	closer = multicloser.Append(closer, pubsubClient.Close)
 
 	successTopic := pubsubClient.Topic(c.cfg.SuccessTopicID)
 	successMessenger := server.NewPubSubMessenger(successTopic)
 	failureTopic := pubsubClient.Topic(c.cfg.FailureTopicID)
 	failureMessenger := server.NewPubSubMessenger(failureTopic)
+	closer = multicloser.Append(closer, successTopic.Stop, failureTopic.Stop)
 
 	assetClient, err := asset.NewClient(ctx)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create the assetClient: %w", err)
 	}
+	closer = multicloser.Append(closer, assetClient.Close)
 
 	processor, err := processors.NewAssetInventoryProcessor(ctx, assetClient, fmt.Sprintf("projects/%s", c.cfg.ProjectID))
 	if err != nil {
@@ -124,19 +131,6 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		server.WithFailureMessenger(failureMessenger))
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("server.NewHandler: %w", err)
-	}
-
-	closer = func() {
-		successTopic.Stop()
-		failureTopic.Stop()
-
-		if err := pubsubClient.Close(); err != nil {
-			logger.Errorw("failed to close pubsub client", "error", err)
-		}
-
-		if err := assetClient.Close(); err != nil {
-			logger.Errorw("failed to stop asset client", "error", err)
-		}
 	}
 
 	srv, err := serving.New(c.cfg.Port)
