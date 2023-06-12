@@ -91,7 +91,7 @@ func TestMappingServerCommand(t *testing.T) {
 			_, _, closer, err := cmd.RunUnstarted(ctx, tc.args)
 			defer func() {
 				if err := closer.Close(); err != nil {
-					t.Log(err)
+					t.Error(err)
 				}
 			}()
 			if diff := testutil.DiffErrString(err, tc.expErr); diff != "" {
