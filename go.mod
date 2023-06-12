@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/asset v1.12.0
 	cloud.google.com/go/bigquery v1.49.0
 	cloud.google.com/go/pubsub v1.30.0
-	github.com/abcxyz/pkg v0.3.1-0.20230410214104-4b190bd00925
+	github.com/abcxyz/pkg v0.4.0
 	github.com/google/go-cmp v0.5.9
 	github.com/sethvargo/go-envconfig v0.9.0
 	github.com/sethvargo/go-retry v0.2.4
@@ -24,6 +24,8 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/flatbuffers v2.0.8+incompatible // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/hashicorp/errwrap v1.0.0 // indirect
+	github.com/hashicorp/go-multierror v1.0.0 // indirect
 	github.com/klauspost/asmfmt v1.3.2 // indirect
 	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
@@ -33,6 +35,8 @@ require (
 	github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 // indirect
 	github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
+	github.com/posener/complete/v2 v2.0.1-alpha.13 // indirect
+	github.com/posener/script v1.1.5 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.uber.org/goleak v1.2.0 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
@@ -70,9 +74,9 @@ require (
 	go.uber.org/multierr v1.10.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
-	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/oauth2 v0.6.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/oauth2 v0.8.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 )

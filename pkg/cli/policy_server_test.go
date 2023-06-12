@@ -65,7 +65,7 @@ func TestPolicyServerCommand(t *testing.T) {
 			ctx, done := context.WithCancel(ctx)
 			defer done()
 
-			var cmd MappingServerCommand
+			var cmd PolicyServerCommand
 			cmd.testFlagSetOpts = []cli.Option{cli.WithLookupEnv(envconfig.MultiLookuper(
 				envconfig.MapLookuper(tc.env),
 				envconfig.MapLookuper(map[string]string{
@@ -77,10 +77,14 @@ func TestPolicyServerCommand(t *testing.T) {
 			_, _, _ = cmd.Pipe()
 
 			_, _, closer, err := cmd.RunUnstarted(ctx, tc.args)
+			defer func() {
+				if err := closer.Close(); err != nil {
+					t.Error(err)
+				}
+			}()
 			if diff := testutil.DiffErrString(err, tc.expErr); diff != "" {
 				t.Fatal(diff)
 			}
-			defer closer()
 			if err != nil {
 				return
 			}
