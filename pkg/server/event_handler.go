@@ -43,6 +43,10 @@ const (
 	gcsObjectSizeLimitInBytes   = 25_000_000
 )
 
+const (
+	PubSubAttrKeyNonRetryableErr = "processErr"
+)
+
 // Wrap the proto message interface.
 // This helps to use generics to initialize proto messages without knowing their types.
 type ProtoWrapper[T any] interface {
@@ -236,55 +240,16 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 // [GCS notification]: https://cloud.google.com/storage/docs/pubsub-notifications#format
 func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error {
 	logger := logging.FromContext(ctx)
-	// Get the GCS object as a proto message given GCS notification information.
-	// p, err := h.getGCSObjectProto(ctx, m.Attributes)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get GCS object: %w", err)
-	// }
-
-	// TODO(#20): we need to have a way to differentiate retryable err vs. not.
-	// For non-retryable error, we need to have them enter a different BQ table per design.
-	// Currently all error events are sent to downstream if failureMessenger is provided
-	// including those retried events.
-	// var processErr error
-	// for _, processor := range h.processors {
-	// 	if err := processor.Process(ctx, p); err != nil {
-	// 		processErr = fmt.Errorf("failed to process object: %w", err)
-	// 		break
-	// 	}
-	// }
-	// payload, err := anypb.New(p)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to convert object to pmap event payload: %w", err)
-	// }
-
-	// var gr *v1alpha1.GitHubSource
-	// if m.Attributes["payloadFormat"] == "JSON_API_V1" {
-	// 	gr, err = parseGitHubSource(ctx, m.Data, m.Attributes)
-	// 	if err != nil {
-	// 		return fmt.Errorf("failed to parse metadata: %w", err)
-	// 	}
-	// }
-
-	// event := &v1alpha1.PmapEvent{
-	// 	Payload:      payload,
-	// 	GithubSource: gr,
-	// }
-
-	// eventBytes, err := protojson.Marshal(event)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to marshal event to byte: %w", err)
-	// }
 
 	eventBytes, processErr := h.generatePmapEventBytes(ctx, m)
 
 	attr := map[string]string{}
 
 	if processErr != nil {
-		if errors.Is(processErr, pmaperrors.ErrRetryable) {
+		if errors.Is(processErr, pmaperrors.ErrPubsubRetryable) {
 			return processErr
 		}
-		attr["processErr"] = processErr.Error()
+		attr[PubSubAttrKeyNonRetryableErr] = processErr.Error()
 		logger.Errorw(processErr.Error(), "bucketId", m.Attributes["bucketId"], "objectId", m.Attributes["objectId"])
 		if err := h.failureMessenger.Send(ctx, eventBytes, attr); err != nil {
 			return fmt.Errorf("failed to send failure event downstream: %w", err)
@@ -298,29 +263,34 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 }
 
 func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsub.Message) ([]byte, error) {
+	// TODO(#20): The currently logic is to treat all errors that are not caused by processor as retryable.
+	// and all errors that are caused by processor as non-retryable.
+	// Therefore, we intend to keep this logic here, and do a more detailed differentiate later.
+
+	// Get the GCS object as a proto message given GCS notification information.
 	p, err := h.getGCSObjectProto(ctx, m.Attributes)
 	if err != nil {
-		return nil, fmt.Errorf("%w: failed to get GCS object: %w", pmaperrors.ErrRetryable, err)
+		return nil, fmt.Errorf("%w: failed to get GCS object: %w", pmaperrors.ErrPubsubRetryable, err)
 	}
 
 	var processErr error
 	for _, processor := range h.processors {
 		if err := processor.Process(ctx, p); err != nil {
-			processErr = fmt.Errorf("%w: failed to process object: %w", pmaperrors.ErrNonRetryable, err)
+			processErr = fmt.Errorf("%w: failed to process object: %w", pmaperrors.ErrPubsubNonRetryable, err)
 			break
 		}
 	}
 
 	payload, err := anypb.New(p)
 	if err != nil {
-		return nil, fmt.Errorf("%w: failed to convert object to pmap event payload: %w", pmaperrors.ErrRetryable, err)
+		return nil, fmt.Errorf("%w: failed to convert object to pmap event payload: %w", pmaperrors.ErrPubsubRetryable, err)
 	}
 
 	var gr *v1alpha1.GitHubSource
 	if m.Attributes["payloadFormat"] == "JSON_API_V1" {
 		gr, err = parseGitHubSource(ctx, m.Data, m.Attributes)
 		if err != nil {
-			return nil, fmt.Errorf("%w: failed to parse metadata: %w", pmaperrors.ErrRetryable, err)
+			return nil, fmt.Errorf("%w: failed to parse metadata: %w", pmaperrors.ErrPubsubRetryable, err)
 		}
 	}
 
@@ -331,7 +301,7 @@ func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsu
 
 	eventBytes, err := protojson.Marshal(event)
 	if err != nil {
-		return nil, fmt.Errorf("%w: failed to marshal event to byte: %w", pmaperrors.ErrRetryable, err)
+		return nil, fmt.Errorf("%w: failed to marshal event to byte: %w", pmaperrors.ErrPubsubRetryable, err)
 	}
 	return eventBytes, processErr
 }

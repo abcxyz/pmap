@@ -42,7 +42,6 @@ func (p *PubSubMessenger) Send(ctx context.Context, data []byte, attr map[string
 		return fmt.Errorf("pubsub failed to publish message: %w", err)
 	}
 
-	fmt.Println(p.topic)
 	result := p.topic.Publish(ctx, m)
 
 	if _, err := result.Get(ctx); err != nil {

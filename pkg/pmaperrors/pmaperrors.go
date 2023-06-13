@@ -23,12 +23,15 @@ func (e Error) Error() string {
 	return string(e)
 }
 
+// These errors are used in EventHandler's Handle() function.
+// The retryable errors will be returned later by HTTPHandler() to pubsub
+// so pubsub will try send messages to handler again.
 const (
 	// ErrNonRetryable is the (base) error to return when a pmap
-	// processor considers an error is none retryable.
-	ErrRetryable = Error("pmap retryable error")
+	// processor considers an error is retryable.
+	ErrPubsubRetryable = Error("pubsub retryable error")
 
 	// ErrNonRetryable is the (base) error to return when a pmap
 	// processor considers an error is none-retryable.
-	ErrNonRetryable = Error("pmap none retryable error")
+	ErrPubsubNonRetryable = Error("pubsub none-retryable error")
 )
