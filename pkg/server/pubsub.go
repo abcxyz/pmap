@@ -21,6 +21,11 @@ import (
 	"cloud.google.com/go/pubsub"
 )
 
+const (
+	MaxTopicDataBytes      = 10_000_000
+	MaxTopicAttrValueBytes = 1024
+)
+
 // PubSubMessenger implements the Messenger interface for Google Cloud PubSub.
 type PubSubMessenger struct {
 	topic *pubsub.Topic
@@ -31,18 +36,41 @@ func NewPubSubMessenger(topic *pubsub.Topic) *PubSubMessenger {
 	return &PubSubMessenger{topic: topic}
 }
 
-// Send sends a pmap event to a Google Cloud PubSub topic.
 func (p *PubSubMessenger) Send(ctx context.Context, data []byte, attr map[string]string) error {
-	// TODO(#110): Need to add a LimitReader to read from processErr
-	// before adding it to attr and published by pubsub.
-	// https://cloud.google.com/pubsub/quotas#resource_limits.
-	result := p.topic.Publish(ctx, &pubsub.Message{
-		Data:       data,
-		Attributes: attr,
-	})
+	m, err := limitedSizeMessage(data, attr)
+	if err != nil {
+		return fmt.Errorf("pubsub failed to publish message: %w", err)
+	}
 
+	fmt.Println(p.topic)
+	result := p.topic.Publish(ctx, m)
+	// value, err := result.Get(ctx)
 	if _, err := result.Get(ctx); err != nil {
-		return fmt.Errorf("pubsub: failed to get result returned from publish : %w", err)
+		return fmt.Errorf("pubsub failed to get result returned from publish : %w", err)
 	}
 	return nil
+}
+
+func limitedSizeMessage(data []byte, attr map[string]string) (*pubsub.Message, error) {
+	if len(data) > MaxTopicDataBytes {
+		return nil, fmt.Errorf("data length(%d) exceed max size allowed(%d)", len(data), MaxTopicDataBytes)
+	}
+	d := data[:min(MaxTopicDataBytes, len(data))]
+
+	for key, value := range attr {
+		v := []byte(value)[:min(MaxTopicAttrValueBytes, len(value))]
+		attr[key] = string(v)
+	}
+
+	return &pubsub.Message{
+		Data:       d,
+		Attributes: attr,
+	}, nil
+}
+
+func min(a, b int) int {
+	if a <= b {
+		return a
+	}
+	return b
 }
