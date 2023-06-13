@@ -44,7 +44,7 @@ func (p *PubSubMessenger) Send(ctx context.Context, data []byte, attr map[string
 
 	fmt.Println(p.topic)
 	result := p.topic.Publish(ctx, m)
-	// value, err := result.Get(ctx)
+
 	if _, err := result.Get(ctx); err != nil {
 		return fmt.Errorf("pubsub failed to get result returned from publish : %w", err)
 	}
