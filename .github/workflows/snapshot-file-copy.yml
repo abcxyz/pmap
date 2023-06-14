@@ -18,6 +18,7 @@ on:
         description: 'The path to a file or folder in the GitHub repo that should be uploaded to the gcs.'
         type: 'string'
         required: true
+
 jobs:
   snapshot:
     runs-on: 'ubuntu-latest'
@@ -26,12 +27,12 @@ jobs:
       id-token: 'write'
     name: 'Snapshot changed files'
     steps:
-      - uses: 'actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9' # ratchet:actions/checkout@v3
+      - uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
         with:
           fetch-depth: 0 # OR "2" -> To retrieve the preceding commit.
       - name: 'Authenticate to Google Cloud'
         id: 'auth'
-        uses: 'google-github-actions/auth@35b0e87d162680511bf346c299f71c9c5c379033' # ratchet:google-github-actions/auth@v1
+        uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
         with:
           workload_identity_provider: '${{ inputs.workload_identity_provider }}'
           service_account: '${{ inputs.service_account }}'
@@ -41,7 +42,7 @@ jobs:
           echo "CUR_TIMESTAMP=$(date --rfc-3339=seconds | sed 's/ /T/')" >> $GITHUB_ENV
       - name: 'GCS upload files'
         id: 'gcs-upload-file'
-        uses: 'google-github-actions/upload-cloud-storage@e95a15f226403ed658d3e65f40205649f342ba2c' # ratchet:google-github-actions/upload-cloud-storage@v1
+        uses: 'google-github-actions/upload-cloud-storage@a5b77a3bf84da1791719585d327e5f90ae5cb53c' # ratchet:google-github-actions/upload-cloud-storage@v1
         if: '${{ hashFiles(format(''./{0}/*'', inputs.path)) }}'
         with:
           path: '${{ inputs.path }}'
