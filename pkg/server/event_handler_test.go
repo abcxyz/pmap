@@ -163,8 +163,7 @@ isOK: true`),
 					}`),
 				},
 			}),
-			wantStatusCode:     http.StatusInternalServerError,
-			wantRespBodySubstr: "failed to get GCS object",
+			wantStatusCode: http.StatusCreated,
 		},
 		{
 			name: "invalid_pubsubmessage_data",
@@ -185,8 +184,7 @@ isOK: true`),
 					}`),
 				},
 			}),
-			wantStatusCode:     http.StatusInternalServerError,
-			wantRespBodySubstr: "failed to unmarshal payloadMetadata",
+			wantStatusCode: http.StatusCreated,
 		},
 	}
 
@@ -308,7 +306,6 @@ isOK: true`),
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
-			wantErrSubstr: "bucket ID not found",
 			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
@@ -330,7 +327,6 @@ isOK: true`),
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
-			wantErrSubstr: "failed to parse date",
 			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
@@ -340,7 +336,6 @@ isOK: true`),
 				Data:       testGCSMetadataBytes(),
 			},
 			successMessenger: &testMessenger{},
-			wantErrSubstr:    "object ID not found",
 		},
 		{
 			name: "bucket_not_exist",
@@ -351,7 +346,6 @@ isOK: true`),
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
-			wantErrSubstr: "failed to create GCS object reader",
 			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
@@ -364,7 +358,6 @@ isOK: true`),
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
-			wantErrSubstr: "failed to unmarshal object yaml",
 			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
@@ -378,7 +371,6 @@ isOK: true`),
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
-			wantErrSubstr: "failed to parse metadata",
 			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{

@@ -15,23 +15,22 @@
 // Package pmaperrors defines the sentinel errors for the project.
 package pmaperrors
 
-// Error is a concrete error implementation.
-type Error string
-
-// Error satisfies the error interface.
-func (e Error) Error() string {
-	return string(e)
+// These errors are used in EventHandler's Handle() function.
+// The RetryableError will be returned later by HTTPHandler() to pubsub
+// so pubsub will try send messages to handler again.
+type RetryableError struct {
+	err error
 }
 
-// These errors are used in EventHandler's Handle() function.
-// The retryable errors will be returned later by HTTPHandler() to pubsub
-// so pubsub will try send messages to handler again.
-const (
-	// ErrNonRetryable is the (base) error to return when a pmap
-	// processor considers an error is retryable.
-	ErrPubsubRetryable = Error("pubsub retryable error")
+// Unwrap implements error wrapping.
+func (e *RetryableError) Unwrap() error {
+	return e.err
+}
 
-	// ErrNonRetryable is the (base) error to return when a pmap
-	// processor considers an error is none-retryable.
-	ErrPubsubNonRetryable = Error("pubsub none-retryable error")
-)
+// Error returns the error string.
+func (e *RetryableError) Error() string {
+	if e.err == nil {
+		return "retryable: <nil>"
+	}
+	return "retryable: " + e.err.Error()
+}
