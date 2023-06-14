@@ -25,6 +25,7 @@ import (
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/protoutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/abcxyz/pmap/pkg/pmaperrors"
 	"google.golang.org/api/iterator"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -83,7 +84,7 @@ func (p *AssetInventoryProcessor) Process(ctx context.Context, resourceMapping *
 
 	resourceScope, err := parseProject(resourceName)
 	if err != nil {
-		return err
+		return pmaperrors.Wrap(err)
 	}
 	// Need defaultResourceScope because resources such as GCS bucket won't include Project info in its resource name.
 	// See details: https://cloud.google.com/asset-inventory/docs/resource-name-format.
@@ -93,12 +94,12 @@ func (p *AssetInventoryProcessor) Process(ctx context.Context, resourceMapping *
 
 	additionalAnnos, err := p.validateAndEnrich(ctx, resourceScope, resourceName)
 	if err != nil {
-		return fmt.Errorf("failed to validate and enrich with resource %q in resourceScope %q: %w", resourceName, resourceScope, err)
+		return pmaperrors.Wrap(fmt.Errorf("failed to validate and enrich with resource %q in resourceScope %q: %w", resourceName, resourceScope, err))
 	}
 
 	mergedAnnos, err := mergeAnnotations(resourceMapping.GetAnnotations(), additionalAnnos)
 	if err != nil {
-		return err
+		return pmaperrors.Wrap(err)
 	}
 
 	resourceMapping.Annotations = mergedAnnos

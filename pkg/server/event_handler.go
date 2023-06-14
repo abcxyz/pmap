@@ -241,17 +241,16 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error {
 	logger := logging.FromContext(ctx)
 
-	eventBytes, processErr := h.generatePmapEventBytes(ctx, m)
+	eventBytes, err := h.generatePmapEventBytes(ctx, m)
 
 	attr := map[string]string{}
-	var rerr *pmaperrors.RetryableError
 
-	if processErr != nil {
-		if errors.As(processErr, &rerr) {
-			return processErr
+	if err != nil {
+		if !pmaperrors.Is(err) {
+			return err
 		}
-		attr[AttrKeyNonRetryableErr] = processErr.Error()
-		logger.Errorw(processErr.Error(), "bucketId", m.Attributes["bucketId"], "objectId", m.Attributes["objectId"])
+		attr[AttrKeyNonRetryableErr] = err.Error()
+		logger.Errorw(err.Error(), "bucketId", m.Attributes["bucketId"], "objectId", m.Attributes["objectId"])
 		if err := h.failureMessenger.Send(ctx, eventBytes, attr); err != nil {
 			return fmt.Errorf("failed to send failure event downstream: %w", err)
 		}
@@ -273,13 +272,9 @@ func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsu
 	if err != nil {
 		return nil, fmt.Errorf("failed to get GCS object: %w", err)
 	}
-	var rerr *pmaperrors.RetryableError
 	var processErr error
 	for _, processor := range h.processors {
 		if err := processor.Process(ctx, p); err != nil {
-			if errors.As(err, &rerr) {
-				return nil, fmt.Errorf("processd retryable err: %w", err)
-			}
 			processErr = fmt.Errorf("failed to process object: %w", err)
 			break
 		}
@@ -287,14 +282,14 @@ func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsu
 
 	payload, err := anypb.New(p)
 	if err != nil {
-		return nil, errors.Join(processErr, fmt.Errorf("failed to convert object to pmap event payload: %w", err))
+		return nil, fmt.Errorf("failed to convert object to pmap event payload: %w", err)
 	}
 
 	var gr *v1alpha1.GitHubSource
 	if m.Attributes["payloadFormat"] == "JSON_API_V1" {
 		gr, err = parseGitHubSource(ctx, m.Data, m.Attributes)
 		if err != nil {
-			return nil, errors.Join(processErr, fmt.Errorf("failed to parse metadata: %w", err))
+			return nil, fmt.Errorf("failed to parse metadata: %w", err)
 		}
 	}
 

@@ -31,6 +31,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/abcxyz/pmap/pkg/pmaperrors"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/api/option"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -163,7 +164,8 @@ isOK: true`),
 					}`),
 				},
 			}),
-			wantStatusCode: http.StatusCreated,
+			wantStatusCode:     http.StatusInternalServerError,
+			wantRespBodySubstr: "failed to get GCS object",
 		},
 		{
 			name: "invalid_pubsubmessage_data",
@@ -184,7 +186,8 @@ isOK: true`),
 					}`),
 				},
 			}),
-			wantStatusCode: http.StatusCreated,
+			wantStatusCode:     http.StatusInternalServerError,
+			wantRespBodySubstr: "failed to unmarshal payloadMetadata",
 		},
 	}
 
@@ -306,6 +309,7 @@ isOK: true`),
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
+			wantErrSubstr: "bucket ID not found",
 			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
@@ -327,6 +331,7 @@ isOK: true`),
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
+			wantErrSubstr: "failed to parse date",
 			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
@@ -336,6 +341,7 @@ isOK: true`),
 				Data:       testGCSMetadataBytes(),
 			},
 			successMessenger: &testMessenger{},
+			wantErrSubstr:    "object ID not found",
 		},
 		{
 			name: "bucket_not_exist",
@@ -346,6 +352,7 @@ isOK: true`),
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
+			wantErrSubstr: "failed to create GCS object reader",
 			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
@@ -358,6 +365,7 @@ isOK: true`),
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
+			wantErrSubstr: "failed to unmarshal object yaml",
 			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
@@ -371,10 +379,11 @@ isOK: true`),
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
+			wantErrSubstr: "failed to parse metadata",
 			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
-			name: "failed_process",
+			name: "failed_process_not_processErr",
 			notification: &pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
 				Data:       testGCSMetadataBytes(),
@@ -385,17 +394,32 @@ isOK: true`),
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
+			wantErrSubstr: "always fail",
 			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
-			name: "failed_process_and_send",
+			name: "failed_process_with_processErr",
+			notification: &pubsub.Message{
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
+				Data:       testGCSMetadataBytes(),
+			},
+			gcsObjectBytes: []byte(`foo: bar
+isOK: true`),
+			processors: []Processor[*structpb.Struct]{&failProcessor{fmt.Errorf("processErr")}},
+			successMessenger: &testMessenger{
+				gotPmapEvent: &v1alpha1.PmapEvent{},
+			},
+			wantPmapEvent: &v1alpha1.PmapEvent{},
+		},
+		{
+			name: "failed_process_and_send_with_processErr",
 			notification: &pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
 				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors: []Processor[*structpb.Struct]{&failProcessor{}},
+			processors: []Processor[*structpb.Struct]{&failProcessor{fmt.Errorf("processErr")}},
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
@@ -513,10 +537,15 @@ func testToJSON(tb testing.TB, in any) []byte {
 	return b
 }
 
-type failProcessor struct{}
+type failProcessor struct {
+	returnErr error
+}
 
 func (p *failProcessor) Process(_ context.Context, m *structpb.Struct) error {
-	return fmt.Errorf("always fail")
+	if p.returnErr == nil {
+		return fmt.Errorf("always fail")
+	}
+	return pmaperrors.Wrap(p.returnErr)
 }
 
 type successProcessor struct{}

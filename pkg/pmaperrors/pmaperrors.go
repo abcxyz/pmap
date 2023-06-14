@@ -15,22 +15,38 @@
 // Package pmaperrors defines the sentinel errors for the project.
 package pmaperrors
 
-// These errors are used in EventHandler's Handle() function.
-// The RetryableError will be returned later by HTTPHandler() to pubsub
-// so pubsub will try send messages to handler again.
-type RetryableError struct {
+import (
+	"errors"
+	"fmt"
+)
+
+type processError struct {
 	err error
 }
 
-// Unwrap implements error wrapping.
-func (e *RetryableError) Unwrap() error {
+func New(format string, args ...any) error {
+	return Wrap(fmt.Errorf(format, args...))
+}
+
+func Wrap(err error) error {
+	if err == nil {
+		return nil
+	}
+	return &processError{err}
+}
+
+func Is(err error) bool {
+	var rerr *processError
+	return errors.As(err, &rerr)
+}
+
+func (e *processError) Unwrap() error {
 	return e.err
 }
 
-// Error returns the error string.
-func (e *RetryableError) Error() string {
+func (e *processError) Error() string {
 	if e.err == nil {
-		return "retryable: <nil>"
+		return "pmap process err: <nil>"
 	}
-	return "retryable: " + e.err.Error()
+	return "pmap process err: " + e.err.Error()
 }
