@@ -31,6 +31,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/abcxyz/pmap/pkg/pmaperrors"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/api/option"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -204,7 +205,7 @@ isOK: true`),
 				t.Fatalf("failed to creat GCS storage client %v", err)
 			}
 
-			h, err := NewHandler(ctx, []Processor[*structpb.Struct]{&successProcessor{}}, &NoopMessenger{}, WithStorageClient(c))
+			h, err := NewHandler(ctx, []Processor[*structpb.Struct]{&testProcessor{}}, &NoopMessenger{}, WithStorageClient(c))
 			if err != nil {
 				t.Fatalf("failed to create event handler %v", err)
 			}
@@ -227,15 +228,17 @@ func TestEventHandler_Handle(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name              string
-		notification      *pubsub.Message
-		gcsObjectBytes    []byte
-		githubSourceBytes []byte
-		processors        []Processor[*structpb.Struct]
-		successMessenger  *testMessenger
-		failureMessenger  *testMessenger
-		wantErrSubstr     string
-		wantPmapEvent     *v1alpha1.PmapEvent
+		name                 string
+		notification         *pubsub.Message
+		gcsObjectBytes       []byte
+		githubSourceBytes    []byte
+		processors           []Processor[*structpb.Struct]
+		successMessenger     *testMessenger
+		failureMessenger     *testMessenger
+		wantErrSubstr        string
+		wantPmapEvent        *v1alpha1.PmapEvent
+		wantFailuerPmapEvent *v1alpha1.PmapEvent
+		wantAttr             map[string]string
 	}{
 		{
 			name: "success",
@@ -255,7 +258,7 @@ contacts:
   email:
   - test.gmail.com
 `),
-			processors: []Processor[*structpb.Struct]{&successProcessor{}},
+			processors: []Processor[*structpb.Struct]{&testProcessor{}},
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
@@ -280,7 +283,7 @@ contacts:
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors: []Processor[*structpb.Struct]{&successProcessor{}},
+			processors: []Processor[*structpb.Struct]{&testProcessor{}},
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 				returnErr:    fmt.Errorf("always fail"),
@@ -382,28 +385,43 @@ isOK: true`),
 			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
-			name: "failed_process",
+			name: "failed_process_not_processErr",
 			notification: &pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
 				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors: []Processor[*structpb.Struct]{&failProcessor{}},
+			processors: []Processor[*structpb.Struct]{&testProcessor{fmt.Errorf("always fail")}},
+			successMessenger: &testMessenger{
+				gotPmapEvent: &v1alpha1.PmapEvent{},
+			},
+			wantErrSubstr: "always fail",
+			wantPmapEvent: &v1alpha1.PmapEvent{},
+		},
+		{
+			name: "failed_process_with_processErr",
+			notification: &pubsub.Message{
+				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar"},
+				Data:       testGCSMetadataBytes(),
+			},
+			gcsObjectBytes: []byte(`foo: bar
+isOK: true`),
+			processors: []Processor[*structpb.Struct]{&testProcessor{pmaperrors.New("user facing error")}},
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
 			wantPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
-			name: "failed_process_and_send",
+			name: "failed_process_and_send_with_processErr",
 			notification: &pubsub.Message{
 				Attributes: map[string]string{"bucketId": "foo", "objectId": "pmap-test/gh-prefix/dir1/dir2/bar", "payloadFormat": "JSON_API_V1"},
 				Data:       testGCSMetadataBytes(),
 			},
 			gcsObjectBytes: []byte(`foo: bar
 isOK: true`),
-			processors: []Processor[*structpb.Struct]{&failProcessor{}},
+			processors: []Processor[*structpb.Struct]{&testProcessor{pmaperrors.New("user facing error")}},
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
@@ -413,6 +431,21 @@ isOK: true`),
 			},
 			wantErrSubstr: "failed to send failure event downstream",
 			wantPmapEvent: &v1alpha1.PmapEvent{},
+			wantFailuerPmapEvent: &v1alpha1.PmapEvent{
+				GithubSource: &v1alpha1.GitHubSource{
+					RepoName:                   "test-github-repo",
+					Commit:                     "test-github-commit",
+					Workflow:                   "test-workflow",
+					WorkflowSha:                "test-workflow-sha",
+					WorkflowTriggeredTimestamp: timestamppb.New(time.Date(2023, time.April, 25, 17, 44, 57, 0, time.UTC)),
+					WorkflowRunId:              "5050509831",
+					WorkflowRunAttempt:         1,
+					FilePath:                   "dir1/dir2/bar",
+				},
+			},
+			wantAttr: map[string]string{
+				AttrKeyProcessErr: "failed to process object: pmap process err: user facing error",
+			},
 		},
 	}
 
@@ -454,6 +487,15 @@ isOK: true`),
 			}
 			if diff := cmp.Diff(tc.wantPmapEvent, tc.successMessenger.getPmapEvent(), cmpOpts...); diff != "" {
 				t.Errorf("successMessenger got unexpected pmapEvent diff (-want, +got):\n%s", diff)
+			}
+			if tc.failureMessenger != nil {
+				if diff := cmp.Diff(tc.wantFailuerPmapEvent, tc.failureMessenger.getPmapEvent(), cmpOpts...); diff != "" {
+					t.Errorf("failureMessenger got unexpected pmapEvent diff (-want, +got):\n%s", diff)
+				}
+
+				if diff := cmp.Diff(tc.wantAttr, tc.failureMessenger.getAttr()); diff != "" {
+					t.Errorf("failureMessenger got unexpected attribute diff (-want, +got):\n%s", diff)
+				}
 			}
 		})
 	}
@@ -521,25 +563,25 @@ func testToJSON(tb testing.TB, in any) []byte {
 	return b
 }
 
-type failProcessor struct{}
-
-func (p *failProcessor) Process(_ context.Context, m *structpb.Struct) error {
-	return fmt.Errorf("always fail")
+type testProcessor struct {
+	returnErr error
 }
 
-type successProcessor struct{}
-
-func (p *successProcessor) Process(_ context.Context, m *structpb.Struct) error {
-	m.Fields["processed"] = structpb.NewBoolValue(true)
-	return nil
+func (p *testProcessor) Process(_ context.Context, m *structpb.Struct) error {
+	if p.returnErr == nil {
+		m.Fields["processed"] = structpb.NewBoolValue(true)
+		return nil
+	}
+	return p.returnErr
 }
 
 type testMessenger struct {
 	gotPmapEvent *v1alpha1.PmapEvent
+	gotAttr      map[string]string
 	returnErr    error
 }
 
-func (m *testMessenger) Send(_ context.Context, data []byte, _ map[string]string) error {
+func (m *testMessenger) Send(_ context.Context, data []byte, attr map[string]string) error {
 	if m == nil {
 		return nil
 	}
@@ -547,9 +589,14 @@ func (m *testMessenger) Send(_ context.Context, data []byte, _ map[string]string
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal to PmapEvent: %w", err)
 	}
+	m.gotAttr = attr
 	return m.returnErr
 }
 
 func (m *testMessenger) getPmapEvent() *v1alpha1.PmapEvent {
 	return m.gotPmapEvent
+}
+
+func (m *testMessenger) getAttr() map[string]string {
+	return m.gotAttr
 }

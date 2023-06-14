@@ -18,6 +18,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -30,6 +31,7 @@ import (
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/protoutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/abcxyz/pmap/pkg/pmaperrors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -39,6 +41,11 @@ import (
 const (
 	httpRequestSizeLimitInBytes = 256_000
 	gcsObjectSizeLimitInBytes   = 25_000_000
+)
+
+const (
+	// AttrKeyProcessErr is the attribute key for process error.
+	AttrKeyProcessErr = "ProcessErr"
 )
 
 // Wrap the proto message interface.
@@ -234,16 +241,35 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 // [GCS notification]: https://cloud.google.com/storage/docs/pubsub-notifications#format
 func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error {
 	logger := logging.FromContext(ctx)
+
+	eventBytes, err := h.generatePmapEventBytes(ctx, m)
+
+	attr := map[string]string{}
+
+	if err != nil {
+		// We only write the failure event if it's an user facing error.
+		if !pmaperrors.Is(err) {
+			return err
+		}
+		attr[AttrKeyProcessErr] = err.Error()
+		logger.Errorw(err.Error(), "bucketId", m.Attributes["bucketId"], "objectId", m.Attributes["objectId"])
+		if err := h.failureMessenger.Send(ctx, eventBytes, attr); err != nil {
+			return fmt.Errorf("failed to send failure event downstream: %w", err)
+		}
+		return nil
+	}
+	if err := h.successMessenger.Send(ctx, eventBytes, attr); err != nil {
+		return fmt.Errorf("failed to send succuss event downstream: %w", err)
+	}
+	return nil
+}
+
+func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsub.Message) ([]byte, error) {
 	// Get the GCS object as a proto message given GCS notification information.
 	p, err := h.getGCSObjectProto(ctx, m.Attributes)
 	if err != nil {
-		return fmt.Errorf("failed to get GCS object: %w", err)
+		return nil, fmt.Errorf("failed to get GCS object: %w", err)
 	}
-
-	// TODO(#20): we need to have a way to differentiate retryable err vs. not.
-	// For non-retryable error, we need to have them enter a different BQ table per design.
-	// Currently all error events are sent to downstream if failureMessenger is provided
-	// including those retried events.
 	var processErr error
 	for _, processor := range h.processors {
 		if err := processor.Process(ctx, p); err != nil {
@@ -251,16 +277,18 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 			break
 		}
 	}
+
 	payload, err := anypb.New(p)
 	if err != nil {
-		return fmt.Errorf("failed to convert object to pmap event payload: %w", err)
+		return nil, fmt.Errorf("failed to convert object to pmap event payload: %w", err)
 	}
 
 	var gr *v1alpha1.GitHubSource
 	if m.Attributes["payloadFormat"] == "JSON_API_V1" {
 		gr, err = parseGitHubSource(ctx, m.Data, m.Attributes)
 		if err != nil {
-			return fmt.Errorf("failed to parse metadata: %w", err)
+			// Join with the processErr. We don't want to lose the user facing error if it's not nil.
+			return nil, errors.Join(processErr, fmt.Errorf("failed to parse metadata: %w", err))
 		}
 	}
 
@@ -271,22 +299,10 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 
 	eventBytes, err := protojson.Marshal(event)
 	if err != nil {
-		return fmt.Errorf("failed to marshal event to byte: %w", err)
+		// Join with the processErr. We don't want to lose the user facing error if it's not nil.
+		return nil, errors.Join(processErr, fmt.Errorf("failed to marshal event to byte: %w", err))
 	}
-
-	attr := map[string]string{}
-
-	if processErr != nil {
-		logger.Errorw(processErr.Error(), "bucketId", m.Attributes["bucketId"], "objectId", m.Attributes["objectId"])
-		if err := h.failureMessenger.Send(ctx, eventBytes, attr); err != nil {
-			return fmt.Errorf("failed to send failure event downstream: %w", err)
-		}
-		return nil
-	}
-	if err := h.successMessenger.Send(ctx, eventBytes, attr); err != nil {
-		return fmt.Errorf("failed to send succuss event downstream: %w", err)
-	}
-	return nil
+	return eventBytes, processErr
 }
 
 // getGCSObjectProto calls the GCS storage client with objAttrs information, and returns the object as a proto message.
