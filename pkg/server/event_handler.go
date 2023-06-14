@@ -43,8 +43,8 @@ const (
 	gcsObjectSizeLimitInBytes   = 25_000_000
 )
 
-// AttrKeyProcessErr is the attribute key for process error.
 const (
+	// AttrKeyProcessErr is the attribute key for process error.
 	AttrKeyProcessErr = "ProcessErr"
 )
 
