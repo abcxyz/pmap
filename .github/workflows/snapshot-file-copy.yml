@@ -41,8 +41,8 @@ jobs:
           echo "CUR_TIMESTAMP=$(date --rfc-3339=seconds | sed 's/ /T/')" >> $GITHUB_ENV
       - name: 'GCS upload files'
         id: 'gcs-upload-file'
-        if: ${{ hashFiles('docker') }}
         uses: 'google-github-actions/upload-cloud-storage@e95a15f226403ed658d3e65f40205649f342ba2c' # ratchet:google-github-actions/upload-cloud-storage@v1
+        if: '${{ hashFiles(''./${{ inputs.path}} /*'') != '''' }}'
         with:
           path: '${{ inputs.path }}'
           # we use gh-prefix as the separator so we can retrive each file's original path after it's uploaded to GCS.
