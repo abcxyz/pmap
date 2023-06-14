@@ -44,7 +44,7 @@ const (
 )
 
 const (
-	AttrKeyNonRetryableErr = "NonRetryableErr"
+	AttrKeyNonRetryableErr = "ProcessErr"
 )
 
 // Wrap the proto message interface.
@@ -263,10 +263,6 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 }
 
 func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsub.Message) ([]byte, error) {
-	// TODO(#20): The currently logic is to treat all errors that are not caused by processor as retryable.
-	// and all errors that are caused by processor as non-retryable.
-	// Therefore, we intend to keep this logic here, and do a more detailed differentiate later.
-
 	// Get the GCS object as a proto message given GCS notification information.
 	p, err := h.getGCSObjectProto(ctx, m.Attributes)
 	if err != nil {
