@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package pmaperrors defines the sentinel errors for the project.
+// Package pmaperrors defines the error wrapper for user facing errors.
 package pmaperrors
 
 import (
@@ -24,10 +24,13 @@ type processError struct {
 	err error
 }
 
+// New() takes an string, and return a precessError
+// that warps the string.
 func New(format string, args ...any) error {
 	return Wrap(fmt.Errorf(format, args...))
 }
 
+// Warp() wrap an error to processError type.
 func Wrap(err error) error {
 	if err == nil {
 		return nil
@@ -35,15 +38,18 @@ func Wrap(err error) error {
 	return &processError{err}
 }
 
+// Is() checks if a error is of type processError.
 func Is(err error) bool {
 	var rerr *processError
 	return errors.As(err, &rerr)
 }
 
+// Unwrap() unwrap a processError to error.
 func (e *processError) Unwrap() error {
 	return e.err
 }
 
+// Error() return processError as a string.
 func (e *processError) Error() string {
 	if e.err == nil {
 		return "pmap process err: <nil>"

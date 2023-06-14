@@ -25,7 +25,6 @@ import (
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/protoutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
-	"github.com/abcxyz/pmap/pkg/pmaperrors"
 	"google.golang.org/api/iterator"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -73,6 +72,8 @@ func NewAssetInventoryProcessor(ctx context.Context, client *asset.Client, defau
 func (p *AssetInventoryProcessor) Process(ctx context.Context, resourceMapping *v1alpha1.ResourceMapping) error {
 	logger := logging.FromContext(ctx)
 
+	// TODO(#122): define which errors are user facing errors, and wrap them as pmaperrors.processError
+
 	if resourceMapping.GetResource().GetProvider() != gcpProvider {
 		// Skip non-GCP ResourceMapping
 		logger.Debug("%T: skipping unsupported resource provider %q, want %q", p,
@@ -84,7 +85,7 @@ func (p *AssetInventoryProcessor) Process(ctx context.Context, resourceMapping *
 
 	resourceScope, err := parseProject(resourceName)
 	if err != nil {
-		return pmaperrors.Wrap(err)
+		return err
 	}
 	// Need defaultResourceScope because resources such as GCS bucket won't include Project info in its resource name.
 	// See details: https://cloud.google.com/asset-inventory/docs/resource-name-format.
@@ -94,12 +95,12 @@ func (p *AssetInventoryProcessor) Process(ctx context.Context, resourceMapping *
 
 	additionalAnnos, err := p.validateAndEnrich(ctx, resourceScope, resourceName)
 	if err != nil {
-		return pmaperrors.Wrap(fmt.Errorf("failed to validate and enrich with resource %q in resourceScope %q: %w", resourceName, resourceScope, err))
+		return fmt.Errorf("failed to validate and enrich with resource %q in resourceScope %q: %w", resourceName, resourceScope, err)
 	}
 
 	mergedAnnos, err := mergeAnnotations(resourceMapping.GetAnnotations(), additionalAnnos)
 	if err != nil {
-		return pmaperrors.Wrap(err)
+		return err
 	}
 
 	resourceMapping.Annotations = mergedAnnos

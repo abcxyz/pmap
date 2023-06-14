@@ -43,8 +43,9 @@ const (
 	gcsObjectSizeLimitInBytes   = 25_000_000
 )
 
+// AttrKeyProcessErr is the attribute key for process error.
 const (
-	AttrKeyNonRetryableErr = "ProcessErr"
+	AttrKeyProcessErr = "ProcessErr"
 )
 
 // Wrap the proto message interface.
@@ -246,10 +247,11 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 	attr := map[string]string{}
 
 	if err != nil {
+		// We only write the failure event if it's an user facing error.
 		if !pmaperrors.Is(err) {
 			return err
 		}
-		attr[AttrKeyNonRetryableErr] = err.Error()
+		attr[AttrKeyProcessErr] = err.Error()
 		logger.Errorw(err.Error(), "bucketId", m.Attributes["bucketId"], "objectId", m.Attributes["objectId"])
 		if err := h.failureMessenger.Send(ctx, eventBytes, attr); err != nil {
 			return fmt.Errorf("failed to send failure event downstream: %w", err)
@@ -285,7 +287,8 @@ func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsu
 	if m.Attributes["payloadFormat"] == "JSON_API_V1" {
 		gr, err = parseGitHubSource(ctx, m.Data, m.Attributes)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse metadata: %w", err)
+			// Join with the processErr. We don't want to lose the user facing error if it's not nil.
+			return nil, errors.Join(processErr, fmt.Errorf("failed to parse metadata: %w", err))
 		}
 	}
 
@@ -296,6 +299,7 @@ func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsu
 
 	eventBytes, err := protojson.Marshal(event)
 	if err != nil {
+		// Join with the processErr. We don't want to lose the user facing error if it's not nil.
 		return nil, errors.Join(processErr, fmt.Errorf("failed to marshal event to byte: %w", err))
 	}
 	return eventBytes, processErr

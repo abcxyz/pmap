@@ -23,15 +23,14 @@ import (
 )
 
 type config struct {
-	ProjectID             string `env:"INTEG_TEST_PROJECT_ID,required"`
-	GCSBucketID           string `env:"INTEG_TEST_BUCKET_ID,required"`
-	BigQueryDataSetID     string `env:"INTEG_TEST_BIGQUERY_DATASET_ID,required"`
-	MappingTableID        string `env:"INTEG_TEST_MAPPING_TABLE_ID,required"`
-	MappingFailureTableID string `env:"INTEG_TEST_MAPPING_FAILURE_TABLE_ID,required"`
-	PolicyTableID         string `env:"INTEG_TEST_POLICY_TABLE_ID,required"`
-	// TODO(#118): change the retry parameters back once 118 is finished.
+	ProjectID              string        `env:"INTEG_TEST_PROJECT_ID,required"`
+	GCSBucketID            string        `env:"INTEG_TEST_BUCKET_ID,required"`
+	BigQueryDataSetID      string        `env:"INTEG_TEST_BIGQUERY_DATASET_ID,required"`
+	MappingTableID         string        `env:"INTEG_TEST_MAPPING_TABLE_ID,required"`
+	MappingFailureTableID  string        `env:"INTEG_TEST_MAPPING_FAILURE_TABLE_ID,required"`
+	PolicyTableID          string        `env:"INTEG_TEST_POLICY_TABLE_ID,required"`
 	QueryRetryWaitDuration time.Duration `env:"INTEG_TEST_QUERY_RETRY_WAIT_DURATION,default=10s"`
-	QueryRetryLimit        uint64        `env:"INTEG_TEST_QUERY_RETRY_COUNT,default=50"`
+	QueryRetryLimit        uint64        `env:"INTEG_TEST_QUERY_RETRY_COUNT,default=20"`
 	MappingDownstreamTopic string        `env:"INTEG_TEST_MAPPING_DOWNSTREAM_TOPIC,required"`
 	GCSStaticBucket        string        `env:"INTEG_TEST_STATIC_GCS_BUCKET,required"`
 

@@ -54,7 +54,6 @@ func limitedSizeMessage(data []byte, attr map[string]string) (*pubsub.Message, e
 	if len(data) > MaxTopicDataBytes {
 		return nil, fmt.Errorf("data length(%d) exceed max size allowed(%d)", len(data), MaxTopicDataBytes)
 	}
-	d := data[:min(MaxTopicDataBytes, len(data))]
 
 	for key, value := range attr {
 		v := []byte(value)[:min(MaxTopicAttrValueBytes, len(value))]
@@ -62,7 +61,7 @@ func limitedSizeMessage(data []byte, attr map[string]string) (*pubsub.Message, e
 	}
 
 	return &pubsub.Message{
-		Data:       d,
+		Data:       data,
 		Attributes: attr,
 	}, nil
 }
