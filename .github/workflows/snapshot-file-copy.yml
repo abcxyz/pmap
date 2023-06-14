@@ -41,7 +41,7 @@ jobs:
           echo "CUR_TIMESTAMP=$(date --rfc-3339=seconds | sed 's/ /T/')" >> $GITHUB_ENV
       - name: 'GCS upload files'
         id: 'gcs-upload-file'
-        if: ${{ always() && hashFiles('./test/e2e/testdata/fakedata/policy-1/*') }}
+        if: ${{ always() && hashFiles('docker') }}
         uses: 'google-github-actions/upload-cloud-storage@e95a15f226403ed658d3e65f40205649f342ba2c' # ratchet:google-github-actions/upload-cloud-storage@v1
         with:
           path: '${{ inputs.path }}'
