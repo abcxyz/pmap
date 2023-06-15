@@ -73,8 +73,6 @@ func NewAssetInventoryProcessor(ctx context.Context, client *asset.Client, defau
 func (p *AssetInventoryProcessor) Process(ctx context.Context, resourceMapping *v1alpha1.ResourceMapping) error {
 	logger := logging.FromContext(ctx)
 
-	// TODO(#122): define which errors are user facing errors, and wrap them as pmaperrors.processError
-
 	if resourceMapping.GetResource().GetProvider() != gcpProvider {
 		// Skip non-GCP ResourceMapping
 		logger.Debug("%T: skipping unsupported resource provider %q, want %q", p,

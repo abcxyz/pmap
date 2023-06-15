@@ -61,6 +61,12 @@ var (
 	gcsClient *storage.Client
 )
 
+type QueryResult struct {
+	Data       string
+	ProcessErr string
+	PmapEvent  *v1alpha1.PmapEvent
+}
+
 func TestMain(m *testing.M) {
 	os.Exit(func() int {
 		ctx := context.Background()
@@ -107,12 +113,13 @@ func TestMain(m *testing.M) {
 func TestMappingEventHandling(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name                string
-		resourceName        string
-		bigqueryTable       string
-		wantCAISProcessed   bool
-		wantGithubSource    *v1alpha1.GitHubSource
-		wantResourceMapping *v1alpha1.ResourceMapping
+		name                 string
+		resourceName         string
+		bigqueryTable        string
+		wantCAISProcessed    bool
+		wantGithubSource     *v1alpha1.GitHubSource
+		wantResourceMapping  *v1alpha1.ResourceMapping
+		wantProcessErrSubStr string
 	}{
 		{
 			name:              "mapping_success_event",
@@ -136,8 +143,6 @@ func TestMappingEventHandling(t *testing.T) {
 				WorkflowRunAttempt:         1,
 			},
 		},
-		// TODO(#122): un-comment the below test once user facing errors are defined.
-		// #122 is blocking this test case from succeeding
 		{
 			name:          "mapping_failure_event",
 			resourceName:  fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
@@ -158,6 +163,7 @@ func TestMappingEventHandling(t *testing.T) {
 				WorkflowRunId:              testWorkflowRunID,
 				WorkflowRunAttempt:         1,
 			},
+			wantProcessErrSubStr: "failed to validate and enrich",
 		},
 	}
 
@@ -195,12 +201,12 @@ contacts:
 			}
 
 			// Check if the file uploaded exists in BigQuery.
-			queryString := fmt.Sprintf("SELECT data FROM `%s.%s.%s`", cfg.ProjectID, cfg.BigQueryDataSetID, tc.bigqueryTable)
+			queryString := fmt.Sprintf("SELECT data, CASE WHEN STRING(attributes.ProcessErr) is null THEN '' ELSE STRING(attributes.ProcessErr) END as ProcessErr FROM `%s.%s.%s`", cfg.ProjectID, cfg.BigQueryDataSetID, tc.bigqueryTable)
 			queryString += ` WHERE JSON_VALUE(data.payload.annotations.traceID) = ?`
 			bqQuery := bqClient.Query(queryString)
 			bqQuery.Parameters = []bigquery.QueryParameter{{Value: traceID.String()}}
 
-			gotPmapEvent := testGetFirstPmapEventWithRetries(ctx, t, bqQuery, cfg)
+			gotPmapEvent, gotProcessError := testGetFirstPmapEventWithRetries(ctx, t, bqQuery, cfg)
 
 			resourceMapping := &v1alpha1.ResourceMapping{}
 			if err := gotPmapEvent.GetPayload().UnmarshalTo(resourceMapping); err != nil {
@@ -230,6 +236,9 @@ contacts:
 				if _, ok := resourceMapping.GetAnnotations().GetFields()[v1alpha1.AnnotationKeyAssetInfo].GetStructValue().AsMap()["iamPolicies"]; !ok {
 					t.Errorf("iamPolicies is blank in resourcemapping.annotations")
 				}
+			}
+			if !strings.Contains(gotProcessError, tc.wantProcessErrSubStr) {
+				t.Errorf("case %s expect %s to contain %s", tc.name, gotProcessError, tc.wantProcessErrSubStr)
 			}
 		})
 	}
@@ -297,7 +306,7 @@ deletion_timeline:
 			bqQuery := bqClient.Query(queryString)
 			bqQuery.Parameters = []bigquery.QueryParameter{{Value: traceID.String()}}
 
-			gotPmapEvent := testGetFirstPmapEventWithRetries(ctx, t, bqQuery, cfg)
+			gotPmapEvent, _ := testGetFirstPmapEventWithRetries(ctx, t, bqQuery, cfg)
 
 			gotPayload := &structpb.Struct{}
 			if err = gotPmapEvent.GetPayload().UnmarshalTo(gotPayload); err != nil {
@@ -334,11 +343,11 @@ deletion_timeline:
 
 // testGetFirstPmapEventWithRetries queries the DB and get the matched PmapEvent.
 // If no matched PmapEvent was found, the query will be retried with the specified retry inputs.
-func testGetFirstPmapEventWithRetries(ctx context.Context, tb testing.TB, bqQuery *bigquery.Query, cfg *config) *v1alpha1.PmapEvent {
+func testGetFirstPmapEventWithRetries(ctx context.Context, tb testing.TB, bqQuery *bigquery.Query, cfg *config) (*v1alpha1.PmapEvent, string) {
 	tb.Helper()
 
 	b := retry.NewConstant(cfg.QueryRetryWaitDuration)
-	var pmapEvents []*v1alpha1.PmapEvent
+	var logEntries []*QueryResult
 	if err := retry.Do(ctx, retry.WithMaxRetries(cfg.QueryRetryLimit, b), func(ctx context.Context) error {
 		results, err := queryPmapEvents(ctx, bqQuery)
 		if err != nil {
@@ -348,7 +357,7 @@ func testGetFirstPmapEventWithRetries(ctx context.Context, tb testing.TB, bqQuer
 
 		// Early exit retry if queried pmap event already found.
 		if len(results) > 0 {
-			pmapEvents = results
+			logEntries = results
 			return nil
 		}
 		tb.Log("Matching entry not found, retrying...")
@@ -356,11 +365,11 @@ func testGetFirstPmapEventWithRetries(ctx context.Context, tb testing.TB, bqQuer
 	}); err != nil {
 		tb.Fatalf("Retry failed: %v.", err)
 	}
-	return pmapEvents[0]
+	return logEntries[0].PmapEvent, logEntries[0].ProcessErr
 }
 
 // queryPmapEvents queries the BQ and checks if pmap events matched the query exists or not and return the results.
-func queryPmapEvents(ctx context.Context, query *bigquery.Query) ([]*v1alpha1.PmapEvent, error) {
+func queryPmapEvents(ctx context.Context, query *bigquery.Query) ([]*QueryResult, error) {
 	job, err := query.Run(ctx)
 	if err != nil {
 		return nil, retry.RetryableError(fmt.Errorf("failed to run query: %w", err))
@@ -375,9 +384,10 @@ func queryPmapEvents(ctx context.Context, query *bigquery.Query) ([]*v1alpha1.Pm
 	if err != nil {
 		return nil, retry.RetryableError(fmt.Errorf("failed to read job: %w", err))
 	}
-	var pmapEvents []*v1alpha1.PmapEvent
+
+	var logEntries []*QueryResult
 	for {
-		var row []bigquery.Value
+		var row QueryResult
 		err := it.Next(&row)
 		if errors.Is(err, iterator.Done) {
 			break
@@ -385,17 +395,15 @@ func queryPmapEvents(ctx context.Context, query *bigquery.Query) ([]*v1alpha1.Pm
 		if err != nil {
 			return nil, fmt.Errorf("failed to get next row: %w", err)
 		}
-		value, ok := row[0].(string)
-		if !ok {
-			return nil, fmt.Errorf("failed to convert query (%T) to string: %w", value[0], err)
-		}
+
 		var pmapEvent v1alpha1.PmapEvent
-		if err := protojson.Unmarshal([]byte(value), &pmapEvent); err != nil {
+		if err := protojson.Unmarshal([]byte(row.Data), &pmapEvent); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal bq row to pmapEvent: %w", err)
 		}
-		pmapEvents = append(pmapEvents, &pmapEvent)
+		row.PmapEvent = &pmapEvent
+		logEntries = append(logEntries, &row)
 	}
-	return pmapEvents, nil
+	return logEntries, nil
 }
 
 // testUploadFile uploads an object to the GCS bucket and
