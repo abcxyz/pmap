@@ -138,27 +138,27 @@ func TestMappingEventHandling(t *testing.T) {
 		},
 		// TODO(#122): un-comment the below test once user facing errors are defined.
 		// #122 is blocking this test case from succeeding
-		// {
-		// 	name:          "mapping_failure_event",
-		// 	resourceName:  fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
-		// 	bigqueryTable: cfg.MappingFailureTableID,
-		// 	wantResourceMapping: &v1alpha1.ResourceMapping{
-		// 		Resource: &v1alpha1.Resource{
-		// 			Provider: "gcp",
-		// 			Name:     fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
-		// 		},
-		// 		Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
-		// 	},
-		// 	wantGithubSource: &v1alpha1.GitHubSource{
-		// 		RepoName:                   testGithubRepoValue,
-		// 		Commit:                     testGithubCommitValue,
-		// 		Workflow:                   testWorkflowValue,
-		// 		WorkflowSha:                testWorkflowShaValue,
-		// 		WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
-		// 		WorkflowRunId:              testWorkflowRunID,
-		// 		WorkflowRunAttempt:         1,
-		// 	},
-		// },
+		{
+			name:          "mapping_failure_event",
+			resourceName:  fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
+			bigqueryTable: cfg.MappingFailureTableID,
+			wantResourceMapping: &v1alpha1.ResourceMapping{
+				Resource: &v1alpha1.Resource{
+					Provider: "gcp",
+					Name:     fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
+				},
+				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
+			},
+			wantGithubSource: &v1alpha1.GitHubSource{
+				RepoName:                   testGithubRepoValue,
+				Commit:                     testGithubCommitValue,
+				Workflow:                   testWorkflowValue,
+				WorkflowSha:                testWorkflowShaValue,
+				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
+				WorkflowRunId:              testWorkflowRunID,
+				WorkflowRunAttempt:         1,
+			},
+		},
 	}
 
 	for _, tc := range cases {

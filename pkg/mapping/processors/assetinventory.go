@@ -25,6 +25,7 @@ import (
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/protoutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/abcxyz/pmap/pkg/pmaperrors"
 	"google.golang.org/api/iterator"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -119,7 +120,7 @@ func (p *AssetInventoryProcessor) validateAndEnrich(ctx context.Context, resourc
 	}
 	resource, err := p.getSingleResource(ctx, resourceSearchReq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get single matched resource: %w", err)
+		return nil, pmaperrors.New(fmt.Sprintf("failed to get single matched resource: %v", err))
 	}
 
 	var ancestors []string
