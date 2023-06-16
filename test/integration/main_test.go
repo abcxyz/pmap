@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -60,6 +61,15 @@ var (
 	// Global GCS client for integration test.
 	gcsClient *storage.Client
 )
+
+type bqEntry struct {
+	Data       string
+	Attributes string
+}
+
+type attributes struct {
+	ProcessErr string
+}
 
 func TestMain(m *testing.M) {
 	os.Exit(func() int {
@@ -107,12 +117,13 @@ func TestMain(m *testing.M) {
 func TestMappingEventHandling(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name                string
-		resourceName        string
-		bigqueryTable       string
-		wantCAISProcessed   bool
-		wantGithubSource    *v1alpha1.GitHubSource
-		wantResourceMapping *v1alpha1.ResourceMapping
+		name                 string
+		resourceName         string
+		bigqueryTable        string
+		wantCAISProcessed    bool
+		wantGithubSource     *v1alpha1.GitHubSource
+		wantResourceMapping  *v1alpha1.ResourceMapping
+		wantProcessErrSubStr string
 	}{
 		{
 			name:              "mapping_success_event",
@@ -136,29 +147,28 @@ func TestMappingEventHandling(t *testing.T) {
 				WorkflowRunAttempt:         1,
 			},
 		},
-		// TODO(#122): un-comment the below test once user facing errors are defined.
-		// #122 is blocking this test case from succeeding
-		// {
-		// 	name:          "mapping_failure_event",
-		// 	resourceName:  fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
-		// 	bigqueryTable: cfg.MappingFailureTableID,
-		// 	wantResourceMapping: &v1alpha1.ResourceMapping{
-		// 		Resource: &v1alpha1.Resource{
-		// 			Provider: "gcp",
-		// 			Name:     fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
-		// 		},
-		// 		Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
-		// 	},
-		// 	wantGithubSource: &v1alpha1.GitHubSource{
-		// 		RepoName:                   testGithubRepoValue,
-		// 		Commit:                     testGithubCommitValue,
-		// 		Workflow:                   testWorkflowValue,
-		// 		WorkflowSha:                testWorkflowShaValue,
-		// 		WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
-		// 		WorkflowRunId:              testWorkflowRunID,
-		// 		WorkflowRunAttempt:         1,
-		// 	},
-		// },
+		{
+			name:          "mapping_failure_event",
+			resourceName:  fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
+			bigqueryTable: cfg.MappingFailureTableID,
+			wantResourceMapping: &v1alpha1.ResourceMapping{
+				Resource: &v1alpha1.Resource{
+					Provider: "gcp",
+					Name:     fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
+				},
+				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
+			},
+			wantGithubSource: &v1alpha1.GitHubSource{
+				RepoName:                   testGithubRepoValue,
+				Commit:                     testGithubCommitValue,
+				Workflow:                   testWorkflowValue,
+				WorkflowSha:                testWorkflowShaValue,
+				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
+				WorkflowRunId:              testWorkflowRunID,
+				WorkflowRunAttempt:         1,
+			},
+			wantProcessErrSubStr: "failed to validate and enrich",
+		},
 	}
 
 	for _, tc := range cases {
@@ -195,12 +205,22 @@ contacts:
 			}
 
 			// Check if the file uploaded exists in BigQuery.
-			queryString := fmt.Sprintf("SELECT data FROM `%s.%s.%s`", cfg.ProjectID, cfg.BigQueryDataSetID, tc.bigqueryTable)
+			queryString := fmt.Sprintf("SELECT * FROM `%s.%s.%s`", cfg.ProjectID, cfg.BigQueryDataSetID, tc.bigqueryTable)
 			queryString += ` WHERE JSON_VALUE(data.payload.annotations.traceID) = ?`
 			bqQuery := bqClient.Query(queryString)
 			bqQuery.Parameters = []bigquery.QueryParameter{{Value: traceID.String()}}
 
-			gotPmapEvent := testGetFirstPmapEventWithRetries(ctx, t, bqQuery, cfg)
+			gotBQEntry := testGetFirstMatchedBQEntryWithRetries(ctx, t, bqQuery, cfg)
+
+			gotPmapEvent := &v1alpha1.PmapEvent{}
+			if err := protojson.Unmarshal([]byte(gotBQEntry.Data), gotPmapEvent); err != nil {
+				t.Fatalf("failed to unmarshal BQEntry.Data to pmapevent: %v", err)
+			}
+
+			gotAttributes := &attributes{}
+			if err := json.Unmarshal([]byte(gotBQEntry.Attributes), gotAttributes); err != nil {
+				t.Fatalf("failed to unmarshal BQEntry.Attributes to Attributes: %v", err)
+			}
 
 			resourceMapping := &v1alpha1.ResourceMapping{}
 			if err := gotPmapEvent.GetPayload().UnmarshalTo(resourceMapping); err != nil {
@@ -210,8 +230,6 @@ contacts:
 			cmpOpts := []cmp.Option{
 				protocmp.Transform(),
 				protocmp.IgnoreFields(&v1alpha1.ResourceMapping{}, "annotations"),
-				cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{}),
-				cmpopts.IgnoreUnexported(timestamppb.Timestamp{}),
 			}
 			if diff := cmp.Diff(tc.wantResourceMapping, resourceMapping, cmpOpts...); diff != "" {
 				t.Errorf("resourcemapping(ignore annotation) unexpected diff (-want,+got):\n%s", diff)
@@ -230,6 +248,9 @@ contacts:
 				if _, ok := resourceMapping.GetAnnotations().GetFields()[v1alpha1.AnnotationKeyAssetInfo].GetStructValue().AsMap()["iamPolicies"]; !ok {
 					t.Errorf("iamPolicies is blank in resourcemapping.annotations")
 				}
+			}
+			if !strings.Contains(gotAttributes.ProcessErr, tc.wantProcessErrSubStr) {
+				t.Errorf("case %s expect %s to contain %s", tc.name, gotAttributes.ProcessErr, tc.wantProcessErrSubStr)
 			}
 		})
 	}
@@ -292,12 +313,17 @@ deletion_timeline:
 			}
 
 			// Check if the file uploaded exists in BigQuery.
-			queryString := fmt.Sprintf("SELECT data FROM `%s.%s.%s`", cfg.ProjectID, cfg.BigQueryDataSetID, tc.bigqueryTable)
+			queryString := fmt.Sprintf("SELECT * FROM `%s.%s.%s`", cfg.ProjectID, cfg.BigQueryDataSetID, tc.bigqueryTable)
 			queryString += `WHERE JSON_VALUE(data.payload.value.annotations.traceID) = ?`
 			bqQuery := bqClient.Query(queryString)
 			bqQuery.Parameters = []bigquery.QueryParameter{{Value: traceID.String()}}
 
-			gotPmapEvent := testGetFirstPmapEventWithRetries(ctx, t, bqQuery, cfg)
+			gotBQEntry := testGetFirstMatchedBQEntryWithRetries(ctx, t, bqQuery, cfg)
+
+			gotPmapEvent := &v1alpha1.PmapEvent{}
+			if err := protojson.Unmarshal([]byte(gotBQEntry.Data), gotPmapEvent); err != nil {
+				t.Fatalf("failed to unmarshal BQEntry.Data to pmapevent: %v", err)
+			}
 
 			gotPayload := &structpb.Struct{}
 			if err = gotPmapEvent.GetPayload().UnmarshalTo(gotPayload); err != nil {
@@ -332,15 +358,15 @@ deletion_timeline:
 	}
 }
 
-// testGetFirstPmapEventWithRetries queries the DB and get the matched PmapEvent.
-// If no matched PmapEvent was found, the query will be retried with the specified retry inputs.
-func testGetFirstPmapEventWithRetries(ctx context.Context, tb testing.TB, bqQuery *bigquery.Query, cfg *config) *v1alpha1.PmapEvent {
+// testGetFirstMatchedBQEntryWithRetries queries the DB and get the matched BQEntry.
+// If no matched BQEntry was found, the query will be retried with the specified retry inputs.
+func testGetFirstMatchedBQEntryWithRetries(ctx context.Context, tb testing.TB, bqQuery *bigquery.Query, cfg *config) *bqEntry {
 	tb.Helper()
 
 	b := retry.NewConstant(cfg.QueryRetryWaitDuration)
-	var pmapEvents []*v1alpha1.PmapEvent
+	var entry *bqEntry
 	if err := retry.Do(ctx, retry.WithMaxRetries(cfg.QueryRetryLimit, b), func(ctx context.Context) error {
-		results, err := queryPmapEvents(ctx, bqQuery)
+		results, err := queryBQEntries(ctx, bqQuery)
 		if err != nil {
 			tb.Logf("failed to query pmap events: %v", err)
 			return err
@@ -348,7 +374,7 @@ func testGetFirstPmapEventWithRetries(ctx context.Context, tb testing.TB, bqQuer
 
 		// Early exit retry if queried pmap event already found.
 		if len(results) > 0 {
-			pmapEvents = results
+			entry = results[0]
 			return nil
 		}
 		tb.Log("Matching entry not found, retrying...")
@@ -356,11 +382,11 @@ func testGetFirstPmapEventWithRetries(ctx context.Context, tb testing.TB, bqQuer
 	}); err != nil {
 		tb.Fatalf("Retry failed: %v.", err)
 	}
-	return pmapEvents[0]
+	return entry
 }
 
-// queryPmapEvents queries the BQ and checks if pmap events matched the query exists or not and return the results.
-func queryPmapEvents(ctx context.Context, query *bigquery.Query) ([]*v1alpha1.PmapEvent, error) {
+// queryBQEntries queries the BQ and checks if a bigqury entry matched the query exists or not and return the results.
+func queryBQEntries(ctx context.Context, query *bigquery.Query) ([]*bqEntry, error) {
 	job, err := query.Run(ctx)
 	if err != nil {
 		return nil, retry.RetryableError(fmt.Errorf("failed to run query: %w", err))
@@ -375,27 +401,21 @@ func queryPmapEvents(ctx context.Context, query *bigquery.Query) ([]*v1alpha1.Pm
 	if err != nil {
 		return nil, retry.RetryableError(fmt.Errorf("failed to read job: %w", err))
 	}
-	var pmapEvents []*v1alpha1.PmapEvent
+
+	var entries []*bqEntry
 	for {
-		var row []bigquery.Value
-		err := it.Next(&row)
+		var entry bqEntry
+		err := it.Next(&entry)
 		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("failed to get next row: %w", err)
+			return nil, fmt.Errorf("failed to get next entry: %w", err)
 		}
-		value, ok := row[0].(string)
-		if !ok {
-			return nil, fmt.Errorf("failed to convert query (%T) to string: %w", value[0], err)
-		}
-		var pmapEvent v1alpha1.PmapEvent
-		if err := protojson.Unmarshal([]byte(value), &pmapEvent); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal bq row to pmapEvent: %w", err)
-		}
-		pmapEvents = append(pmapEvents, &pmapEvent)
+
+		entries = append(entries, &entry)
 	}
-	return pmapEvents, nil
+	return entries, nil
 }
 
 // testUploadFile uploads an object to the GCS bucket and
