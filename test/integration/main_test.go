@@ -62,12 +62,12 @@ var (
 	gcsClient *storage.Client
 )
 
-type BQRow struct {
+type bqEntry struct {
 	Data       string
 	Attributes string
 }
 
-type BQAttributes struct {
+type attributes struct {
 	ProcessErr string
 }
 
@@ -210,7 +210,17 @@ contacts:
 			bqQuery := bqClient.Query(queryString)
 			bqQuery.Parameters = []bigquery.QueryParameter{{Value: traceID.String()}}
 
-			gotPmapEvent, gotProcessError := testGetFirstPmapEventWithRetries(ctx, t, bqQuery, cfg)
+			gotBQEntry := testGetFirstMatchedBQEntryWithRetries(ctx, t, bqQuery, cfg)
+
+			gotPmapEvent := &v1alpha1.PmapEvent{}
+			if err := protojson.Unmarshal([]byte(gotBQEntry.Data), gotPmapEvent); err != nil {
+				t.Fatalf("failed to unmarshal BQEntry.Data to pmapevent: %v", err)
+			}
+
+			gotAttributes := &attributes{}
+			if err := json.Unmarshal([]byte(gotBQEntry.Attributes), gotAttributes); err != nil {
+				t.Fatalf("failed to unmarshal BQEntry.Attributes to Attributes: %v", err)
+			}
 
 			resourceMapping := &v1alpha1.ResourceMapping{}
 			if err := gotPmapEvent.GetPayload().UnmarshalTo(resourceMapping); err != nil {
@@ -220,8 +230,6 @@ contacts:
 			cmpOpts := []cmp.Option{
 				protocmp.Transform(),
 				protocmp.IgnoreFields(&v1alpha1.ResourceMapping{}, "annotations"),
-				cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{}),
-				cmpopts.IgnoreUnexported(timestamppb.Timestamp{}),
 			}
 			if diff := cmp.Diff(tc.wantResourceMapping, resourceMapping, cmpOpts...); diff != "" {
 				t.Errorf("resourcemapping(ignore annotation) unexpected diff (-want,+got):\n%s", diff)
@@ -241,8 +249,8 @@ contacts:
 					t.Errorf("iamPolicies is blank in resourcemapping.annotations")
 				}
 			}
-			if !strings.Contains(gotProcessError, tc.wantProcessErrSubStr) {
-				t.Errorf("case %s expect %s to contain %s", tc.name, gotProcessError, tc.wantProcessErrSubStr)
+			if !strings.Contains(gotAttributes.ProcessErr, tc.wantProcessErrSubStr) {
+				t.Errorf("case %s expect %s to contain %s", tc.name, gotAttributes.ProcessErr, tc.wantProcessErrSubStr)
 			}
 		})
 	}
@@ -310,7 +318,12 @@ deletion_timeline:
 			bqQuery := bqClient.Query(queryString)
 			bqQuery.Parameters = []bigquery.QueryParameter{{Value: traceID.String()}}
 
-			gotPmapEvent, _ := testGetFirstPmapEventWithRetries(ctx, t, bqQuery, cfg)
+			gotBQEntry := testGetFirstMatchedBQEntryWithRetries(ctx, t, bqQuery, cfg)
+
+			gotPmapEvent := &v1alpha1.PmapEvent{}
+			if err := protojson.Unmarshal([]byte(gotBQEntry.Data), gotPmapEvent); err != nil {
+				t.Fatalf("failed to unmarshal BQEntry.Data to pmapevent: %v", err)
+			}
 
 			gotPayload := &structpb.Struct{}
 			if err = gotPmapEvent.GetPayload().UnmarshalTo(gotPayload); err != nil {
@@ -345,16 +358,15 @@ deletion_timeline:
 	}
 }
 
-// testGetFirstPmapEventWithRetries queries the DB and get the matched PmapEvent.
-// If no matched PmapEvent was found, the query will be retried with the specified retry inputs.
-func testGetFirstPmapEventWithRetries(ctx context.Context, tb testing.TB, bqQuery *bigquery.Query, cfg *config) (*v1alpha1.PmapEvent, string) {
+// testGetFirstMatchedBQEntryWithRetries queries the DB and get the matched BQEntry.
+// If no matched BQEntry was found, the query will be retried with the specified retry inputs.
+func testGetFirstMatchedBQEntryWithRetries(ctx context.Context, tb testing.TB, bqQuery *bigquery.Query, cfg *config) *bqEntry {
 	tb.Helper()
 
 	b := retry.NewConstant(cfg.QueryRetryWaitDuration)
-	var pmapEvent v1alpha1.PmapEvent
-	var attributes BQAttributes
+	var entry *bqEntry
 	if err := retry.Do(ctx, retry.WithMaxRetries(cfg.QueryRetryLimit, b), func(ctx context.Context) error {
-		results, err := querysBQRows(ctx, bqQuery)
+		results, err := queryBQEntries(ctx, bqQuery)
 		if err != nil {
 			tb.Logf("failed to query pmap events: %v", err)
 			return err
@@ -362,12 +374,7 @@ func testGetFirstPmapEventWithRetries(ctx context.Context, tb testing.TB, bqQuer
 
 		// Early exit retry if queried pmap event already found.
 		if len(results) > 0 {
-			if err := protojson.Unmarshal([]byte(results[0].Data), &pmapEvent); err != nil {
-				return fmt.Errorf("failed to unmarshal bq data to pmapEvent: %w", err)
-			}
-			if err := json.Unmarshal([]byte(results[0].Attributes), &attributes); err != nil {
-				return fmt.Errorf("failed to unmarshal bq attributes: %w", err)
-			}
+			entry = results[0]
 			return nil
 		}
 		tb.Log("Matching entry not found, retrying...")
@@ -375,11 +382,11 @@ func testGetFirstPmapEventWithRetries(ctx context.Context, tb testing.TB, bqQuer
 	}); err != nil {
 		tb.Fatalf("Retry failed: %v.", err)
 	}
-	return &pmapEvent, attributes.ProcessErr
+	return entry
 }
 
-// querysBQRows queries the BQ and checks if a bigqury row matched the query exists or not and return the results.
-func querysBQRows(ctx context.Context, query *bigquery.Query) ([]*BQRow, error) {
+// queryBQEntries queries the BQ and checks if a bigqury entry matched the query exists or not and return the results.
+func queryBQEntries(ctx context.Context, query *bigquery.Query) ([]*bqEntry, error) {
 	job, err := query.Run(ctx)
 	if err != nil {
 		return nil, retry.RetryableError(fmt.Errorf("failed to run query: %w", err))
@@ -395,17 +402,18 @@ func querysBQRows(ctx context.Context, query *bigquery.Query) ([]*BQRow, error) 
 		return nil, retry.RetryableError(fmt.Errorf("failed to read job: %w", err))
 	}
 
-	var entries []*BQRow
+	var entries []*bqEntry
 	for {
-		var row BQRow
-		err := it.Next(&row)
+		var entry bqEntry
+		err := it.Next(&entry)
 		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("failed to get next row: %w", err)
+			return nil, fmt.Errorf("failed to get next entry: %w", err)
 		}
-		entries = append(entries, &row)
+
+		entries = append(entries, &entry)
 	}
 	return entries, nil
 }

@@ -84,7 +84,7 @@ func (p *AssetInventoryProcessor) Process(ctx context.Context, resourceMapping *
 
 	resourceScope, err := parseProject(resourceName)
 	if err != nil {
-		return err
+		return pmaperrors.New(fmt.Sprintf("failed to parse project: %v", err))
 	}
 	// Need defaultResourceScope because resources such as GCS bucket won't include Project info in its resource name.
 	// See details: https://cloud.google.com/asset-inventory/docs/resource-name-format.
@@ -250,7 +250,7 @@ func parseProject(resourceName string) (string, error) {
 		if e == "projects" {
 			if i+1 >= len(s) || s[i+1] == "" {
 				// This is obviously an invalid input.
-				return "", pmaperrors.New(fmt.Sprintf("invalid resource name: %s", resourceName))
+				return "", fmt.Errorf("invalid resource name: %s", resourceName)
 			}
 			project = s[i+1]
 		}
