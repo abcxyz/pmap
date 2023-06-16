@@ -250,7 +250,7 @@ func parseProject(resourceName string) (string, error) {
 		if e == "projects" {
 			if i+1 >= len(s) || s[i+1] == "" {
 				// This is obviously an invalid input.
-				return "", fmt.Errorf("invalid resource name: %s", resourceName)
+				return "", pmaperrors.New(fmt.Sprintf("invalid resource name: %s", resourceName))
 			}
 			project = s[i+1]
 		}
