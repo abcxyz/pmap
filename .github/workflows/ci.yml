@@ -8,6 +8,7 @@ on:
     branches:
       - 'main'
   workflow_dispatch:
+  workflow_call:
 
 env:
   WIF_PROVIDER: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
