@@ -9,7 +9,7 @@ env:
   DOCKER_REPO: 'us-docker.pkg.dev/abcxyz-artifacts/docker-images'
   WIF_PROVIDER: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
   WIF_SERVICE_ACCOUNT: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
-  DEV_PROJECT_ID: 'pmap-dev'
+  DEV_PROJECT_ID: 'pmap-dev-380219'
   DEV_REGION: 'us-central1'
 
 # Don't cancel in progress since we don't want to have half-baked release.
