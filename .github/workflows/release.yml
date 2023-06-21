@@ -16,12 +16,12 @@ env:
 concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-release'
 
 jobs:
-  # ci:
-  #   uses: 'abcxyz/pmap/.github/workflows/ci.yml@main' # ratchet:exclude
+  ci:
+    uses: 'abcxyz/pmap/.github/workflows/ci.yml@main' # ratchet:exclude
 
   image-release:
     # Run CI before the release
-    # needs: ['ci']
+    needs: ['ci']
     runs-on: 'ubuntu-latest'
     permissions:
       contents: 'read'
@@ -52,36 +52,35 @@ jobs:
           version: 'v1.16.1' # Manually pinned
           args: 'release -f .goreleaser.docker.yaml --clean'
 
-  # github-release:
-  #   needs: ['image-release']
-  #   runs-on: 'ubuntu-latest'
-  #   permissions:
-  #     contents: 'write'
-  #     packages: 'write'
-  #   steps:
-  #     - uses: 'actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8' # ratchet:actions/checkout@v3
-  #       with:
-  #         fetch-depth: 0
-  #     - uses: 'actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f' # ratchet:actions/setup-go@v3
-  #       with:
-  #         go-version: '1.20'
-  #     - uses: 'goreleaser/goreleaser-action@b508e2e3ef3b19d4e4146d4f8fb3ba9db644a757' # ratchet:goreleaser/goreleaser-action@v3
-  #       with:
-  #         version: 'v1.16.1' # Manually pinned
-  #         args: 'release --clean'
-  #       env:
-  #         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+  github-release:
+    needs: ['image-release']
+    runs-on: 'ubuntu-latest'
+    permissions:
+      contents: 'write'
+      packages: 'write'
+    steps:
+      - uses: 'actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8' # ratchet:actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: 'actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f' # ratchet:actions/setup-go@v3
+        with:
+          go-version: '1.20'
+      - uses: 'goreleaser/goreleaser-action@b508e2e3ef3b19d4e4146d4f8fb3ba9db644a757' # ratchet:goreleaser/goreleaser-action@v3
+        with:
+          version: 'v1.16.1' # Manually pinned
+          args: 'release --clean'
+        env:
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
 
   deploy-dev-services:
-    # needs: ['image-release', 'github-release']
-    needs: ['image-release']
+    needs: ['image-release', 'github-release']
     runs-on: 'ubuntu-latest'
     permissions:
       contents: 'read'
       id-token: 'write'
     strategy:
       matrix:
-        service_name: ['mapping-aa11', 'policy-b6d9']
+        service_name: ['mapping-aa11', 'policy-b6b9']
     steps:
       - name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@c4799db9111fba4461e9f9da8732e5057b394f72' # ratchet:google-github-actions/auth@v0
