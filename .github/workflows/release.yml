@@ -9,7 +9,7 @@ env:
   DOCKER_REPO: 'us-docker.pkg.dev/abcxyz-artifacts/docker-images'
   WIF_PROVIDER: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
   WIF_SERVICE_ACCOUNT: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
-  DEV_PROJECT_ID: 'pmap-dev'
+  DEV_PROJECT_ID: 'pmap-dev-380219'
   DEV_REGION: 'us-central1'
 
 # Don't cancel in progress since we don't want to have half-baked release.
@@ -46,7 +46,7 @@ jobs:
         with:
           username: 'oauth2accesstoken'
           password: '${{ steps.auth.outputs.access_token }}'
-          registry: 'us-central1-docker.pkg.dev'
+          registry: 'us-docker.pkg.dev'
       - uses: 'goreleaser/goreleaser-action@b508e2e3ef3b19d4e4146d4f8fb3ba9db644a757' # ratchet:goreleaser/goreleaser-action@v3
         with:
           version: 'v1.16.1' # Manually pinned
@@ -80,7 +80,7 @@ jobs:
       id-token: 'write'
     strategy:
       matrix:
-        service_name: ['mapping', 'policy']
+        service_name: ['mapping-aa11', 'policy-b6b9']
     steps:
       - name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@c4799db9111fba4461e9f9da8732e5057b394f72' # ratchet:google-github-actions/auth@v0
