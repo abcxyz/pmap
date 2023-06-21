@@ -80,7 +80,7 @@ jobs:
       id-token: 'write'
     strategy:
       matrix:
-        service_name: ['mapping', 'policy']
+        service_name: ['mapping-aa11', 'policy-b6d9']
     steps:
       - name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@c4799db9111fba4461e9f9da8732e5057b394f72' # ratchet:google-github-actions/auth@v0
