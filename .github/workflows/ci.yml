@@ -95,12 +95,12 @@ jobs:
           args: 'release -f .goreleaser.docker.yaml --clean'
 
   # Deploy integration test infrastructure and run integration tests
-  integration:
+  set_up_integration_infra:
     runs-on: 'ubuntu-latest'
     needs:
       - 'build'
     permissions:
-      contents: 'read'
+      contents: 'read' 
       id-token: 'write'
     env:
       TF_MODULE_DIR: './terraform/modules/pmap-service'
@@ -193,17 +193,33 @@ jobs:
         id: 'tf_apply_policy'
         run: |-
           terraform -chdir=${{ env.POLICY_TF_MODULE_DIR}} apply -auto-approve -var-file=${{env.POLICY_TF_VAR_FILE}};
-      - name: 'Call file copy mapping workflow'
-        uses: 'abcxyz/pmap/.github/workflows/snapshot-file-copy.yml@main' # ratchet:exclude
-        with:
-          workload_identity_provider: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
-          service_account: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
-          destination_prefix: 'pmap-ci/mapping'
-          path: 'test/e2e/testdata/fakedata/mapping'
-      - name: 'write workflow id to env'
-        id: 'write_workflow_id'
-        run: |
-          echo "WORKFLOW_RUN_ID=${{ github.workflow }}" >> $GITHUB_ENV
+  # Call reuseble workflow
+  call_reusble_workflow:
+    runs-on: 'ubuntu-latest'
+    needs: set_up_integration_infra
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    uses: 'abcxyz/pmap/.github/workflows/snapshot-file-copy.yml@main' # ratchet:exclude
+    with:
+      workload_identity_provider: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
+      service_account: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
+      destination_prefix: 'pmap-ci/mapping'
+      path: 'test/e2e/testdata/fakedata/mapping'
+    steps:
+    - name: 'write workflow id to env'
+      id: 'write_workflow_id'
+      run: |
+        echo "WORKFLOW_RUN_ID=${{ github.workflow }}" >> $GITHUB_ENV
+
+  run_integ_test_and_clean_up:
+    runs-on: 'ubuntu-latest'
+    needs:
+      - 'call_reusble_workflow'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
       - name: 'Run tests'
         env:
           TEST_INTEGRATION: 'true'
