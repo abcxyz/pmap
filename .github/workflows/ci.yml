@@ -203,11 +203,11 @@ jobs:
 
   run_integ_test_and_clean_up:
     runs-on: 'ubuntu-latest'
-    needs:
-      - 'call_reusble_workflow'
+    needs: ['call_reusble_workflow']
     permissions:
       contents: 'read'
       id-token: 'write'
+    if: '${{ always() }}'
     steps:
       - name: 'write workflow id to env'
         id: 'write_workflow_id'
