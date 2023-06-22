@@ -194,7 +194,6 @@ jobs:
         run: |-
           terraform -chdir=${{ env.POLICY_TF_MODULE_DIR}} apply -auto-approve -var-file=${{env.POLICY_TF_VAR_FILE}};
       - name: 'Call file copy mapping workflow'
-        id: 'call_file_copy_mapping'
         uses: 'abcxyz/pmap/.github/workflows/snapshot-file-copy.yml@main' # ratchet:exclude
         with:
           workload_identity_provider: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
