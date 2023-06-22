@@ -201,14 +201,89 @@ jobs:
       destination_prefix: 'pmap-ci/mapping'
       path: 'test/e2e/testdata/fakedata/mapping'
 
+
   run_integ_test_and_clean_up:
     runs-on: 'ubuntu-latest'
     needs: ['call_reusble_workflow']
     permissions:
       contents: 'read'
       id-token: 'write'
+    env:
+      TF_MODULE_DIR: './terraform/modules/pmap-service'
+      MAPPING_TF_MODULE_DIR: '/tmp/mapping_tf_module'
+      POLICY_TF_MODULE_DIR: '/tmp/policy_tf_module'
+      INTEG_TEST_PROJECT_ID: 'pmap-ci'
+      INTEG_TEST_BUCKET_ID: 'pmap-ci'
+      INTEG_TEST_BIGQUERY_DATASET_ID: 'pmap_86d8'
+      INTEG_TEST_MAPPING_TABLE_ID: 'mapping'
+      INTEG_TEST_MAPPING_FAILURE_TABLE_ID: 'mapping-failure'
+      INTEG_TEST_POLICY_TABLE_ID: 'policy'
+      INTEG_TEST_RUN_SERVICE_ACCOUNT: 'run-pmap-86d8@pmap-ci.iam.gserviceaccount.com'
+      INTEG_TEST_OIDC_SERVICE_ACCOUNT: 'pmap-oidc-86d8@pmap-ci.iam.gserviceaccount.com'
+      INTEG_TEST_MAPPING_UPSTREAM_TOPIC: 'mapping-gcs'
+      INTEG_TEST_MAPPING_DOWNSTREAM_TOPIC: 'mapping-bigquery'
+      INTEG_TEST_MAPPING_DOWNSTREAM_FAILURE_TOPIC: 'mapping-failure-bigquery'
+      INTEG_TEST_POLICY_UPSTREAM_TOPIC: 'policy-gcs'
+      INTEG_TEST_POLICY_DOWNSTREAM_TOPIC: 'policy-bigquery'
+      INTEG_TEST_STATIC_GCS_BUCKET: 'pmap-static-ci-bucket-7faa'
     if: '${{ always() }}'
     steps:
+      - uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
+      - id: 'auth'
+        uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
+        with:
+          workload_identity_provider: '${{ env.WIF_PROVIDER }}'
+          service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+          token_format: 'access_token'
+      # TODO: Workload Identity doesn't work with GCS Provider.
+      # https://github.com/google-github-actions/auth/issues/89
+      - name: 'Workaround Terraform issue'
+        shell: 'bash'
+        run: |-
+          echo "GOOGLE_OAUTH_ACCESS_TOKEN=${{ steps.auth.outputs.access_token }}" >> $GITHUB_ENV
+      - uses: 'hashicorp/setup-terraform@633666f66e0061ca3b725c73b2ec20cd13a8fdd1' # ratchet:hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: false
+      # Generate a unique object ID prefix to mark the files in GCS and BigQuery so that we run multiple
+      # CI simultaneously.
+      - name: 'Generate object prefix'
+        run: |
+          echo "INTEG_TEST_OBJECT_PREFIX=$RANDOM" >> $GITHUB_ENV
+      - name: 'Write mapping tfvars file'
+        run: |-
+          VAR_FILE=/tmp/mapping_ci.tfvars
+
+          touch /tmp/mapping_ci.tfvars
+          echo project_id=\"${{ env.INTEG_TEST_PROJECT_ID }}\" >> ${VAR_FILE};
+          echo service_name=\"mapping\" >> ${VAR_FILE};
+          echo pmap_container_image=\"${{env.DOCKER_REPO}}/pmap:${{env.DOCKER_TAG}}-amd64\" >> ${VAR_FILE};
+          echo pmap_args=[\"mapping\",\"server\"] >> ${VAR_FILE};
+          echo upstream_topic=\"${{ env.INTEG_TEST_MAPPING_UPSTREAM_TOPIC}}\" >> ${VAR_FILE};
+          echo downstream_topic=\"${{ env.INTEG_TEST_MAPPING_DOWNSTREAM_TOPIC}}\" >> ${VAR_FILE};
+          echo downstream_failure_topic=\"${{ env.INTEG_TEST_MAPPING_DOWNSTREAM_FAILURE_TOPIC}}\" >> ${VAR_FILE};
+          echo pmap_service_account=\"${{ env.INTEG_TEST_RUN_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
+          echo oidc_service_account=\"${{ env.INTEG_TEST_OIDC_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
+          echo gcs_events_filter=\"hasPrefix\(attributes.objectId, \\\"mapping/${INTEG_TEST_OBJECT_PREFIX}\\\"\)\">> ${VAR_FILE};
+
+          cat ${VAR_FILE};
+          echo "MAPPING_TF_VAR_FILE=${VAR_FILE}" >> $GITHUB_ENV;
+      - name: 'Write policy tfvars file'
+        run: |-
+          VAR_FILE=/tmp/policy_ci.tfvars
+
+          touch /tmp/policy_ci.tfvars
+          echo project_id=\"${{ env.INTEG_TEST_PROJECT_ID }}\" >> ${VAR_FILE};
+          echo service_name=\"policy\" >> ${VAR_FILE};
+          echo pmap_container_image=\"${{env.DOCKER_REPO}}/pmap:${{env.DOCKER_TAG}}-amd64\" >> ${VAR_FILE};
+          echo pmap_args=[\"policy\",\"server\"] >> ${VAR_FILE};
+          echo upstream_topic=\"${{ env.INTEG_TEST_POLICY_UPSTREAM_TOPIC}}\" >> ${VAR_FILE};
+          echo downstream_topic=\"${{ env.INTEG_TEST_POLICY_DOWNSTREAM_TOPIC}}\" >> ${VAR_FILE};
+          echo pmap_service_account=\"${{ env.INTEG_TEST_RUN_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
+          echo oidc_service_account=\"${{ env.INTEG_TEST_OIDC_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
+          echo gcs_events_filter=\"hasPrefix\(attributes.objectId, \\\"policy/${INTEG_TEST_OBJECT_PREFIX}\\\"\)\">> ${VAR_FILE};
+
+          cat ${VAR_FILE};
+          echo "POLICY_TF_VAR_FILE=${VAR_FILE}" >> $GITHUB_ENV;
       - name: 'write workflow id to env'
         id: 'write_workflow_id'
         run: |
