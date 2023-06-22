@@ -42,7 +42,7 @@ type config struct {
 	// WorkflowRunID is the uniqle ID for each workflow run. We will use this ID
 	// the filter the BQ entry which is created by calling mapping/policy reusable
 	// workflow in CI.
-	WorkflowRunID string `env: "WORKFLOW_RUN_ID, required"`
+	WorkflowRunID string `env:"WORKFLOW_RUN_ID,required"`
 }
 
 func newTestConfig(ctx context.Context) (*config, error) {
