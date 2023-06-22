@@ -60,8 +60,7 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
-    needs:
-      - 'lint_and_unit'
+    needs: ['lint_and_unit']
     steps:
       - name: 'Checkout'
         uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
@@ -97,10 +96,9 @@ jobs:
   # Deploy integration test infrastructure and run integration tests
   set_up_integration_infra:
     runs-on: 'ubuntu-latest'
-    needs:
-      - 'build'
+    needs: ['build']
     permissions:
-      contents: 'read' 
+      contents: 'read'
       id-token: 'write'
     env:
       TF_MODULE_DIR: './terraform/modules/pmap-service'
@@ -195,22 +193,12 @@ jobs:
           terraform -chdir=${{ env.POLICY_TF_MODULE_DIR}} apply -auto-approve -var-file=${{env.POLICY_TF_VAR_FILE}};
   # Call reuseble workflow
   call_reusble_workflow:
-    runs-on: 'ubuntu-latest'
-    needs: set_up_integration_infra
-    permissions:
-      contents: 'read'
-      id-token: 'write'
     uses: 'abcxyz/pmap/.github/workflows/snapshot-file-copy.yml@main' # ratchet:exclude
     with:
       workload_identity_provider: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
       service_account: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
       destination_prefix: 'pmap-ci/mapping'
       path: 'test/e2e/testdata/fakedata/mapping'
-    steps:
-    - name: 'write workflow id to env'
-      id: 'write_workflow_id'
-      run: |
-        echo "WORKFLOW_RUN_ID=${{ github.workflow }}" >> $GITHUB_ENV
 
   run_integ_test_and_clean_up:
     runs-on: 'ubuntu-latest'
@@ -220,6 +208,10 @@ jobs:
       contents: 'read'
       id-token: 'write'
     steps:
+      - name: 'write workflow id to env'
+        id: 'write_workflow_id'
+        run: |
+          echo "WORKFLOW_RUN_ID=${{ github.workflow }}" >> $GITHUB_ENV
       - name: 'Run tests'
         env:
           TEST_INTEGRATION: 'true'
