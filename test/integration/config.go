@@ -38,6 +38,11 @@ type config struct {
 	// It's required to trigger the correct GCS notification for each CI/CD run
 	// which aims to avoid of side effects when multiple CI/CD runs in parallel.
 	ObjectPrefix string `env:"INTEG_TEST_OBJECT_PREFIX,required"`
+
+	// WorkflowRunID is the uniqle ID for each workflow run. We will use this ID
+	// the filter the BQ entry which is created by calling mapping/policy reusable
+	// workflow in CI.
+	WorkflowRunID string `env: "WORKFLOW_RUN_ID, required"`
 }
 
 func newTestConfig(ctx context.Context) (*config, error) {

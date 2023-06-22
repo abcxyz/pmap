@@ -193,6 +193,18 @@ jobs:
         id: 'tf_apply_policy'
         run: |-
           terraform -chdir=${{ env.POLICY_TF_MODULE_DIR}} apply -auto-approve -var-file=${{env.POLICY_TF_VAR_FILE}};
+      - name: 'Call file copy mapping workflow'
+        id: 'call_file_copy_mapping'
+        uses: 'abcxyz/pmap/.github/workflows/snapshot-file-copy.yml@main' # ratchet:exclude
+        with:
+          workload_identity_provider: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
+          service_account: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
+          destination_prefix: 'pmap-ci/mapping'
+          path: 'test/e2e/testdata/fakedata/mapping'
+      - name: 'write workflow id to env'
+        id: 'write_workflow_id'
+        run: |
+          echo "WORKFLOW_RUN_ID=${{ github.workflow }}" >> $GITHUB_ENV
       - name: 'Run tests'
         env:
           TEST_INTEGRATION: 'true'
