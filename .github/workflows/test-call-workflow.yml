@@ -18,7 +18,8 @@ jobs:
     steps:
       - name: 'Generate object prefix'
         id: 'generate_object_prefix'
-        run: echo "INTEG_TEST_OBJECT_PREFIX=${RANDOM}" >> "$GITHUB_ENV"
+        run: |
+          echo "INTEG_TEST_OBJECT_PREFIX=${RANDOM}" >> "$GITHUB_ENV"
       - name: 'Output object prefix'
         id: 'output_object_prefix'
         run: |
@@ -40,6 +41,6 @@ jobs:
       contents: 'read'
       id-token: 'write'
     steps:
-      - name: print
+      - name: 'print'
         run: |
           echo aaa/bbb/ccc${{needs.job1.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT}}
