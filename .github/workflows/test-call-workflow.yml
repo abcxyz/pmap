@@ -1,0 +1,44 @@
+name: 'test-call-mapping-copy'
+
+on:
+  push:
+  workflow_dispatch:
+
+# Don't cancel in progress since we don't want to have half-baked file change snapshot.
+concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-fake-mapping-snapshot-file-copy'
+
+jobs:
+  job1:
+    runs-on: 'ubuntu-latest'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    outputs:
+      INTEG_TEST_OBJECT_PREFIX_OUTPUT: '${{steps.output_object_prefix.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT}}'
+    steps:
+      - name: 'Generate object prefix'
+        id: 'generate_object_prefix'
+        run: echo "INTEG_TEST_OBJECT_PREFIX=${RANDOM}" >> "$GITHUB_ENV"
+      - name: 'Output object prefix'
+        id: 'output_object_prefix'
+        run: echo "INTEG_TEST_OBJECT_PREFIX_OUTPUT=${INTEG_TEST_OBJECT_PREFIX}" >> "$GITHUB_OUTPUT"
+
+  job2:
+    needs: ['job1']
+    uses: 'abcxyz/pmap/.github/workflows/snapshot-file-copy.yml@main' # ratchet:exclude
+    with:
+      workload_identity_provider: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
+      service_account: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
+      destination_prefix: pmap-dev/mapping/abcde/${{ needs.job1.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT }}/hijkl
+      path: 'test/e2e/testdata/fakedata/mapping'
+
+  job3:
+    needs: ['job1']
+    runs-on: 'ubuntu-latest'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: print
+        run: |
+          echo aaa/bbb/ccc${{needs.job1.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT}}

@@ -16,7 +16,7 @@ env:
   DOCKER_REGISTRY: 'us-docker.pkg.dev'
   DOCKER_REPO: 'us-docker.pkg.dev/pmap-ci/ci-images'
   DOCKER_TAG: '${{ github.sha }}'
-  RANDOM_PREFIX: '${RANDOM}'
+  # RANDOM_PREFIX: '${RANDOM}'
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
@@ -119,6 +119,8 @@ jobs:
       INTEG_TEST_POLICY_UPSTREAM_TOPIC: 'policy-gcs'
       INTEG_TEST_POLICY_DOWNSTREAM_TOPIC: 'policy-bigquery'
       INTEG_TEST_STATIC_GCS_BUCKET: 'pmap-static-ci-bucket-7faa'
+    outputs:
+      INTEG_TEST_OBJECT_PREFIX_OUTPUT: '${{steps.outoup_object_prefix.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT}}'
     steps:
       - uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
       - id: 'auth'
@@ -139,8 +141,13 @@ jobs:
       # Generate a unique object ID prefix to mark the files in GCS and BigQuery so that we run multiple
       # CI simultaneously.
       - name: 'Generate object prefix'
+        id: 'generate_object_prefix'
         run: |
-          echo "INTEG_TEST_OBJECT_PREFIX=${{env.RANDOM_PREFIX}}" >> $GITHUB_ENV
+          echo "INTEG_TEST_OBJECT_PREFIX=${RANDOM}" >> '$GITHUB_ENV'
+      - name: 'Output object prefix'
+        id: 'outoup_object_prefix'
+        run: |
+          echo "INTEG_TEST_OBJECT_PREFIX_OUTPUT=${INTEG_TEST_OBJECT_PREFIX}" >> '$GITHUB_OUTPUT'
       - name: 'Write mapping tfvars file'
         run: |-
           VAR_FILE=/tmp/mapping_ci.tfvars
@@ -199,12 +206,12 @@ jobs:
     with:
       workload_identity_provider: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
       service_account: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
-      destination_prefix: 'pmap-ci/mapping'
+      destination_prefix: 'pmap-ci/mapping/${{needs.set_up_integration_infra.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT}}'
       path: 'test/e2e/testdata/fakedata/mapping'
 
   run_integ_test_and_clean_up:
     runs-on: 'ubuntu-latest'
-    needs: ['call_reusble_workflow']
+    needs: ['set_up_integration_infra', 'call_reusble_workflow']
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -247,7 +254,7 @@ jobs:
       # CI simultaneously.
       - name: 'Generate object prefix'
         run: |
-          echo "INTEG_TEST_OBJECT_PREFIX=${{env.RANDOM_PREFIX}}" >> $GITHUB_ENV
+          echo "INTEG_TEST_OBJECT_PREFIX=${{needs.set_up_integration_infra.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT}}" >> $GITHUB_ENV
       - name: 'Write mapping tfvars file'
         run: |-
           VAR_FILE=/tmp/mapping_ci.tfvars
@@ -293,11 +300,13 @@ jobs:
         run: |-
           go test ./test/integration \
             -timeout=15m
-      - name: 'Init the terraform infrastructure for mapping'
+      - name: 'Init the mapping terraform infrastructure for clean up'
+        if: '${{ always() }}'
         run: |-
           cp -r ${{ env.TF_MODULE_DIR}} ${{ env.MAPPING_TF_MODULE_DIR}}
           terraform -chdir=${{ env.MAPPING_TF_MODULE_DIR}} init
-      - name: 'Init the terraform infrastructure for policy'
+      - name: 'Init the policy terraform infrastructure for clean up'
+        if: '${{ always() }}'
         run: |-
           cp -r ${{ env.TF_MODULE_DIR}} ${{ env.POLICY_TF_MODULE_DIR}}
           terraform -chdir=${{ env.POLICY_TF_MODULE_DIR}} init
