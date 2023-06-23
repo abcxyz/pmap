@@ -21,7 +21,8 @@ jobs:
         run: echo "INTEG_TEST_OBJECT_PREFIX=${RANDOM}" >> "$GITHUB_ENV"
       - name: 'Output object prefix'
         id: 'output_object_prefix'
-        run: echo "INTEG_TEST_OBJECT_PREFIX_OUTPUT=${INTEG_TEST_OBJECT_PREFIX}" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "INTEG_TEST_OBJECT_PREFIX_OUTPUT=${INTEG_TEST_OBJECT_PREFIX}" >> "$GITHUB_OUTPUT"
 
   job2:
     needs: ['job1']
