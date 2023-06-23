@@ -16,6 +16,7 @@ env:
   DOCKER_REGISTRY: 'us-docker.pkg.dev'
   DOCKER_REPO: 'us-docker.pkg.dev/pmap-ci/ci-images'
   DOCKER_TAG: '${{ github.sha }}'
+  RANDOM_PREFIX: '${RANDOM}'
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
@@ -139,7 +140,7 @@ jobs:
       # CI simultaneously.
       - name: 'Generate object prefix'
         run: |
-          echo "INTEG_TEST_OBJECT_PREFIX=$RANDOM" >> $GITHUB_ENV
+          echo "INTEG_TEST_OBJECT_PREFIX=${{env.RANDOM_PREFIX}}" >> $GITHUB_ENV
       - name: 'Write mapping tfvars file'
         run: |-
           VAR_FILE=/tmp/mapping_ci.tfvars
@@ -201,7 +202,6 @@ jobs:
       destination_prefix: 'pmap-ci/mapping'
       path: 'test/e2e/testdata/fakedata/mapping'
 
-
   run_integ_test_and_clean_up:
     runs-on: 'ubuntu-latest'
     needs: ['call_reusble_workflow']
@@ -226,7 +226,6 @@ jobs:
       INTEG_TEST_POLICY_UPSTREAM_TOPIC: 'policy-gcs'
       INTEG_TEST_POLICY_DOWNSTREAM_TOPIC: 'policy-bigquery'
       INTEG_TEST_STATIC_GCS_BUCKET: 'pmap-static-ci-bucket-7faa'
-    if: '${{ always() }}'
     steps:
       - uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
       - id: 'auth'
@@ -248,7 +247,7 @@ jobs:
       # CI simultaneously.
       - name: 'Generate object prefix'
         run: |
-          echo "INTEG_TEST_OBJECT_PREFIX=$RANDOM" >> $GITHUB_ENV
+          echo "INTEG_TEST_OBJECT_PREFIX=${{env.RANDOM_PREFIX}}" >> $GITHUB_ENV
       - name: 'Write mapping tfvars file'
         run: |-
           VAR_FILE=/tmp/mapping_ci.tfvars
@@ -294,6 +293,14 @@ jobs:
         run: |-
           go test ./test/integration \
             -timeout=15m
+      - name: 'Init the terraform infrastructure for mapping'
+        run: |-
+          cp -r ${{ env.TF_MODULE_DIR}} ${{ env.MAPPING_TF_MODULE_DIR}}
+          terraform -chdir=${{ env.MAPPING_TF_MODULE_DIR}} init
+      - name: 'Init the terraform infrastructure for policy'
+        run: |-
+          cp -r ${{ env.TF_MODULE_DIR}} ${{ env.POLICY_TF_MODULE_DIR}}
+          terraform -chdir=${{ env.POLICY_TF_MODULE_DIR}} init
       - name: 'Cleanup the infrastructure for mapping'
         if: '${{ always() }}'
         run: |-
