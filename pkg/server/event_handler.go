@@ -341,6 +341,8 @@ type notificationPayload struct {
 }
 
 func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]string) (*v1alpha1.GitHubSource, error) {
+	logger := logging.FromContext(ctx)
+
 	var pm *notificationPayload
 	if err := json.Unmarshal(data, &pm); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal payloadMetadata %w", err)
@@ -348,34 +350,34 @@ func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]str
 
 	var r v1alpha1.GitHubSource
 
-	// Set github-commit. Response with error message when github-commit can not be found.
+	// Set github-commit.
 	c, found := pm.Metadata[MetadataKeyGitHubCommit]
 	if !found {
-		return nil, fmt.Errorf("github-commit not found")
+		logger.Infof("github-commit not found")
 	} else {
 		r.Commit = c
 	}
 
-	// Set github-repo. Response with error message when github-repo can not be found.
+	// Set github-repo.
 	rn, found := pm.Metadata[MetadataKeyGitHubRepo]
 	if !found {
-		return nil, fmt.Errorf("github-repo not found")
+		logger.Infof("github-repo not found")
 	} else {
 		r.RepoName = rn
 	}
 
-	// Set github-workflow. Response with error message when github-workflow can not be found.
+	// Set github-workflow.
 	w, found := pm.Metadata[MetadataKeyWorkflow]
 	if !found {
-		return nil, fmt.Errorf("github-workflow not found")
+		logger.Infof("github-workflow not found")
 	} else {
 		r.Workflow = w
 	}
 
-	// Set github-workflow-sha. Response with error message when github-workflow-sha can not be found.
+	// Set github-workflow-sha.
 	ws, found := pm.Metadata[MetadataKeyWorkflowSha]
 	if !found {
-		return nil, fmt.Errorf("github-workflow-sha not found")
+		logger.Infof("github-workflow-sha not found")
 	} else {
 		r.WorkflowSha = ws
 	}
