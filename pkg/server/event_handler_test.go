@@ -29,6 +29,7 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
+	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"github.com/abcxyz/pmap/pkg/pmaperrors"
@@ -44,6 +45,9 @@ func TestEventHandler_NewHandler(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
+
+	logger := logging.FromContext(ctx)
+	logger.Debugw("just for testing")
 
 	// Setup fake storage client.
 	hc, done := newTestServer(testHandleObjectRead(t, []byte("test")))
