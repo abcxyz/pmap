@@ -17,6 +17,24 @@ env:
   DOCKER_REPO: 'us-docker.pkg.dev/pmap-ci/ci-images'
   DOCKER_TAG: '${{ github.sha }}'
 
+  TF_MODULE_DIR: './terraform/modules/pmap-service'
+  MAPPING_TF_MODULE_DIR: '/tmp/mapping_tf_module'
+  POLICY_TF_MODULE_DIR: '/tmp/policy_tf_module'
+  INTEG_TEST_PROJECT_ID: 'pmap-ci'
+  INTEG_TEST_BUCKET_ID: 'pmap-ci'
+  INTEG_TEST_BIGQUERY_DATASET_ID: 'pmap_86d8'
+  INTEG_TEST_MAPPING_TABLE_ID: 'mapping'
+  INTEG_TEST_MAPPING_FAILURE_TABLE_ID: 'mapping-failure'
+  INTEG_TEST_POLICY_TABLE_ID: 'policy'
+  INTEG_TEST_RUN_SERVICE_ACCOUNT: 'run-pmap-86d8@pmap-ci.iam.gserviceaccount.com'
+  INTEG_TEST_OIDC_SERVICE_ACCOUNT: 'pmap-oidc-86d8@pmap-ci.iam.gserviceaccount.com'
+  INTEG_TEST_MAPPING_UPSTREAM_TOPIC: 'mapping-gcs'
+  INTEG_TEST_MAPPING_DOWNSTREAM_TOPIC: 'mapping-bigquery'
+  INTEG_TEST_MAPPING_DOWNSTREAM_FAILURE_TOPIC: 'mapping-failure-bigquery'
+  INTEG_TEST_POLICY_UPSTREAM_TOPIC: 'policy-gcs'
+  INTEG_TEST_POLICY_DOWNSTREAM_TOPIC: 'policy-bigquery'
+  INTEG_TEST_STATIC_GCS_BUCKET: 'pmap-static-ci-bucket-7faa'
+
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
   cancel-in-progress: true
@@ -100,24 +118,6 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
-    env:
-      TF_MODULE_DIR: './terraform/modules/pmap-service'
-      MAPPING_TF_MODULE_DIR: '/tmp/mapping_tf_module'
-      POLICY_TF_MODULE_DIR: '/tmp/policy_tf_module'
-      INTEG_TEST_PROJECT_ID: 'pmap-ci'
-      INTEG_TEST_BUCKET_ID: 'pmap-ci'
-      INTEG_TEST_BIGQUERY_DATASET_ID: 'pmap_86d8'
-      INTEG_TEST_MAPPING_TABLE_ID: 'mapping'
-      INTEG_TEST_MAPPING_FAILURE_TABLE_ID: 'mapping-failure'
-      INTEG_TEST_POLICY_TABLE_ID: 'policy'
-      INTEG_TEST_RUN_SERVICE_ACCOUNT: 'run-pmap-86d8@pmap-ci.iam.gserviceaccount.com'
-      INTEG_TEST_OIDC_SERVICE_ACCOUNT: 'pmap-oidc-86d8@pmap-ci.iam.gserviceaccount.com'
-      INTEG_TEST_MAPPING_UPSTREAM_TOPIC: 'mapping-gcs'
-      INTEG_TEST_MAPPING_DOWNSTREAM_TOPIC: 'mapping-bigquery'
-      INTEG_TEST_MAPPING_DOWNSTREAM_FAILURE_TOPIC: 'mapping-failure-bigquery'
-      INTEG_TEST_POLICY_UPSTREAM_TOPIC: 'policy-gcs'
-      INTEG_TEST_POLICY_DOWNSTREAM_TOPIC: 'policy-bigquery'
-      INTEG_TEST_STATIC_GCS_BUCKET: 'pmap-static-ci-bucket-7faa'
     outputs:
       INTEG_TEST_OBJECT_PREFIX_OUTPUT: '${{ steps.output_object_prefix.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT }}'
     steps:
@@ -204,7 +204,7 @@ jobs:
         uses: 'actions/upload-artifact@v3'
         if: '${{ steps.tf_apply_mapping.outcome == ''success'' }}'
         with:
-          name: 'terraform-mapping-files'
+          name: 'terraform-mapping-files-${{ github.run_id}}'
           path: |
             ${{ env.MAPPING_TF_VAR_FILE }}
             ${{ env.MAPPING_TF_MODULE_DIR }}/terraform.tfstate
@@ -215,7 +215,7 @@ jobs:
         uses: 'actions/upload-artifact@v3'
         if: '${{ steps.tf_apply_policy.outcome == ''success'' }}'
         with:
-          name: 'terraform-policy-files'
+          name: 'terraform-policy-files-${{ github.run_id}}'
           path: |
             ${{ env.POLICY_TF_VAR_FILE }}
             ${{ env.POLICY_TF_MODULE_DIR }}/terraform.tfstate
@@ -247,18 +247,6 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
-    env:
-      TF_MODULE_DIR: './terraform/modules/pmap-service'
-      MAPPING_TF_MODULE_DIR: '/tmp/mapping_tf_module'
-      POLICY_TF_MODULE_DIR: '/tmp/policy_tf_module'
-      INTEG_TEST_PROJECT_ID: 'pmap-ci'
-      INTEG_TEST_BUCKET_ID: 'pmap-ci'
-      INTEG_TEST_BIGQUERY_DATASET_ID: 'pmap_86d8'
-      INTEG_TEST_MAPPING_TABLE_ID: 'mapping'
-      INTEG_TEST_MAPPING_FAILURE_TABLE_ID: 'mapping-failure'
-      INTEG_TEST_POLICY_TABLE_ID: 'policy'
-      INTEG_TEST_MAPPING_DOWNSTREAM_TOPIC: 'mapping-bigquery'
-      INTEG_TEST_STATIC_GCS_BUCKET: 'pmap-static-ci-bucket-7faa'
     steps:
       - uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
       - id: 'auth'
@@ -293,9 +281,6 @@ jobs:
       contents: 'read'
       id-token: 'write'
     env:
-      TF_MODULE_DIR: './terraform/modules/pmap-service'
-      MAPPING_TF_MODULE_DIR: '/tmp/mapping_tf_module'
-      POLICY_TF_MODULE_DIR: '/tmp/policy_tf_module'
       MAPPING_TF_VAR_FILE: '/tmp/mapping_tf_module/mapping_ci.tfvars'
       POLICY_TF_VAR_FILE: '/tmp/policy_tf_module/policy_ci.tfvars'
     steps:
@@ -321,7 +306,7 @@ jobs:
         if: '${{ always() }}'
         uses: 'actions/download-artifact@v3'
         with:
-          name: 'terraform-mapping-files'
+          name: 'terraform-mapping-files-${{ github.run_id }}'
           path: '${{ env.MAPPING_TF_MODULE_DIR }}'
       - name: 'Init the policy terraform infrastructure for clean up'
         if: '${{ always() }}'
@@ -332,7 +317,7 @@ jobs:
         if: '${{ always() }}'
         uses: 'actions/download-artifact@v3'
         with:
-          name: 'terraform-policy-files'
+          name: 'terraform-policy-files-${{ github.run_id }}'
           path: '${{ env.POLICY_TF_MODULE_DIR }}'
       - name: 'Cleanup the infrastructure for mapping'
         if: '${{ always() }}'
