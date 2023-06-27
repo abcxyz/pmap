@@ -189,6 +189,7 @@ isOK: true`),
 			wantStatusCode:     http.StatusInternalServerError,
 			wantRespBodySubstr: "failed to unmarshal payloadMetadata",
 		},
+		// This test case is to test logger.Infof() is called without causing any issue when github_commit is missing.
 		{
 			name: "success_with_github_commit_missing",
 			pubsubMessageBytes: testToJSON(t, &PubSubMessage{
