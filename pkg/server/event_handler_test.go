@@ -189,6 +189,34 @@ isOK: true`),
 			wantStatusCode:     http.StatusInternalServerError,
 			wantRespBodySubstr: "failed to unmarshal payloadMetadata",
 		},
+		// This test case is to test logger.Infof() is called without causing any issue when github_commit is missing.
+		{
+			name: "success_with_github_commit_missing",
+			pubsubMessageBytes: testToJSON(t, &PubSubMessage{
+				Message: struct {
+					Data       []byte            `json:"data,omitempty"`
+					Attributes map[string]string `json:"attributes"`
+				}{
+					Attributes: map[string]string{
+						"bucketId":      "foo",
+						"objectId":      "pmap-test/gh-prefix/dir1/dir2/bar",
+						"payloadFormat": "JSON_API_V1",
+					},
+					Data: []byte(`{
+						"metadata": {
+							"github-workflow-triggered-timestamp": "2023-04-25T17:44:57+00:00",
+							"github-workflow-sha": "test-workflow-sha",
+							"github-workflow": "test-workflow",
+							"github-repo": "test-github-repo",
+							"github-run-id": "5050509831",
+							"github-run-attempt": "1"
+						}
+					}`),
+				},
+			}),
+			wantStatusCode:     http.StatusCreated,
+			wantRespBodySubstr: "OK",
+		},
 	}
 
 	for _, tc := range cases {
