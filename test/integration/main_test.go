@@ -358,6 +358,149 @@ deletion_timeline:
 	}
 }
 
+// TestMappingReusbleWorkflowCall tests the mapping file-copy reusbale workflow has successfully
+// uploaded the file to gcs and triggered pmap event handler, and write the corresponding entry
+// into bigquery.
+func TestMappingReusbleWorkflowCall(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name                string
+		bigqueryTable       string
+		traceID             string
+		wantResourceMapping *v1alpha1.ResourceMapping
+	}{
+		{
+			name:          "mapping-copy-success-event",
+			bigqueryTable: cfg.MappingTableID,
+			traceID:       "fake-pmap-dev-manual-test-mapping",
+			wantResourceMapping: &v1alpha1.ResourceMapping{
+				Resource: &v1alpha1.Resource{
+					Provider: "gcp",
+					Name:     fmt.Sprintf("//storage.googleapis.com/%s", "pmap-static-ci-bucket-7faa"),
+				},
+				Contacts: &v1alpha1.Contacts{Email: []string{"pmap.mapping@gmail.com"}},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := context.Background()
+
+			t.Logf("using trace ID %s", tc.traceID)
+			t.Logf("using workflow run ID %s", cfg.WorkflowRunID)
+			// Check if the file uploaded exists in BigQuery.
+			queryString := fmt.Sprintf("SELECT * FROM `%s.%s.%s`", cfg.ProjectID, cfg.BigQueryDataSetID, tc.bigqueryTable)
+			queryString += `WHERE JSON_VALUE(data.githubSource.workflowRunId) = ?`
+
+			bqQuery := bqClient.Query(queryString)
+			bqQuery.Parameters = []bigquery.QueryParameter{{Value: cfg.WorkflowRunID}}
+
+			gotBQEntry := testGetFirstMatchedBQEntryWithRetries(ctx, t, bqQuery, cfg)
+
+			gotPmapEvent := &v1alpha1.PmapEvent{}
+			if err := protojson.Unmarshal([]byte(gotBQEntry.Data), gotPmapEvent); err != nil {
+				t.Fatalf("failed to unmarshal BQEntry.Data to pmapevent: %v", err)
+			}
+
+			gotResourceMapping := &v1alpha1.ResourceMapping{}
+			if err := gotPmapEvent.GetPayload().UnmarshalTo(gotResourceMapping); err != nil {
+				t.Fatalf("failed to unmarshal to resource mapping: %v", err)
+			}
+
+			cmpOpts := []cmp.Option{
+				protocmp.Transform(),
+				protocmp.IgnoreFields(&v1alpha1.ResourceMapping{}, "annotations"),
+			}
+
+			if diff := cmp.Diff(tc.wantResourceMapping, gotResourceMapping, cmpOpts...); diff != "" {
+				t.Errorf("gotPayload unexpected diff (-want,+got):\n%s", diff)
+			}
+
+			if diff := cmp.Diff(tc.traceID, gotResourceMapping.Annotations.AsMap()["traceID"]); diff != "" {
+				t.Errorf("traceID got unexpected diff (-want,+got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// TestMappingReusbleWorkflowCall tests the policy file-copy reusbale workflow has successfully
+// uploaded the file to gcs and triggered pmap event handler, and write the corresponding entry
+// into bigquery.
+func TestPolicyReusbleWorkflowCall(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name          string
+		bigqueryTable string
+		traceID       string
+		wantPayload   *structpb.Struct
+	}{
+		{
+			name:          "policy-copy-success-event",
+			bigqueryTable: cfg.PolicyTableID,
+			traceID:       "fake-pmap-dev-manual-test-policy",
+			wantPayload: &structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"annotations": structpb.NewStructValue(&structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"traceID": structpb.NewStringValue("fake-pmap-dev-manual-test-policy"),
+						},
+					}),
+					"contacts": structpb.NewStructValue(&structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"email": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{structpb.NewStringValue("pmap.policy@gmail.com")}}),
+						},
+					}),
+					"resource": structpb.NewStructValue(&structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"name": structpb.NewStringValue("policy"),
+						},
+					}),
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := context.Background()
+
+			t.Logf("using trace ID %s", tc.traceID)
+			t.Logf("using workflow run ID %s", cfg.WorkflowRunID)
+			// Check if the file uploaded exists in BigQuery.
+			queryString := fmt.Sprintf("SELECT * FROM `%s.%s.%s`", cfg.ProjectID, cfg.BigQueryDataSetID, tc.bigqueryTable)
+			queryString += `WHERE JSON_VALUE(data.githubSource.workflowRunId) = ?`
+
+			bqQuery := bqClient.Query(queryString)
+			bqQuery.Parameters = []bigquery.QueryParameter{{Value: cfg.WorkflowRunID}}
+
+			gotBQEntry := testGetFirstMatchedBQEntryWithRetries(ctx, t, bqQuery, cfg)
+
+			gotPmapEvent := &v1alpha1.PmapEvent{}
+			if err := protojson.Unmarshal([]byte(gotBQEntry.Data), gotPmapEvent); err != nil {
+				t.Fatalf("failed to unmarshal BQEntry.Data to pmapevent: %v", err)
+			}
+
+			gotPayload := &structpb.Struct{}
+			if err := gotPmapEvent.GetPayload().UnmarshalTo(gotPayload); err != nil {
+				t.Fatalf("failed to unmarshal to resource mapping: %v", err)
+			}
+
+			if diff := cmp.Diff(tc.wantPayload, gotPayload, protocmp.Transform()); diff != "" {
+				fmt.Printf("gotPayload unexpected diff (-want,+got):\n%s", diff)
+			}
+		})
+	}
+}
+
 // testGetFirstMatchedBQEntryWithRetries queries the DB and get the matched BQEntry.
 // If no matched BQEntry was found, the query will be retried with the specified retry inputs.
 func testGetFirstMatchedBQEntryWithRetries(ctx context.Context, tb testing.TB, bqQuery *bigquery.Query, cfg *config) *bqEntry {

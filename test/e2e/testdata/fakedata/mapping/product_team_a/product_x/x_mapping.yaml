@@ -1,5 +1,5 @@
 resource:
-  name: '//storage.googleapis.com/pmap-dev-manual-bucket'
+  name: '//storage.googleapis.com/pmap-static-ci-bucket-7faa'
   provider: 'gcp'
 annotations:
   traceID: 'fake-pmap-dev-manual-test-mapping'
