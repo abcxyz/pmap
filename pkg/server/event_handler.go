@@ -353,7 +353,7 @@ func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]str
 	// Set github-commit.
 	c, found := pm.Metadata[MetadataKeyGitHubCommit]
 	if !found {
-		logger.Infof("MetadataKeyGitHubCommit not found")
+		logger.Infof("%s not found", MetadataKeyGitHubCommit)
 	} else {
 		r.Commit = c
 	}
@@ -361,7 +361,7 @@ func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]str
 	// Set github-repo.
 	rn, found := pm.Metadata[MetadataKeyGitHubRepo]
 	if !found {
-		logger.Infof("MetadataKeyGitHubRepo not found")
+		logger.Infof("%s not found", MetadataKeyGitHubRepo)
 	} else {
 		r.RepoName = rn
 	}
@@ -369,7 +369,7 @@ func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]str
 	// Set github-workflow.
 	w, found := pm.Metadata[MetadataKeyWorkflow]
 	if !found {
-		logger.Infof("MetadataKeyWorkflow not found")
+		logger.Infof("%s not found", MetadataKeyWorkflow)
 	} else {
 		r.Workflow = w
 	}
@@ -377,7 +377,7 @@ func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]str
 	// Set github-workflow-sha.
 	ws, found := pm.Metadata[MetadataKeyWorkflowSha]
 	if !found {
-		logger.Infof("MetadataKeyWorkflowSha not found")
+		logger.Infof("%s not found", MetadataKeyWorkflowSha)
 	} else {
 		r.WorkflowSha = ws
 	}

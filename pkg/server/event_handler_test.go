@@ -190,7 +190,7 @@ isOK: true`),
 			wantRespBodySubstr: "failed to unmarshal payloadMetadata",
 		},
 		{
-			name: "githubSource(github-commit) not found",
+			name: "success_with_github_commit_missing",
 			pubsubMessageBytes: testToJSON(t, &PubSubMessage{
 				Message: struct {
 					Data       []byte            `json:"data,omitempty"`
