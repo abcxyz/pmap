@@ -18,8 +18,8 @@ env:
   DOCKER_TAG: '${{ github.sha }}'
 
   TF_MODULE_DIR: './terraform/modules/pmap-service'
-  MAPPING_TF_MODULE_DIR: '${RUNNER_TEMP}/mapping_tf_module'
-  POLICY_TF_MODULE_DIR: '${RUNNER_TEMP}/policy_tf_module'
+  MAPPING_TF_MODULE_DIR: 'mapping_tf_module'
+  POLICY_TF_MODULE_DIR: 'policy_tf_module'
   INTEG_TEST_PROJECT_ID: 'pmap-ci'
   INTEG_TEST_BUCKET_ID: 'pmap-ci'
   INTEG_TEST_BIGQUERY_DATASET_ID: 'pmap_86d8'
@@ -149,10 +149,10 @@ jobs:
           echo "INTEG_TEST_OBJECT_PREFIX_OUTPUT=${INTEG_TEST_OBJECT_PREFIX}" >> "$GITHUB_OUTPUT"
       - name: 'Write mapping tfvars file'
         run: |-
-          mkdir -p '${{ env.MAPPING_TF_MODULE_DIR }}'
-          VAR_FILE='${{ env.MAPPING_TF_MODULE_DIR }}/mapping_ci.tfvars'
+          mkdir -p '${{ runner.temp }}/${{ env.MAPPING_TF_MODULE_DIR }}'
+          VAR_FILE='${{ runner.temp }}/${{ env.MAPPING_TF_MODULE_DIR }}/mapping_ci.tfvars'
 
-          touch '${{ env.MAPPING_TF_MODULE_DIR }}/mapping_ci.tfvars'
+          touch ${VAR_FILE}
           echo project_id=\"${{ env.INTEG_TEST_PROJECT_ID }}\" >> ${VAR_FILE};
           echo service_name=\"mapping\" >> ${VAR_FILE};
           echo pmap_container_image=\"${{ env.DOCKER_REPO }}/pmap:${{ env.DOCKER_TAG }}-amd64\" >> ${VAR_FILE};
@@ -168,10 +168,10 @@ jobs:
           echo "MAPPING_TF_VAR_FILE=${VAR_FILE}" >> $GITHUB_ENV;
       - name: 'Write policy tfvars file'
         run: |-
-          mkdir -p '${{ env.POLICY_TF_MODULE_DIR }}'
-          VAR_FILE='${{ env.POLICY_TF_MODULE_DIR }}/policy_ci.tfvars'
+          mkdir -p '${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }}'
+          VAR_FILE='${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }}/policy_ci.tfvars'
 
-          touch '${{ env.POLICY_TF_MODULE_DIR }}/policy_ci.tfvars'
+          touch ${VAR_FILE}
           echo project_id=\"${{ env.INTEG_TEST_PROJECT_ID }}\" >> ${VAR_FILE};
           echo service_name=\"policy\" >> ${VAR_FILE};
           echo pmap_container_image=\"${{ env.DOCKER_REPO }}/pmap:${{ env.DOCKER_TAG }}-amd64\" >> ${VAR_FILE};
@@ -186,20 +186,20 @@ jobs:
           echo "POLICY_TF_VAR_FILE=${VAR_FILE}" >> $GITHUB_ENV;
       - name: 'Init the terraform infrastructure for mapping'
         run: |-
-          cp -r ${{ env.TF_MODULE_DIR }}/* ${{ env.MAPPING_TF_MODULE_DIR }}
-          terraform -chdir=${{ env.MAPPING_TF_MODULE_DIR }} init
+          cp -r ${{ env.TF_MODULE_DIR }}/* ${{ runner.temp }}/${{ env.MAPPING_TF_MODULE_DIR }}
+          terraform -chdir=${{ runner.temp }}/${{ env.MAPPING_TF_MODULE_DIR }} init
       - name: 'Apply the infrastructure updates for mapping'
         id: 'tf_apply_mapping'
         run: |-
-          terraform -chdir=${{ env.MAPPING_TF_MODULE_DIR }} apply -auto-approve -var-file=${{ env.MAPPING_TF_VAR_FILE }};
+          terraform -chdir=${{ runner.temp }}/${{ env.MAPPING_TF_MODULE_DIR }} apply -auto-approve -var-file=${{ env.MAPPING_TF_VAR_FILE }};
       - name: 'Init the terraform infrastructure for policy'
         run: |-
-          cp -r ${{ env.TF_MODULE_DIR }}/* ${{ env.POLICY_TF_MODULE_DIR }}
-          terraform -chdir=${{ env.POLICY_TF_MODULE_DIR }} init
+          cp -r ${{ env.TF_MODULE_DIR }}/* ${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }}
+          terraform -chdir=${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }} init
       - name: 'Apply the infrastructure updates for policy'
         id: 'tf_apply_policy'
         run: |-
-          terraform -chdir=${{ env.POLICY_TF_MODULE_DIR }} apply -auto-approve -var-file=${{ env.POLICY_TF_VAR_FILE }};
+          terraform -chdir=${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }} apply -auto-approve -var-file=${{ env.POLICY_TF_VAR_FILE }};
       - name: 'Upload terraform files for mapping'
         uses: 'actions/upload-artifact@65d862660abb392b8c4a3d1195a2108db131dd05' # actions/upload-artifact@v3
         if: '${{ steps.tf_apply_mapping.outcome == ''success'' }}'
@@ -207,8 +207,8 @@ jobs:
           name: 'terraform-mapping-files-${{ github.run_id}}'
           path: |
             ${{ env.MAPPING_TF_VAR_FILE }}
-            ${{ env.MAPPING_TF_MODULE_DIR }}/terraform.tfstate
-            ${{ env.MAPPING_TF_MODULE_DIR }}/terraform.tfstate.backup
+            ${{ runner.temp }}/${{ env.MAPPING_TF_MODULE_DIR }}/terraform.tfstate
+            ${{ runner.temp }}/${{ env.MAPPING_TF_MODULE_DIR }}/terraform.tfstate.backup
 
           retention-days: 1
       - name: 'Upload terraform files for policy'
@@ -218,8 +218,8 @@ jobs:
           name: 'terraform-policy-files-${{ github.run_id}}'
           path: |
             ${{ env.POLICY_TF_VAR_FILE }}
-            ${{ env.POLICY_TF_MODULE_DIR }}/terraform.tfstate
-            ${{ env.POLICY_TF_MODULE_DIR }}/terraform.tfstate.backup
+            ${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }}/terraform.tfstate
+            ${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }}/terraform.tfstate.backup
           retention-days: 1
 
   # Call reusable workflow
@@ -281,8 +281,8 @@ jobs:
       contents: 'read'
       id-token: 'write'
     env:
-      MAPPING_TF_VAR_FILE: '${RUNNER_TEMP}/mapping_tf_module/mapping_ci.tfvars'
-      POLICY_TF_VAR_FILE: '${RUNNER_TEMP}/policy_tf_module/policy_ci.tfvars'
+      MAPPING_TF_VAR_FILE: 'mapping_tf_module/mapping_ci.tfvars'
+      POLICY_TF_VAR_FILE: 'policy_tf_module/policy_ci.tfvars'
     steps:
       - uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
       - id: 'auth'
@@ -300,30 +300,30 @@ jobs:
       - name: 'Init the mapping terraform infrastructure for clean up'
         if: '${{ always() }}'
         run: |-
-          cp -r ${{ env.TF_MODULE_DIR }} ${{ env.MAPPING_TF_MODULE_DIR }}
-          terraform -chdir=${{ env.MAPPING_TF_MODULE_DIR }} init
+          cp -r ${{ env.TF_MODULE_DIR }} ${{ runner.temp}}/${{ env.MAPPING_TF_MODULE_DIR }}
+          terraform -chdir=${{ runner.temp}}/${{ env.MAPPING_TF_MODULE_DIR }} init
       - name: 'download artifact for mapping'
         if: '${{ always() }}'
         uses: 'actions/download-artifact@e9ef242655d12993efdcda9058dee2db83a2cb9b' # actions/download-artifact@v3
         with:
           name: 'terraform-mapping-files-${{ github.run_id }}'
-          path: '${{ env.MAPPING_TF_MODULE_DIR }}'
+          path: '${{ runner.temp}}/${{ env.MAPPING_TF_MODULE_DIR }}'
       - name: 'Init the policy terraform infrastructure for clean up'
         if: '${{ always() }}'
         run: |-
-          cp -r ${{ env.TF_MODULE_DIR }} ${{ env.POLICY_TF_MODULE_DIR }}
-          terraform -chdir=${{ env.POLICY_TF_MODULE_DIR }} init
+          cp -r ${{ env.TF_MODULE_DIR }} ${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }}
+          terraform -chdir=${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }} init
       - name: 'download artifact for policy'
         if: '${{ always() }}'
         uses: 'actions/download-artifact@e9ef242655d12993efdcda9058dee2db83a2cb9b' # actions/download-artifact@v3
         with:
           name: 'terraform-policy-files-${{ github.run_id }}'
-          path: '${{ env.POLICY_TF_MODULE_DIR }}'
+          path: '${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }}'
       - name: 'Cleanup the infrastructure for mapping'
         if: '${{ always() }}'
         run: |-
-          terraform -chdir=${{ env.MAPPING_TF_MODULE_DIR }} apply -destroy -auto-approve -var-file=${{ env.MAPPING_TF_VAR_FILE }};
+          terraform -chdir=${{ runner.temp}}/${{ env.MAPPING_TF_MODULE_DIR }} apply -destroy -auto-approve -var-file=${{ runner.temp }}/${{ env.MAPPING_TF_VAR_FILE }};
       - name: 'Cleanup the infrastructure for policy'
         if: '${{ always() }}'
         run: |-
-          terraform -chdir=${{ env.POLICY_TF_MODULE_DIR }} apply -destroy -auto-approve -var-file=${{ env.POLICY_TF_VAR_FILE }};
+          terraform -chdir=${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }} apply -destroy -auto-approve -var-file=${{ runner.temp }}/${{ env.POLICY_TF_VAR_FILE }};
