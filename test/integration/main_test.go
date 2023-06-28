@@ -358,10 +358,10 @@ deletion_timeline:
 	}
 }
 
-// TestMappingReusbleWorkflowCall tests the mapping file-copy reusbale workflow has successfully
+// TestMappingReusableWorkflowCall tests the mapping file-copy reusable workflow has successfully
 // uploaded the file to gcs and triggered pmap event handler, and write the corresponding entry
 // into bigquery.
-func TestMappingReusbleWorkflowCall(t *testing.T) {
+func TestMappingReusableWorkflowCall(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name                string
@@ -428,10 +428,10 @@ func TestMappingReusbleWorkflowCall(t *testing.T) {
 	}
 }
 
-// TestMappingReusbleWorkflowCall tests the policy file-copy reusbale workflow has successfully
+// TestMappingReusableWorkflowCall tests the policy file-copy reusable workflow has successfully
 // uploaded the file to gcs and triggered pmap event handler, and write the corresponding entry
 // into bigquery.
-func TestPolicyReusbleWorkflowCall(t *testing.T) {
+func TestPolicyReusableWorkflowCall(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name          string

@@ -18,8 +18,8 @@ env:
   DOCKER_TAG: '${{ github.sha }}'
 
   TF_MODULE_DIR: './terraform/modules/pmap-service'
-  MAPPING_TF_MODULE_DIR: '/tmp/mapping_tf_module'
-  POLICY_TF_MODULE_DIR: '/tmp/policy_tf_module'
+  MAPPING_TF_MODULE_DIR: '${RUNNER_TEMP}/mapping_tf_module'
+  POLICY_TF_MODULE_DIR: '${RUNNER_TEMP}/policy_tf_module'
   INTEG_TEST_PROJECT_ID: 'pmap-ci'
   INTEG_TEST_BUCKET_ID: 'pmap-ci'
   INTEG_TEST_BIGQUERY_DATASET_ID: 'pmap_86d8'
@@ -201,7 +201,7 @@ jobs:
         run: |-
           terraform -chdir=${{ env.POLICY_TF_MODULE_DIR }} apply -auto-approve -var-file=${{ env.POLICY_TF_VAR_FILE }};
       - name: 'Upload terraform files for mapping'
-        uses: 'actions/upload-artifact@v3'
+        uses: 'actions/upload-artifact@65d862660abb392b8c4a3d1195a2108db131dd05' # actions/upload-artifact@v3
         if: '${{ steps.tf_apply_mapping.outcome == ''success'' }}'
         with:
           name: 'terraform-mapping-files-${{ github.run_id}}'
@@ -212,7 +212,7 @@ jobs:
 
           retention-days: 1
       - name: 'Upload terraform files for policy'
-        uses: 'actions/upload-artifact@v3'
+        uses: 'actions/upload-artifact@65d862660abb392b8c4a3d1195a2108db131dd05' # actions/upload-artifact@v3
         if: '${{ steps.tf_apply_policy.outcome == ''success'' }}'
         with:
           name: 'terraform-policy-files-${{ github.run_id}}'
@@ -222,8 +222,8 @@ jobs:
             ${{ env.POLICY_TF_MODULE_DIR }}/terraform.tfstate.backup
           retention-days: 1
 
-  # Call reuseble workflow
-  call_mapping_reusble_workflow:
+  # Call reusable workflow
+  call_mapping_reusable_workflow:
     needs: ['set_up_integration_infra']
     uses: 'abcxyz/pmap/.github/workflows/snapshot-file-copy.yml@main' # ratchet:exclude
     with:
@@ -232,7 +232,7 @@ jobs:
       destination_prefix: 'pmap-ci/mapping/${{ needs.set_up_integration_infra.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT }}'
       path: 'test/e2e/testdata/fakedata/mapping'
 
-  call_policy_reusble_workflow:
+  call_policy_reusable_workflow:
     needs: ['set_up_integration_infra']
     uses: 'abcxyz/pmap/.github/workflows/snapshot-file-copy.yml@main' # ratchet:exclude
     with:
@@ -243,7 +243,7 @@ jobs:
 
   run_integ_test:
     runs-on: 'ubuntu-latest'
-    needs: ['set_up_integration_infra', 'call_mapping_reusble_workflow', 'call_policy_reusble_workflow']
+    needs: ['set_up_integration_infra', 'call_mapping_reusable_workflow', 'call_policy_reusable_workflow']
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -281,8 +281,8 @@ jobs:
       contents: 'read'
       id-token: 'write'
     env:
-      MAPPING_TF_VAR_FILE: '/tmp/mapping_tf_module/mapping_ci.tfvars'
-      POLICY_TF_VAR_FILE: '/tmp/policy_tf_module/policy_ci.tfvars'
+      MAPPING_TF_VAR_FILE: '${RUNNER_TEMP}/mapping_tf_module/mapping_ci.tfvars'
+      POLICY_TF_VAR_FILE: '${RUNNER_TEMP}/policy_tf_module/policy_ci.tfvars'
     steps:
       - uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
       - id: 'auth'
@@ -304,7 +304,7 @@ jobs:
           terraform -chdir=${{ env.MAPPING_TF_MODULE_DIR }} init
       - name: 'download artifact for mapping'
         if: '${{ always() }}'
-        uses: 'actions/download-artifact@v3'
+        uses: 'actions/download-artifact@e9ef242655d12993efdcda9058dee2db83a2cb9b' # actions/download-artifact@v3
         with:
           name: 'terraform-mapping-files-${{ github.run_id }}'
           path: '${{ env.MAPPING_TF_MODULE_DIR }}'
@@ -315,7 +315,7 @@ jobs:
           terraform -chdir=${{ env.POLICY_TF_MODULE_DIR }} init
       - name: 'download artifact for policy'
         if: '${{ always() }}'
-        uses: 'actions/download-artifact@v3'
+        uses: 'actions/download-artifact@e9ef242655d12993efdcda9058dee2db83a2cb9b' # actions/download-artifact@v3
         with:
           name: 'terraform-policy-files-${{ github.run_id }}'
           path: '${{ env.POLICY_TF_MODULE_DIR }}'
