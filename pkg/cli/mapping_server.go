@@ -120,7 +120,14 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 	closer = multicloser.Append(closer, assetClient.Close)
 
-	processor, err := processors.NewAssetInventoryProcessor(ctx, assetClient, fmt.Sprintf("projects/%s", c.cfg.ProjectID))
+	var defaultScope string
+	if c.cfg.ResourceScope == "" {
+		defaultScope = fmt.Sprintf("projects/%s", c.cfg.ProjectID)
+	} else {
+		defaultScope = c.cfg.ResourceScope
+	}
+
+	processor, err := processors.NewAssetInventoryProcessor(ctx, assetClient, defaultScope)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create assetInventoryProcessor: %w", err)
 	}

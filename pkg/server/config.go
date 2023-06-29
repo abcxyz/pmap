@@ -16,6 +16,7 @@ package server
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/abcxyz/pkg/cli"
 )
@@ -27,6 +28,7 @@ type HandlerConfig struct {
 	ProjectID      string `env:"PROJECT_ID,required"`
 	SuccessTopicID string `env:"PMAP_SUCCESS_TOPIC_ID,required"`
 	FailureTopicID string `env:"PMAP_FAILURE_TOPIC_ID"`
+	ResourceScope  string `env:"PMAP_RESOURCE_SCOPE"`
 }
 
 // Validate validates the handler config after load.
@@ -37,6 +39,13 @@ func (cfg *HandlerConfig) Validate() error {
 
 	if cfg.SuccessTopicID == "" {
 		return fmt.Errorf("PMAP_SUCCESS_TOPIC_ID is empty and requires a value")
+	}
+
+	if cfg.ResourceScope != "" &&
+		!strings.HasPrefix(cfg.ResourceScope, "projects/") &&
+		!strings.HasPrefix(cfg.ResourceScope, "folders/") &&
+		!strings.HasPrefix(cfg.ResourceScope, "organizations/") {
+		return fmt.Errorf("ResourceScope doesn't have a valid value")
 	}
 
 	return nil

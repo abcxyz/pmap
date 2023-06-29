@@ -57,6 +57,17 @@ func TestConfig_Validate(t *testing.T) {
 			},
 			wantErr: `PMAP_SUCCESS_TOPIC_ID is empty and requires a value`,
 		},
+		{
+			name: "invalid_resource_scope",
+			cfg: &HandlerConfig{
+				Port:           "8080",
+				ProjectID:      testProjectID,
+				SuccessTopicID: testSuccessTopicID,
+				FailureTopicID: testFailureTopicID,
+				ResourceScope:  "foo/bar",
+			},
+			wantErr: "ResourceScope doesn't have a valid value",
+		},
 	}
 
 	for _, tc := range tests {
@@ -64,7 +75,6 @@ func TestConfig_Validate(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
 			err := tc.cfg.Validate()
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
