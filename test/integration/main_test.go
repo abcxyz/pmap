@@ -34,7 +34,6 @@ import (
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"github.com/abcxyz/pmap/pkg/server"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sethvargo/go-retry"
 	"google.golang.org/api/iterator"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -347,8 +346,6 @@ deletion_timeline:
 			}
 			cmpOpts := []cmp.Option{
 				protocmp.Transform(),
-				cmpopts.IgnoreUnexported(v1alpha1.GitHubSource{}),
-				cmpopts.IgnoreUnexported(timestamppb.Timestamp{}),
 			}
 
 			if diff := cmp.Diff(tc.wantGithubSource, gotPmapEvent.GetGithubSource(), cmpOpts...); diff != "" {
@@ -393,7 +390,14 @@ func TestMappingReusableWorkflowCall(t *testing.T) {
 
 			t.Logf("using trace ID %s", tc.traceID)
 			t.Logf("using workflow run ID %s", cfg.WorkflowRunID)
+
 			// Check if the file uploaded exists in BigQuery.
+			// We use workflowRunId here as the unique identifier as this is the test the
+			// reusable workflow and the traceID is written in the yaml file, which won't
+			// be unique if we don't change the yaml file. But workflowRunID is unique for
+			// all workflow runs, and using workflowRunId to query, we can make sure the
+			// reusable workflow uploaded the correct GCS object metadata, and later we only
+			// need to diff the enties in the yaml file.
 			queryString := fmt.Sprintf("SELECT * FROM `%s.%s.%s`", cfg.ProjectID, cfg.BigQueryDataSetID, tc.bigqueryTable)
 			queryString += `WHERE JSON_VALUE(data.githubSource.workflowRunId) = ?`
 
@@ -450,16 +454,8 @@ func TestPolicyReusableWorkflowCall(t *testing.T) {
 							"traceID": structpb.NewStringValue("fake-pmap-dev-manual-test-policy"),
 						},
 					}),
-					"contacts": structpb.NewStructValue(&structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							"email": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{structpb.NewStringValue("pmap.policy@gmail.com")}}),
-						},
-					}),
-					"resource": structpb.NewStructValue(&structpb.Struct{
-						Fields: map[string]*structpb.Value{
-							"name": structpb.NewStringValue("policy"),
-						},
-					}),
+					"deletion_timeline": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{structpb.NewStringValue("356 days"), structpb.NewStringValue("1 day")}}),
+					"policy_id":         structpb.NewStringValue("fake-policy-123"),
 				},
 			},
 		},
@@ -475,7 +471,14 @@ func TestPolicyReusableWorkflowCall(t *testing.T) {
 
 			t.Logf("using trace ID %s", tc.traceID)
 			t.Logf("using workflow run ID %s", cfg.WorkflowRunID)
+
 			// Check if the file uploaded exists in BigQuery.
+			// We use workflowRunId here as the unique identifier as this is the test the
+			// reusable workflow and the traceID is written in the yaml file, which won't
+			// be unique if we don't change the yaml file. But workflowRunID is unique for
+			// all workflow runs, and using workflowRunId to query, we can make sure the
+			// reusable workflow uploaded the correct GCS object metadata, and later we only
+			// need to diff the enties in the yaml file.
 			queryString := fmt.Sprintf("SELECT * FROM `%s.%s.%s`", cfg.ProjectID, cfg.BigQueryDataSetID, tc.bigqueryTable)
 			queryString += `WHERE JSON_VALUE(data.githubSource.workflowRunId) = ?`
 

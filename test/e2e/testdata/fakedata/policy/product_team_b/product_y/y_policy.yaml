@@ -1,7 +1,6 @@
-resource:
-  name: 'policy'
+policy_id: 'fake-policy-123'
 annotations:
   traceID: 'fake-pmap-dev-manual-test-policy'
-contacts:
-  email:
-    - 'pmap.policy@gmail.com'
+deletion_timeline:
+  - '356 days'
+  - '1 day'

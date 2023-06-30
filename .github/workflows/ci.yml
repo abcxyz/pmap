@@ -111,7 +111,7 @@ jobs:
           version: 'v1.16.1' # Manually pinned
           args: 'release -f .goreleaser.docker.yaml --clean'
 
-  # Deploy integration test infrastructure and run integration tests
+  # Deploy integration test infrastructure
   set_up_integration_infra:
     runs-on: 'ubuntu-latest'
     needs: ['build']
@@ -119,7 +119,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     outputs:
-      INTEG_TEST_OBJECT_PREFIX_OUTPUT: '${{ steps.output_object_prefix.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT }}'
+      INTEG_TEST_OBJECT_PREFIX_OUTPUT: '${{ steps.generate_object_prefix.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT }}'
     steps:
       - uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
       - id: 'auth'
@@ -142,11 +142,9 @@ jobs:
       - name: 'Generate object prefix'
         id: 'generate_object_prefix'
         run: |
-          echo "INTEG_TEST_OBJECT_PREFIX=${RANDOM}" >> "$GITHUB_ENV"
-      - name: 'Output object prefix'
-        id: 'output_object_prefix'
-        run: |
-          echo "INTEG_TEST_OBJECT_PREFIX_OUTPUT=${INTEG_TEST_OBJECT_PREFIX}" >> "$GITHUB_OUTPUT"
+          OBJECT_PREFIX=${RANDOM}
+          echo "INTEG_TEST_OBJECT_PREFIX=${OBJECT_PREFIX}" >> "$GITHUB_ENV"
+          echo "INTEG_TEST_OBJECT_PREFIX_OUTPUT=${OBJECT_PREFIX}" >> "$GITHUB_OUTPUT"
       - name: 'Write mapping tfvars file'
         run: |-
           mkdir -p '${{ runner.temp }}/${{ env.MAPPING_TF_MODULE_DIR }}'
@@ -202,7 +200,7 @@ jobs:
           terraform -chdir=${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }} apply -auto-approve -var-file=${{ env.POLICY_TF_VAR_FILE }};
       - name: 'Upload terraform files for mapping'
         uses: 'actions/upload-artifact@65d862660abb392b8c4a3d1195a2108db131dd05' # actions/upload-artifact@v3
-        if: '${{ steps.tf_apply_mapping.outcome == ''success'' }}'
+        if: '${{ always() }}'
         with:
           name: 'terraform-mapping-files-${{ github.run_id}}'
           path: |
@@ -213,7 +211,7 @@ jobs:
           retention-days: 1
       - name: 'Upload terraform files for policy'
         uses: 'actions/upload-artifact@65d862660abb392b8c4a3d1195a2108db131dd05' # actions/upload-artifact@v3
-        if: '${{ steps.tf_apply_policy.outcome == ''success'' }}'
+        if: '${{ always() }}'
         with:
           name: 'terraform-policy-files-${{ github.run_id}}'
           path: |
@@ -225,7 +223,7 @@ jobs:
   # Call reusable workflow
   call_mapping_reusable_workflow:
     needs: ['set_up_integration_infra']
-    uses: 'abcxyz/pmap/.github/workflows/snapshot-file-copy.yml@main' # ratchet:exclude
+    uses: './.github/workflows/snapshot-file-copy.yml'
     with:
       workload_identity_provider: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
       service_account: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
@@ -234,13 +232,14 @@ jobs:
 
   call_policy_reusable_workflow:
     needs: ['set_up_integration_infra']
-    uses: 'abcxyz/pmap/.github/workflows/snapshot-file-copy.yml@main' # ratchet:exclude
+    uses: './.github/workflows/snapshot-file-copy.yml'
     with:
       workload_identity_provider: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
       service_account: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
       destination_prefix: 'pmap-ci/policy/${{ needs.set_up_integration_infra.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT }}'
       path: 'test/e2e/testdata/fakedata/policy'
 
+  # Run integration tests
   run_integ_test:
     runs-on: 'ubuntu-latest'
     needs: ['set_up_integration_infra', 'call_mapping_reusable_workflow', 'call_policy_reusable_workflow']
@@ -273,6 +272,7 @@ jobs:
           go test ./test/integration \
             -timeout=15m
 
+  # Clean up integration test infra
   clean_up_integration_infra:
     runs-on: 'ubuntu-latest'
     if: '${{ always() }}'
