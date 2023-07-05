@@ -84,4 +84,5 @@ variable "pmap_resource_scope" {
         organizations/{ORGANIZATION_NUMBER}
     EOT
   type        = string
+  default     = ""
 }

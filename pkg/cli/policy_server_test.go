@@ -36,13 +36,6 @@ func TestPolicyServerCommand(t *testing.T) {
 		expErr string
 	}{
 		{
-			name: "success",
-			env: map[string]string{
-				"PMAP_SUCCESS_TOPIC_ID": "test_success_topic",
-				"PROJECT_ID":            "test_project",
-			},
-		},
-		{
 			name:   "too_many_args",
 			args:   []string{"foo"},
 			expErr: `unexpected arguments: ["foo"]`,

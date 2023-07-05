@@ -38,26 +38,23 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "success",
 			cfg: &HandlerConfig{
-				Port:                 "8080",
-				ProjectID:            testProjectID,
-				SuccessTopicID:       testSuccessTopicID,
-				FailureTopicID:       testFailureTopicID,
-				DefaultResourceScope: testDefaultResourceScope,
+				Port:           "8080",
+				ProjectID:      testProjectID,
+				SuccessTopicID: testSuccessTopicID,
+				FailureTopicID: testFailureTopicID,
 			},
 		},
 		{
 			name: "missing_project_id",
 			cfg: &HandlerConfig{
-				SuccessTopicID:       testSuccessTopicID,
-				DefaultResourceScope: testDefaultResourceScope,
+				SuccessTopicID: testSuccessTopicID,
 			},
 			wantErr: `PROJECT_ID is empty and requires a value`,
 		},
 		{
 			name: "missing_success_event_topic_id",
 			cfg: &HandlerConfig{
-				ProjectID:            testProjectID,
-				DefaultResourceScope: testDefaultResourceScope,
+				ProjectID: testProjectID,
 			},
 			wantErr: `PMAP_SUCCESS_TOPIC_ID is empty and requires a value`,
 		},
@@ -69,6 +66,80 @@ func TestConfig_Validate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			err := tc.cfg.Validate()
+			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
+				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
+			}
+		})
+	}
+}
+
+func TestConfig_MappingValidate(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		cfg     *HandlerConfig
+		wantErr string
+	}{
+		{
+			name: "success",
+			cfg: &HandlerConfig{
+				Port:           "8080",
+				ProjectID:      testProjectID,
+				SuccessTopicID: testSuccessTopicID,
+				FailureTopicID: testFailureTopicID,
+				MappingConfig: MappingConfig{
+					DefaultResourceScope: testDefaultResourceScope,
+				},
+			},
+		},
+		{
+			name: "missing_project_id",
+			cfg: &HandlerConfig{
+				SuccessTopicID: testSuccessTopicID,
+				MappingConfig: MappingConfig{
+					DefaultResourceScope: testDefaultResourceScope,
+				},
+			},
+			wantErr: `PROJECT_ID is empty and requires a value`,
+		},
+		{
+			name: "missing_success_event_topic_id",
+			cfg: &HandlerConfig{
+				ProjectID: testProjectID,
+				MappingConfig: MappingConfig{
+					DefaultResourceScope: testDefaultResourceScope,
+				},
+			},
+			wantErr: `PMAP_SUCCESS_TOPIC_ID is empty and requires a value`,
+		},
+		{
+			name: "missing_resource_scope",
+			cfg: &HandlerConfig{
+				SuccessTopicID: testSuccessTopicID,
+				ProjectID:      testProjectID,
+			},
+			wantErr: `PMAP_RESOURCE_SCOPE is empty and require a value`,
+		},
+		{
+			name: "invalid_resource_scope",
+			cfg: &HandlerConfig{
+				ProjectID:      testProjectID,
+				SuccessTopicID: testSuccessTopicID,
+				MappingConfig: MappingConfig{
+					DefaultResourceScope: "foo/bar",
+				},
+			},
+			wantErr: `PMAP_RESOURCE_SCOPE: foo/bar doesn't have a valid value`,
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			err := tc.cfg.ValidateMappingConfig()
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
 			}

@@ -16,29 +16,40 @@ package server
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/abcxyz/pkg/cli"
 )
 
-// HandlerConfig defines the set over environment variables required
-// for running this application.
-type HandlerConfig struct {
-	Port                 string `env:"PORT,default=8080"`
-	ProjectID            string `env:"PROJECT_ID,required"`
-	SuccessTopicID       string `env:"PMAP_SUCCESS_TOPIC_ID,required"`
-	FailureTopicID       string `env:"PMAP_FAILURE_TOPIC_ID"`
-	DefaultResourceScope string `env:"PMAP_RESOURCE_SCOPE,required"`
-}
-
+// SupportedResourceScope defines the scopes that are supported
+// when doing resources searching.
 var SupportedResourceScope = map[string]struct{}{
 	"projects":      {},
 	"folders":       {},
 	"organizations": {},
 }
 
+// HandlerConfig defines the set over environment variables required
+// for running this application.
+type HandlerConfig struct {
+	Port           string `env:"PORT,default=8080"`
+	ProjectID      string `env:"PROJECT_ID,required"`
+	SuccessTopicID string `env:"PMAP_SUCCESS_TOPIC_ID,required"`
+	// FailureTopicID is optional for policy service
+	FailureTopicID string `env:"PMAP_FAILURE_TOPIC_ID"`
+	// MappingConfig is special config for mapping service
+	MappingConfig MappingConfig
+}
+
+// MappingConfig defines the extra environment variables required
+// for running mapping service.
+type MappingConfig struct {
+	// DefaultResourceScope is required for mapping service
+	DefaultResourceScope string `env:"PMAP_RESOURCE_SCOPE"`
+}
+
 // Validate validates the handler config after load.
 func (cfg *HandlerConfig) Validate() error {
-	fmt.Println(cfg)
 	if cfg.ProjectID == "" {
 		return fmt.Errorf("PROJECT_ID is empty and requires a value")
 	}
@@ -47,6 +58,31 @@ func (cfg *HandlerConfig) Validate() error {
 		return fmt.Errorf("PMAP_SUCCESS_TOPIC_ID is empty and requires a value")
 	}
 
+	return nil
+}
+
+// ValidateMappingConfig validates the handler config for mapping service after load.
+func (cfg *HandlerConfig) ValidateMappingConfig() error {
+	if err := cfg.Validate(); err != nil {
+		return err
+	}
+
+	if cfg.MappingConfig.DefaultResourceScope == "" {
+		return fmt.Errorf(`PMAP_RESOURCE_SCOPE is empty and require a value from one of the following format:\n
+			projects/{PROJECT_ID}\n
+			projects/{PROJECT_NUMBER}\n
+			folders/{FOLDER_NUMBER}\n
+			organizations/{ORGANIZATION_NUMBER}\n`)
+	}
+
+	scope := strings.Split(cfg.MappingConfig.DefaultResourceScope, "/")[0]
+	if _, ok := SupportedResourceScope[scope]; !ok {
+		return fmt.Errorf(`PMAP_RESOURCE_SCOPE: %s doesn't have a valid value, the ResourceScope should be one of the following formats:\n
+		projects/{PROJECT_ID}\n
+		projects/{PROJECT_NUMBER}\n
+		folders/{FOLDER_NUMBER}\n
+		organizations/{ORGANIZATION_NUMBER}\n`, cfg.MappingConfig.DefaultResourceScope)
+	}
 	return nil
 }
 
@@ -88,9 +124,9 @@ func (cfg *HandlerConfig) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 
 	f.StringVar(&cli.StringVar{
 		Name:    "default-resource-scope",
-		Target:  &cfg.DefaultResourceScope,
+		Target:  &cfg.MappingConfig.DefaultResourceScope,
 		EnvVar:  "PMAP_RESOURCE_SCOPE",
-		Example: "projects/test-project-id",
+		Example: "{projects/test-project-id}",
 		Usage: `The default scope to search for resources. Format: 
 			projects/{PROJECT_ID}\n
 			projects/{PROJECT_NUMBER}\n

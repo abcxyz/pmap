@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/abcxyz/pkg/cli"
@@ -93,31 +92,14 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		"commit", version.Commit,
 		"version", version.Version)
 
-	if err := c.cfg.Validate(); err != nil {
-		return nil, nil, closer, fmt.Errorf("invalid configuration: %w", err)
+	if err := c.cfg.ValidateMappingConfig(); err != nil {
+		return nil, nil, closer, fmt.Errorf("invalid mapping configuration: %w", err)
 	}
 	logger.Debugw("loaded configuration", "config", c.cfg)
 
 	// For mapping server, we also require a failure topic ID.
 	if c.cfg.FailureTopicID == "" {
 		return nil, nil, closer, fmt.Errorf("missing PMAP_FAILURE_TOPIC_ID in config")
-	}
-
-	if c.cfg.DefaultResourceScope == "" {
-		return nil, nil, closer, fmt.Errorf(`PMAP_RESOURCE_SCOPE is empty and require a value from one of the following format:\n
-			projects/{PROJECT_ID}\n
-			projects/{PROJECT_NUMBER}\n
-			folders/{FOLDER_NUMBER}\n
-			organizations/{ORGANIZATION_NUMBER}\n`)
-	}
-
-	scope := strings.Split(c.cfg.DefaultResourceScope, "/")[0]
-	if _, ok := server.SupportedResourceScope[scope]; !ok {
-		return nil, nil, closer, fmt.Errorf(`PMAP_RESOURCE_SCOPE: %s doesn't have a valid value, the ResourceScope should be empty(default to project scopre) or one of the following formats:\n
-		projects/{PROJECT_ID}\n
-		projects/{PROJECT_NUMBER}\n
-		folders/{FOLDER_NUMBER}\n
-		organizations/{ORGANIZATION_NUMBER}\n`, c.cfg.DefaultResourceScope)
 	}
 
 	pubsubClient, err := pubsub.NewClient(ctx, c.cfg.ProjectID)
@@ -138,7 +120,7 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 	closer = multicloser.Append(closer, assetClient.Close)
 
-	processor, err := processors.NewAssetInventoryProcessor(ctx, assetClient, c.cfg.DefaultResourceScope)
+	processor, err := processors.NewAssetInventoryProcessor(ctx, assetClient, c.cfg.MappingConfig.DefaultResourceScope)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create assetInventoryProcessor: %w", err)
 	}
