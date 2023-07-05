@@ -246,18 +246,22 @@ func mergeAnnotations(annos1, annos2 *structpb.Struct) (*structpb.Struct, error)
 // Return empty string for resources such as GCS bucket won't include "Project" info in its "ResourceName".
 func parseProject(resourceName string) (string, error) {
 	s := strings.Split(resourceName, "/")
-	project := ""
+	scopePrefix := ""
+	scope := ""
 	for i, e := range s {
-		if e == "projects" {
+		if e == server.ProjectResourceScopePrefix ||
+			e == server.FolderResourceScopePrefix ||
+			e == server.OrganizationResourceScopePrefix {
 			if i+1 >= len(s) || s[i+1] == "" {
 				// This is obviously an invalid input.
 				return "", fmt.Errorf("invalid resource name: %s", resourceName)
 			}
-			project = s[i+1]
+			scopePrefix = s[i]
+			scope = s[i+1]
 		}
 	}
-	if project == "" {
+	if scope == "" {
 		return "", nil
 	}
-	return fmt.Sprintf("%s%s", server.ProjectResourceScopePrefix, project), nil
+	return fmt.Sprintf("%s/%s", scopePrefix, scope), nil
 }

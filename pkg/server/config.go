@@ -32,9 +32,9 @@ type HandlerConfig struct {
 }
 
 const (
-	ProjectResourceScopePrefix      = "projects/"
-	FolderResourceScopePrefix       = "folders/"
-	OrganizationResourceScopePrefix = "organizations/"
+	ProjectResourceScopePrefix      = "projects"
+	FolderResourceScopePrefix       = "folders"
+	OrganizationResourceScopePrefix = "organizations"
 )
 
 // Validate validates the handler config after load.
@@ -48,9 +48,9 @@ func (cfg *HandlerConfig) Validate() error {
 	}
 
 	if cfg.ResourceScope != "" &&
-		!strings.HasPrefix(cfg.ResourceScope, ProjectResourceScopePrefix) &&
-		!strings.HasPrefix(cfg.ResourceScope, FolderResourceScopePrefix) &&
-		!strings.HasPrefix(cfg.ResourceScope, OrganizationResourceScopePrefix) {
+		!strings.HasPrefix(cfg.ResourceScope, ProjectResourceScopePrefix+"/") &&
+		!strings.HasPrefix(cfg.ResourceScope, FolderResourceScopePrefix+"/") &&
+		!strings.HasPrefix(cfg.ResourceScope, OrganizationResourceScopePrefix+"/") {
 		return fmt.Errorf(`ResourceScope: %s doesn't have a valid value, the ResourceScope should be empty(default to project scopre) or one of the following formats:\n
 			projects/{PROJECT_ID}\n
 			projects/{PROJECT_NUMBER}\n
