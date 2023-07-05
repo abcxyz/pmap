@@ -102,6 +102,10 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		return nil, nil, closer, fmt.Errorf("missing PMAP_FAILURE_TOPIC_ID in config")
 	}
 
+	if c.cfg.DefaultResourceScope == "" {
+		return nil, nil, closer, fmt.Errorf("missing PMAP_RESOURCE_SCOPE in config")
+	}
+
 	pubsubClient, err := pubsub.NewClient(ctx, c.cfg.ProjectID)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create pubsub client: %w", err)
@@ -120,14 +124,7 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 	closer = multicloser.Append(closer, assetClient.Close)
 
-	var defaultScope string
-	if c.cfg.ResourceScope == "" {
-		defaultScope = fmt.Sprintf("projects/%s", c.cfg.ProjectID)
-	} else {
-		defaultScope = c.cfg.ResourceScope
-	}
-
-	processor, err := processors.NewAssetInventoryProcessor(ctx, assetClient, defaultScope)
+	processor, err := processors.NewAssetInventoryProcessor(ctx, assetClient, c.cfg.DefaultResourceScope)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create assetInventoryProcessor: %w", err)
 	}

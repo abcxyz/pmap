@@ -249,9 +249,7 @@ func parseProject(resourceName string) (string, error) {
 	scopePrefix := ""
 	scope := ""
 	for i, e := range s {
-		if e == server.ProjectResourceScopePrefix ||
-			e == server.FolderResourceScopePrefix ||
-			e == server.OrganizationResourceScopePrefix {
+		if _, ok := server.SupportedResourceScope[e]; ok {
 			if i+1 >= len(s) || s[i+1] == "" {
 				// This is obviously an invalid input.
 				return "", fmt.Errorf("invalid resource name: %s", resourceName)

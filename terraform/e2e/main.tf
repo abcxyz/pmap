@@ -15,6 +15,7 @@
 locals {
   mapping_service_name = "mapping"
   policy_service_name  = "policy"
+  pmap_resource_scope  = "projects/pmap-dev"
 }
 
 module "common_infra" {
@@ -41,6 +42,7 @@ module "mapping_service" {
   pmap_service_account     = module.common_infra.run_service_account
   oidc_service_account     = module.common_infra.oidc_service_account
   gcs_events_filter        = var.mapping_gcs_events_filter
+  pmap_resource_scope      = local.pmap_resource_scope
 }
 
 module "policy_service" {
@@ -56,4 +58,5 @@ module "policy_service" {
   pmap_service_account = module.common_infra.run_service_account
   oidc_service_account = module.common_infra.oidc_service_account
   gcs_events_filter    = var.policy_gcs_events_filter
+  pmap_resource_scope  = local.pmap_resource_scope
 }

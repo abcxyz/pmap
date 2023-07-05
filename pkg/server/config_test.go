@@ -21,9 +21,10 @@ import (
 )
 
 const (
-	testProjectID      = "test-project-id"
-	testSuccessTopicID = "test-success-topic-id"
-	testFailureTopicID = "test-failure-topic-id"
+	testProjectID            = "test-project-id"
+	testSuccessTopicID       = "test-success-topic-id"
+	testFailureTopicID       = "test-failure-topic-id"
+	testDefaultResourceScope = "projects/test-project-id"
 )
 
 func TestConfig_Validate(t *testing.T) {
@@ -37,36 +38,49 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "success",
 			cfg: &HandlerConfig{
-				Port:           "8080",
-				ProjectID:      testProjectID,
-				SuccessTopicID: testSuccessTopicID,
-				FailureTopicID: testFailureTopicID,
+				Port:                 "8080",
+				ProjectID:            testProjectID,
+				SuccessTopicID:       testSuccessTopicID,
+				FailureTopicID:       testFailureTopicID,
+				DefaultResourceScope: testDefaultResourceScope,
 			},
 		},
 		{
 			name: "missing_project_id",
 			cfg: &HandlerConfig{
-				SuccessTopicID: testSuccessTopicID,
+				SuccessTopicID:       testSuccessTopicID,
+				DefaultResourceScope: testDefaultResourceScope,
 			},
 			wantErr: `PROJECT_ID is empty and requires a value`,
 		},
 		{
 			name: "missing_success_event_topic_id",
 			cfg: &HandlerConfig{
-				ProjectID: testProjectID,
+				ProjectID:            testProjectID,
+				DefaultResourceScope: testDefaultResourceScope,
 			},
 			wantErr: `PMAP_SUCCESS_TOPIC_ID is empty and requires a value`,
 		},
 		{
 			name: "invalid_resource_scope",
 			cfg: &HandlerConfig{
+				Port:                 "8080",
+				ProjectID:            testProjectID,
+				SuccessTopicID:       testSuccessTopicID,
+				FailureTopicID:       testFailureTopicID,
+				DefaultResourceScope: "foo/bar",
+			},
+			wantErr: "PMAP_RESOURCE_SCOPE: foo/bar doesn't have a valid value",
+		},
+		{
+			name: "missing_resource_scope",
+			cfg: &HandlerConfig{
 				Port:           "8080",
 				ProjectID:      testProjectID,
 				SuccessTopicID: testSuccessTopicID,
 				FailureTopicID: testFailureTopicID,
-				ResourceScope:  "foo/bar",
 			},
-			wantErr: "ResourceScope: foo/bar doesn't have a valid value",
+			wantErr: "PMAP_RESOURCE_SCOPE is empty and require a value",
 		},
 	}
 
