@@ -26,6 +26,7 @@ import (
 	"github.com/abcxyz/pkg/protoutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"github.com/abcxyz/pmap/pkg/pmaperrors"
+	"github.com/abcxyz/pmap/pkg/server"
 	"google.golang.org/api/iterator"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -258,5 +259,5 @@ func parseProject(resourceName string) (string, error) {
 	if project == "" {
 		return "", nil
 	}
-	return fmt.Sprintf("projects/%s", project), nil
+	return fmt.Sprintf("%s%s", server.ProjectResourceScopePrefix, project), nil
 }

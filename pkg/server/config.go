@@ -31,6 +31,12 @@ type HandlerConfig struct {
 	ResourceScope  string `env:"PMAP_RESOURCE_SCOPE"`
 }
 
+const (
+	ProjectResourceScopePrefix      = "projects/"
+	FolderResourceScopePrefix       = "folders/"
+	OrganizationResourceScopePrefix = "organizations/"
+)
+
 // Validate validates the handler config after load.
 func (cfg *HandlerConfig) Validate() error {
 	if cfg.ProjectID == "" {
@@ -42,10 +48,14 @@ func (cfg *HandlerConfig) Validate() error {
 	}
 
 	if cfg.ResourceScope != "" &&
-		!strings.HasPrefix(cfg.ResourceScope, "projects/") &&
-		!strings.HasPrefix(cfg.ResourceScope, "folders/") &&
-		!strings.HasPrefix(cfg.ResourceScope, "organizations/") {
-		return fmt.Errorf("ResourceScope doesn't have a valid value")
+		!strings.HasPrefix(cfg.ResourceScope, ProjectResourceScopePrefix) &&
+		!strings.HasPrefix(cfg.ResourceScope, FolderResourceScopePrefix) &&
+		!strings.HasPrefix(cfg.ResourceScope, OrganizationResourceScopePrefix) {
+		return fmt.Errorf(`ResourceScope: %s doesn't have a valid value, the ResourceScope should be empty(default to project scopre) or one of the following formats:\n
+			projects/{PROJECT_ID}\n
+			projects/{PROJECT_NUMBER}\n
+			folders/{FOLDER_NUMBER}\n
+			organizations/{ORGANIZATION_NUMBER}\n`, cfg.ResourceScope)
 	}
 
 	return nil

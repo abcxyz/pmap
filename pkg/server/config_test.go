@@ -66,7 +66,7 @@ func TestConfig_Validate(t *testing.T) {
 				FailureTopicID: testFailureTopicID,
 				ResourceScope:  "foo/bar",
 			},
-			wantErr: "ResourceScope doesn't have a valid value",
+			wantErr: "ResourceScope: foo/bar doesn't have a valid value",
 		},
 	}
 
