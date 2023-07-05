@@ -61,27 +61,6 @@ func TestConfig_Validate(t *testing.T) {
 			},
 			wantErr: `PMAP_SUCCESS_TOPIC_ID is empty and requires a value`,
 		},
-		{
-			name: "invalid_resource_scope",
-			cfg: &HandlerConfig{
-				Port:                 "8080",
-				ProjectID:            testProjectID,
-				SuccessTopicID:       testSuccessTopicID,
-				FailureTopicID:       testFailureTopicID,
-				DefaultResourceScope: "foo/bar",
-			},
-			wantErr: "PMAP_RESOURCE_SCOPE: foo/bar doesn't have a valid value",
-		},
-		{
-			name: "missing_resource_scope",
-			cfg: &HandlerConfig{
-				Port:           "8080",
-				ProjectID:      testProjectID,
-				SuccessTopicID: testSuccessTopicID,
-				FailureTopicID: testFailureTopicID,
-			},
-			wantErr: "PMAP_RESOURCE_SCOPE is empty and require a value",
-		},
 	}
 
 	for _, tc := range tests {

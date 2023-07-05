@@ -82,7 +82,6 @@ variable "pmap_resource_scope" {
         projects/{PROJECT_NUMBER}
         folders/{FOLDER_NUMBER}
         organizations/{ORGANIZATION_NUMBER}
-        When use default (empty), we will default to projects/{PROJECT_ID}"
     EOT
   type        = string
 }

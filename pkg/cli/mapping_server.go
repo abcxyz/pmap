@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/abcxyz/pkg/cli"
@@ -103,7 +104,20 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 
 	if c.cfg.DefaultResourceScope == "" {
-		return nil, nil, closer, fmt.Errorf("missing PMAP_RESOURCE_SCOPE in config")
+		return nil, nil, closer, fmt.Errorf(`PMAP_RESOURCE_SCOPE is empty and require a value from one of the following format:\n
+			projects/{PROJECT_ID}\n
+			projects/{PROJECT_NUMBER}\n
+			folders/{FOLDER_NUMBER}\n
+			organizations/{ORGANIZATION_NUMBER}\n`)
+	}
+
+	scope := strings.Split(c.cfg.DefaultResourceScope, "/")[0]
+	if _, ok := server.SupportedResourceScope[scope]; !ok {
+		return nil, nil, closer, fmt.Errorf(`PMAP_RESOURCE_SCOPE: %s doesn't have a valid value, the ResourceScope should be empty(default to project scopre) or one of the following formats:\n
+		projects/{PROJECT_ID}\n
+		projects/{PROJECT_NUMBER}\n
+		folders/{FOLDER_NUMBER}\n
+		organizations/{ORGANIZATION_NUMBER}\n`, c.cfg.DefaultResourceScope)
 	}
 
 	pubsubClient, err := pubsub.NewClient(ctx, c.cfg.ProjectID)

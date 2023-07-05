@@ -16,7 +16,6 @@ package server
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/abcxyz/pkg/cli"
 )
@@ -46,23 +45,6 @@ func (cfg *HandlerConfig) Validate() error {
 
 	if cfg.SuccessTopicID == "" {
 		return fmt.Errorf("PMAP_SUCCESS_TOPIC_ID is empty and requires a value")
-	}
-
-	if cfg.DefaultResourceScope == "" {
-		return fmt.Errorf(`PMAP_RESOURCE_SCOPE is empty and require a value from one of the following format:\n
-			projects/{PROJECT_ID}\n
-			projects/{PROJECT_NUMBER}\n
-			folders/{FOLDER_NUMBER}\n
-			organizations/{ORGANIZATION_NUMBER}\n`)
-	}
-
-	scope := strings.Split(cfg.DefaultResourceScope, "/")[0]
-	if _, ok := SupportedResourceScope[scope]; !ok {
-		return fmt.Errorf(`PMAP_RESOURCE_SCOPE: %s doesn't have a valid value, the ResourceScope should be empty(default to project scopre) or one of the following formats:\n
-		projects/{PROJECT_ID}\n
-		projects/{PROJECT_NUMBER}\n
-		folders/{FOLDER_NUMBER}\n
-		organizations/{ORGANIZATION_NUMBER}\n`, cfg.DefaultResourceScope)
 	}
 
 	return nil

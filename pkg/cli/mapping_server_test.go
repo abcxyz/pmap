@@ -38,6 +38,15 @@ func TestMappingServerCommand(t *testing.T) {
 		expErr string
 	}{
 		{
+			name: "success",
+			env: map[string]string{
+				"PROJECT_ID":            "test_project",
+				"PMAP_FAILURE_TOPIC_ID": "test_failure_topic",
+				"PMAP_SUCCESS_TOPIC_ID": "test_success_topic",
+				"PMAP_RESOURCE_SCOPE":   "projects/pmap-ci",
+			},
+		},
+		{
 			name:   "too_many_args",
 			args:   []string{"foo"},
 			expErr: `unexpected arguments: ["foo"]`,
@@ -61,18 +70,20 @@ func TestMappingServerCommand(t *testing.T) {
 			expErr: `invalid configuration: PMAP_SUCCESS_TOPIC_ID is empty and requires a value`,
 		},
 		{
-			name: "invalid_config_invalid_resource_scope",
+			name: "invalid_resource_scope",
 			env: map[string]string{
 				"PROJECT_ID":            "test_project",
 				"PMAP_SUCCESS_TOPIC_ID": "test_success_topic",
+				"PMAP_FAILURE_TOPIC_ID": "test_failure_topic",
 				"PMAP_RESOURCE_SCOPE":   "foo/bar",
 			},
 			expErr: `PMAP_RESOURCE_SCOPE: foo/bar doesn't have a valid value`,
 		},
 		{
-			name: "invalid_config_missing_resource_scope",
+			name: "missing_resource_scope",
 			env: map[string]string{
 				"PROJECT_ID":            "test_project",
+				"PMAP_FAILURE_TOPIC_ID": "test_failure_topic",
 				"PMAP_SUCCESS_TOPIC_ID": "test_success_topic",
 			},
 			expErr: `PMAP_RESOURCE_SCOPE is empty and require a value`,
