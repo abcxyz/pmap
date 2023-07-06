@@ -37,7 +37,7 @@ var _ cli.Command = (*MappingServerCommand)(nil)
 type MappingServerCommand struct {
 	cli.BaseCommand
 
-	cfg *server.HandlerConfig
+	cfg *server.MappingHandlerConfig
 
 	// testFlagSetOpts is only used for testing.
 	testFlagSetOpts []cli.Option
@@ -56,7 +56,7 @@ Usage: {{ COMMAND }} [options]
 }
 
 func (c *MappingServerCommand) Flags() *cli.FlagSet {
-	c.cfg = &server.HandlerConfig{}
+	c.cfg = &server.MappingHandlerConfig{}
 	set := cli.NewFlagSet(c.testFlagSetOpts...)
 	return c.cfg.ToFlags(set)
 }
@@ -92,20 +92,20 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		"commit", version.Commit,
 		"version", version.Version)
 
-	if err := c.cfg.ValidateMappingConfig(); err != nil {
+	if err := c.cfg.Validate(); err != nil {
 		return nil, nil, closer, fmt.Errorf("invalid mapping configuration: %w", err)
 	}
 	logger.Debugw("loaded configuration", "config", c.cfg)
 
-	pubsubClient, err := pubsub.NewClient(ctx, c.cfg.ProjectID)
+	pubsubClient, err := pubsub.NewClient(ctx, c.cfg.HandlerConfig.ProjectID)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create pubsub client: %w", err)
 	}
 	closer = multicloser.Append(closer, pubsubClient.Close)
 
-	successTopic := pubsubClient.Topic(c.cfg.SuccessTopicID)
+	successTopic := pubsubClient.Topic(c.cfg.HandlerConfig.SuccessTopicID)
 	successMessenger := server.NewPubSubMessenger(successTopic)
-	failureTopic := pubsubClient.Topic(c.cfg.FailureTopicID)
+	failureTopic := pubsubClient.Topic(c.cfg.HandlerConfig.FailureTopicID)
 	failureMessenger := server.NewPubSubMessenger(failureTopic)
 	closer = multicloser.Append(closer, successTopic.Stop, failureTopic.Stop)
 
@@ -115,7 +115,7 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 	closer = multicloser.Append(closer, assetClient.Close)
 
-	processor, err := processors.NewAssetInventoryProcessor(ctx, assetClient, c.cfg.MappingConfig.DefaultResourceScope)
+	processor, err := processors.NewAssetInventoryProcessor(ctx, assetClient, c.cfg.DefaultResourceScope)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create assetInventoryProcessor: %w", err)
 	}
@@ -128,7 +128,7 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		return nil, nil, closer, fmt.Errorf("server.NewHandler: %w", err)
 	}
 
-	srv, err := serving.New(c.cfg.Port)
+	srv, err := serving.New(c.cfg.HandlerConfig.Port)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create serving infrastructure: %w", err)
 	}

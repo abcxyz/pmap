@@ -78,74 +78,76 @@ func TestConfig_MappingValidate(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		cfg     *HandlerConfig
+		cfg     *MappingHandlerConfig
 		wantErr string
 	}{
 		{
 			name: "success",
-			cfg: &HandlerConfig{
-				Port:           "8080",
-				ProjectID:      testProjectID,
-				SuccessTopicID: testSuccessTopicID,
-				FailureTopicID: testFailureTopicID,
-				MappingConfig: MappingConfig{
-					DefaultResourceScope: testDefaultResourceScope,
+			cfg: &MappingHandlerConfig{
+				DefaultResourceScope: testDefaultResourceScope,
+				HandlerConfig: HandlerConfig{
+					Port:           "8080",
+					ProjectID:      testProjectID,
+					SuccessTopicID: testSuccessTopicID,
+					FailureTopicID: testFailureTopicID,
 				},
 			},
 		},
 		{
 			name: "missing_project_id",
-			cfg: &HandlerConfig{
-				SuccessTopicID: testSuccessTopicID,
-				FailureTopicID: testFailureTopicID,
-				MappingConfig: MappingConfig{
-					DefaultResourceScope: testDefaultResourceScope,
+			cfg: &MappingHandlerConfig{
+				HandlerConfig: HandlerConfig{
+					SuccessTopicID: testSuccessTopicID,
+					FailureTopicID: testFailureTopicID,
 				},
+				DefaultResourceScope: testDefaultResourceScope,
 			},
 			wantErr: `PROJECT_ID is empty and requires a value`,
 		},
 		{
 			name: "missing_success_event_topic_id",
-			cfg: &HandlerConfig{
-				ProjectID:      testProjectID,
-				FailureTopicID: testFailureTopicID,
-				MappingConfig: MappingConfig{
-					DefaultResourceScope: testDefaultResourceScope,
+			cfg: &MappingHandlerConfig{
+				HandlerConfig: HandlerConfig{
+					ProjectID:      testProjectID,
+					FailureTopicID: testFailureTopicID,
 				},
+				DefaultResourceScope: testDefaultResourceScope,
 			},
 			wantErr: `PMAP_SUCCESS_TOPIC_ID is empty and requires a value`,
 		},
 		{
 			name: "missing_failure_event_topic_id",
-			cfg: &HandlerConfig{
-				ProjectID:      testProjectID,
-				SuccessTopicID: testSuccessTopicID,
-				MappingConfig: MappingConfig{
-					DefaultResourceScope: testDefaultResourceScope,
+			cfg: &MappingHandlerConfig{
+				HandlerConfig: HandlerConfig{
+					ProjectID:      testProjectID,
+					SuccessTopicID: testSuccessTopicID,
 				},
+				DefaultResourceScope: testDefaultResourceScope,
 			},
 			wantErr: `PMAP_FAILURE_TOPIC_ID is empty and require a value`,
 		},
 		{
 			name: "missing_resource_scope",
-			cfg: &HandlerConfig{
-				SuccessTopicID: testSuccessTopicID,
-				FailureTopicID: testFailureTopicID,
-				ProjectID:      testProjectID,
+			cfg: &MappingHandlerConfig{
+				HandlerConfig: HandlerConfig{
+					SuccessTopicID: testSuccessTopicID,
+					FailureTopicID: testFailureTopicID,
+					ProjectID:      testProjectID,
+				},
 			},
-			wantErr: `PMAP_RESOURCE_SCOPE is empty and require a value`,
+			wantErr: `PMAP_MAPPING_RESOURCE_SCOPE is empty`,
 		},
 		{
 			name: "invalid_resource_scope",
-			cfg: &HandlerConfig{
-				ProjectID:      testProjectID,
-				SuccessTopicID: testSuccessTopicID,
-				FailureTopicID: testFailureTopicID,
-				MappingConfig: MappingConfig{
-					DefaultResourceScope: "foo/bar",
+			cfg: &MappingHandlerConfig{
+				HandlerConfig: HandlerConfig{
+					ProjectID:      testProjectID,
+					SuccessTopicID: testSuccessTopicID,
+					FailureTopicID: testFailureTopicID,
 				},
+				DefaultResourceScope: "foo/bar",
 			},
-			wantErr: `PMAP_RESOURCE_SCOPE: foo/bar doesn't have a valid value`,
+			wantErr: `PMAP_MAPPING_RESOURCE_SCOPE: foo/bar doesn't have a valid value`,
 		},
 	}
 
@@ -154,7 +156,7 @@ func TestConfig_MappingValidate(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			err := tc.cfg.ValidateMappingConfig()
+			err := tc.cfg.Validate()
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
 			}

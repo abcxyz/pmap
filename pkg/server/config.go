@@ -37,15 +37,14 @@ type HandlerConfig struct {
 	SuccessTopicID string `env:"PMAP_SUCCESS_TOPIC_ID,required"`
 	// FailureTopicID is optional for policy service
 	FailureTopicID string `env:"PMAP_FAILURE_TOPIC_ID"`
-	// MappingConfig is special config for mapping service
-	MappingConfig MappingConfig
 }
 
 // MappingConfig defines the extra environment variables required
 // for running mapping service.
-type MappingConfig struct {
+type MappingHandlerConfig struct {
 	// DefaultResourceScope is required for mapping service
-	DefaultResourceScope string `env:"PMAP_RESOURCE_SCOPE"`
+	DefaultResourceScope string `env:"PMAP_MAPPING_RESOURCE_SCOPE"`
+	HandlerConfig        HandlerConfig
 }
 
 // Validate validates the handler config after load.
@@ -62,26 +61,31 @@ func (cfg *HandlerConfig) Validate() error {
 }
 
 // ValidateMappingConfig validates the handler config for mapping service after load.
-func (cfg *HandlerConfig) ValidateMappingConfig() error {
-	if err := cfg.Validate(); err != nil {
+func (cfg *MappingHandlerConfig) Validate() error {
+	if err := cfg.HandlerConfig.Validate(); err != nil {
 		return err
 	}
 
 	// For mapping server, we also require a failure topic ID.
-	if cfg.FailureTopicID == "" {
-		return fmt.Errorf("PMAP_FAILURE_TOPIC_ID is empty and require a value for mapping service.")
+	if cfg.HandlerConfig.FailureTopicID == "" {
+		return fmt.Errorf("PMAP_FAILURE_TOPIC_ID is empty and require a value for mapping service")
 	}
 
-	if cfg.MappingConfig.DefaultResourceScope == "" {
-		return fmt.Errorf(`PMAP_RESOURCE_SCOPE is empty, allowed values are: %s`,
-			"projects/{PROJECT_ID}, projects/{PROJECT_NUMBER}, folders/{FOLDER_NUMBER}, organizations/{ORGANIZATION_NUMBER}")
+	allowedScopes := []string{
+		"projects/{PROJECT_ID}",
+		"projects/{PROJECT_NUMBER}",
+		"folders/{FOLDER_NUMBER}",
+		"organizations/{ORGNANIZATION_NUMBER}",
 	}
 
-	scope := strings.Split(cfg.MappingConfig.DefaultResourceScope, "/")[0]
+	if cfg.DefaultResourceScope == "" {
+		return fmt.Errorf(`PMAP_MAPPING_RESOURCE_SCOPE is empty, allowed values are: %v`, allowedScopes)
+	}
+
+	scope := strings.Split(cfg.DefaultResourceScope, "/")[0]
 	if _, ok := SupportedResourceScope[scope]; !ok {
-		return fmt.Errorf(`PMAP_RESOURCE_SCOPE: %s doesn't have a valid value allowed values are: %s`,
-			cfg.MappingConfig.DefaultResourceScope,
-			"projects/{PROJECT_ID}, projects/{PROJECT_NUMBER}, folders/{FOLDER_NUMBER}, organizations/{ORGANIZATION_NUMBER}")
+		return fmt.Errorf(`PMAP_MAPPING_RESOURCE_SCOPE: %s doesn't have a valid value, allowed values are: %s`,
+			cfg.DefaultResourceScope, allowedScopes)
 	}
 	return nil
 }
@@ -122,17 +126,24 @@ func (cfg *HandlerConfig) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Usage:   "The topic id which handles the resources that failed to process.",
 	})
 
+	return set
+}
+
+func (cfg *MappingHandlerConfig) ToFlags(set *cli.FlagSet) *cli.FlagSet {
+	cfg.HandlerConfig.ToFlags(set)
+
+	f := set.NewSection("MAPPING SERVER OPTIONS")
+
 	f.StringVar(&cli.StringVar{
 		Name:    "default-resource-scope",
-		Target:  &cfg.MappingConfig.DefaultResourceScope,
-		EnvVar:  "PMAP_RESOURCE_SCOPE",
+		Target:  &cfg.DefaultResourceScope,
+		EnvVar:  "PMAP_MAPPING_RESOURCE_SCOPE",
 		Example: "{projects/test-project-id}",
 		Usage: `The default scope to search for resources. Format: 
-			projects/{PROJECT_ID}\n
-			projects/{PROJECT_NUMBER}\n
-			folders/{FOLDER_NUMBER}\n
-			organizations/{ORGANIZATION_NUMBER}`,
+		projects/{PROJECT_ID}\n
+		projects/{PROJECT_NUMBER}\n
+		folders/{FOLDER_NUMBER}\n
+		organizations/{ORGANIZATION_NUMBER}`,
 	})
-
 	return set
 }
