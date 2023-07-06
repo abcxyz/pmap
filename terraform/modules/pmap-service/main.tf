@@ -40,7 +40,7 @@ module "service" {
     "PROJECT_ID" : var.project_id,
     "PMAP_SUCCESS_TOPIC_ID" : var.downstream_topic,
     "PMAP_FAILURE_TOPIC_ID" : var.downstream_failure_topic
-    "PMAP_RESOURCE_SCOPE" : var.pmap_resource_scope
+    "PMAP_MAPPING_RESOURCE_SCOPE" : var.pmap_mapping_resource_scope
   }
 }
 

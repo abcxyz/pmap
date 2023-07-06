@@ -74,7 +74,7 @@ variable "gcs_events_filter" {
   default     = null
 }
 
-variable "pmap_resource_scope" {
+variable "pmap_mapping_resource_scope" {
   description = <<EOT
         "This is the scope for where the resources resides in.
         Options can be one of the following:
