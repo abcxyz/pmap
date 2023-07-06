@@ -97,11 +97,6 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 	logger.Debugw("loaded configuration", "config", c.cfg)
 
-	// For mapping server, we also require a failure topic ID.
-	if c.cfg.FailureTopicID == "" {
-		return nil, nil, closer, fmt.Errorf("missing PMAP_FAILURE_TOPIC_ID in config")
-	}
-
 	pubsubClient, err := pubsub.NewClient(ctx, c.cfg.ProjectID)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create pubsub client: %w", err)

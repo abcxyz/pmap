@@ -86,7 +86,7 @@ func TestMappingServerCommand(t *testing.T) {
 				"PMAP_SUCCESS_TOPIC_ID": "test_success_topic",
 				"PMAP_RESOURCE_SCOPE":   "projects/pmap-ci",
 			},
-			expErr: `missing PMAP_FAILURE_TOPIC_ID in config`,
+			expErr: `invalid mapping configuration: PMAP_FAILURE_TOPIC_ID is empty and require a value`,
 		},
 	}
 

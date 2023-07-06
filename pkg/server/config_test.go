@@ -97,6 +97,7 @@ func TestConfig_MappingValidate(t *testing.T) {
 			name: "missing_project_id",
 			cfg: &HandlerConfig{
 				SuccessTopicID: testSuccessTopicID,
+				FailureTopicID: testFailureTopicID,
 				MappingConfig: MappingConfig{
 					DefaultResourceScope: testDefaultResourceScope,
 				},
@@ -106,7 +107,8 @@ func TestConfig_MappingValidate(t *testing.T) {
 		{
 			name: "missing_success_event_topic_id",
 			cfg: &HandlerConfig{
-				ProjectID: testProjectID,
+				ProjectID:      testProjectID,
+				FailureTopicID: testFailureTopicID,
 				MappingConfig: MappingConfig{
 					DefaultResourceScope: testDefaultResourceScope,
 				},
@@ -114,9 +116,21 @@ func TestConfig_MappingValidate(t *testing.T) {
 			wantErr: `PMAP_SUCCESS_TOPIC_ID is empty and requires a value`,
 		},
 		{
+			name: "missing_failure_event_topic_id",
+			cfg: &HandlerConfig{
+				ProjectID:      testProjectID,
+				SuccessTopicID: testSuccessTopicID,
+				MappingConfig: MappingConfig{
+					DefaultResourceScope: testDefaultResourceScope,
+				},
+			},
+			wantErr: `PMAP_FAILURE_TOPIC_ID is empty and require a value`,
+		},
+		{
 			name: "missing_resource_scope",
 			cfg: &HandlerConfig{
 				SuccessTopicID: testSuccessTopicID,
+				FailureTopicID: testFailureTopicID,
 				ProjectID:      testProjectID,
 			},
 			wantErr: `PMAP_RESOURCE_SCOPE is empty and require a value`,
@@ -126,6 +140,7 @@ func TestConfig_MappingValidate(t *testing.T) {
 			cfg: &HandlerConfig{
 				ProjectID:      testProjectID,
 				SuccessTopicID: testSuccessTopicID,
+				FailureTopicID: testFailureTopicID,
 				MappingConfig: MappingConfig{
 					DefaultResourceScope: "foo/bar",
 				},

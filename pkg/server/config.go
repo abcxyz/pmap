@@ -67,21 +67,21 @@ func (cfg *HandlerConfig) ValidateMappingConfig() error {
 		return err
 	}
 
+	// For mapping server, we also require a failure topic ID.
+	if cfg.FailureTopicID == "" {
+		return fmt.Errorf("PMAP_FAILURE_TOPIC_ID is empty and require a value for mapping service.")
+	}
+
 	if cfg.MappingConfig.DefaultResourceScope == "" {
-		return fmt.Errorf(`PMAP_RESOURCE_SCOPE is empty and require a value from one of the following format:\n
-			projects/{PROJECT_ID}\n
-			projects/{PROJECT_NUMBER}\n
-			folders/{FOLDER_NUMBER}\n
-			organizations/{ORGANIZATION_NUMBER}\n`)
+		return fmt.Errorf(`PMAP_RESOURCE_SCOPE is empty, allowed values are: %s`,
+			"projects/{PROJECT_ID}, projects/{PROJECT_NUMBER}, folders/{FOLDER_NUMBER}, organizations/{ORGANIZATION_NUMBER}")
 	}
 
 	scope := strings.Split(cfg.MappingConfig.DefaultResourceScope, "/")[0]
 	if _, ok := SupportedResourceScope[scope]; !ok {
-		return fmt.Errorf(`PMAP_RESOURCE_SCOPE: %s doesn't have a valid value, the ResourceScope should be one of the following formats:\n
-		projects/{PROJECT_ID}\n
-		projects/{PROJECT_NUMBER}\n
-		folders/{FOLDER_NUMBER}\n
-		organizations/{ORGANIZATION_NUMBER}\n`, cfg.MappingConfig.DefaultResourceScope)
+		return fmt.Errorf(`PMAP_RESOURCE_SCOPE: %s doesn't have a valid value allowed values are: %s`,
+			cfg.MappingConfig.DefaultResourceScope,
+			"projects/{PROJECT_ID}, projects/{PROJECT_NUMBER}, folders/{FOLDER_NUMBER}, organizations/{ORGANIZATION_NUMBER}")
 	}
 	return nil
 }
