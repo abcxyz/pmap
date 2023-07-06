@@ -83,7 +83,7 @@ func (p *AssetInventoryProcessor) Process(ctx context.Context, resourceMapping *
 
 	resourceName := resourceMapping.GetResource().GetName()
 
-	resourceScope, err := parseProject(resourceName)
+	resourceScope, err := parseScope(resourceName)
 	if err != nil {
 		return pmaperrors.New(fmt.Sprintf("failed to parse project: %v", err))
 	}
@@ -242,9 +242,9 @@ func mergeAnnotations(annos1, annos2 *structpb.Struct) (*structpb.Struct, error)
 	return s, nil
 }
 
-// parseProject gets "Project" from "ResourceName" follows format here:https://cloud.google.com/asset-inventory/docs/resource-name-format.
-// Return empty string for resources such as GCS bucket won't include "Project" info in its "ResourceName".
-func parseProject(resourceName string) (string, error) {
+// parseScope gets "project/folder/orgnization" from "ResourceName" follows format here:https://cloud.google.com/asset-inventory/docs/resource-name-format.
+// Return empty string for resources such as GCS bucket won't include "project/folder/orgnization" info in its "ResourceName".
+func parseScope(resourceName string) (string, error) {
 	s := strings.Split(resourceName, "/")
 	scopePrefix := ""
 	scope := ""

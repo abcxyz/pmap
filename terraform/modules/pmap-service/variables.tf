@@ -76,12 +76,12 @@ variable "gcs_events_filter" {
 
 variable "pmap_mapping_resource_scope" {
   description = <<EOT
-        "This is the scope for where the resources resides in.
+        "The scope for where the resources resides in.
         Options can be one of the following:
         projects/{PROJECT_ID}
         projects/{PROJECT_NUMBER}
         folders/{FOLDER_NUMBER}
-        organizations/{ORGANIZATION_NUMBER}
+        organizations/{ORGANIZATION_NUMBER}"
     EOT
   type        = string
   default     = ""

@@ -39,11 +39,11 @@ type HandlerConfig struct {
 	FailureTopicID string `env:"PMAP_FAILURE_TOPIC_ID"`
 }
 
-// MappingConfig defines the extra environment variables required
+// MappingConfig defines the environment variables required
 // for running mapping service.
 type MappingHandlerConfig struct {
 	// DefaultResourceScope is required for mapping service
-	DefaultResourceScope string `env:"PMAP_MAPPING_RESOURCE_SCOPE"`
+	DefaultResourceScope string `env:"PMAP_MAPPING_RESOURCE_SCOPE,required"`
 	HandlerConfig        HandlerConfig
 }
 
@@ -140,9 +140,9 @@ func (cfg *MappingHandlerConfig) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		EnvVar:  "PMAP_MAPPING_RESOURCE_SCOPE",
 		Example: "{projects/test-project-id}",
 		Usage: `The default scope to search for resources. Format: 
-		projects/{PROJECT_ID}\n
-		projects/{PROJECT_NUMBER}\n
-		folders/{FOLDER_NUMBER}\n
+		projects/{PROJECT_ID}
+		projects/{PROJECT_NUMBER}
+		folders/{FOLDER_NUMBER}
 		organizations/{ORGANIZATION_NUMBER}`,
 	})
 	return set
