@@ -13,8 +13,9 @@
 // limitations under the License.
 
 locals {
-  mapping_service_name = "mapping"
-  policy_service_name  = "policy"
+  mapping_service_name                = "mapping"
+  policy_service_name                 = "policy"
+  pmap_mapping_default_resource_scope = var.pmap_mapping_default_resource_scope == "" ? format("projects/%s", var.project_id) : var.pmap_mapping_default_resource_scope
 }
 
 module "common_infra" {
@@ -32,15 +33,16 @@ module "mapping_service" {
 
   project_id = var.project_id
 
-  service_name             = local.mapping_service_name
-  pmap_container_image     = var.pmap_container_image
-  pmap_args                = ["mapping", "server"]
-  upstream_topic           = module.common_infra.gcs_notification_topics[local.mapping_service_name].name
-  downstream_topic         = module.common_infra.bigquery_topics[local.mapping_service_name].event_topic
-  downstream_failure_topic = module.common_infra.bigquery_topics[local.mapping_service_name].failure_topic
-  pmap_service_account     = module.common_infra.run_service_account
-  oidc_service_account     = module.common_infra.oidc_service_account
-  gcs_events_filter        = var.mapping_gcs_events_filter
+  service_name                        = local.mapping_service_name
+  pmap_container_image                = var.pmap_container_image
+  pmap_args                           = ["mapping", "server"]
+  upstream_topic                      = module.common_infra.gcs_notification_topics[local.mapping_service_name].name
+  downstream_topic                    = module.common_infra.bigquery_topics[local.mapping_service_name].event_topic
+  downstream_failure_topic            = module.common_infra.bigquery_topics[local.mapping_service_name].failure_topic
+  pmap_service_account                = module.common_infra.run_service_account
+  oidc_service_account                = module.common_infra.oidc_service_account
+  gcs_events_filter                   = var.mapping_gcs_events_filter
+  pmap_mapping_default_resource_scope = local.pmap_mapping_default_resource_scope
 }
 
 module "policy_service" {

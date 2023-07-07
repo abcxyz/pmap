@@ -65,7 +65,7 @@ func TestParseProject(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotProject, gotErr := parseProject(tc.resourceName)
+			gotProject, gotErr := parseScope(tc.resourceName)
 			if diff := testutil.DiffErrString(gotErr, tc.wantErrSubstr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected error substring: %v", tc.name, diff)
 			}

@@ -37,7 +37,7 @@ var _ cli.Command = (*MappingServerCommand)(nil)
 type MappingServerCommand struct {
 	cli.BaseCommand
 
-	cfg *server.HandlerConfig
+	cfg *server.MappingHandlerConfig
 
 	// testFlagSetOpts is only used for testing.
 	testFlagSetOpts []cli.Option
@@ -56,7 +56,7 @@ Usage: {{ COMMAND }} [options]
 }
 
 func (c *MappingServerCommand) Flags() *cli.FlagSet {
-	c.cfg = &server.HandlerConfig{}
+	c.cfg = &server.MappingHandlerConfig{}
 	set := cli.NewFlagSet(c.testFlagSetOpts...)
 	return c.cfg.ToFlags(set)
 }
@@ -93,14 +93,9 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		"version", version.Version)
 
 	if err := c.cfg.Validate(); err != nil {
-		return nil, nil, closer, fmt.Errorf("invalid configuration: %w", err)
+		return nil, nil, closer, fmt.Errorf("invalid mapping configuration: %w", err)
 	}
 	logger.Debugw("loaded configuration", "config", c.cfg)
-
-	// For mapping server, we also require a failure topic ID.
-	if c.cfg.FailureTopicID == "" {
-		return nil, nil, closer, fmt.Errorf("missing PMAP_FAILURE_TOPIC_ID in config")
-	}
 
 	pubsubClient, err := pubsub.NewClient(ctx, c.cfg.ProjectID)
 	if err != nil {
@@ -120,7 +115,7 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 	closer = multicloser.Append(closer, assetClient.Close)
 
-	processor, err := processors.NewAssetInventoryProcessor(ctx, assetClient, fmt.Sprintf("projects/%s", c.cfg.ProjectID))
+	processor, err := processors.NewAssetInventoryProcessor(ctx, assetClient, c.cfg.DefaultResourceScope)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create assetInventoryProcessor: %w", err)
 	}

@@ -73,3 +73,16 @@ variable "gcs_events_filter" {
   type        = string
   default     = null
 }
+
+variable "pmap_mapping_default_resource_scope" {
+  description = <<EOT
+        "The scope for where the resources resides in.
+        Options can be one of the following:
+        projects/{PROJECT_ID}
+        projects/{PROJECT_NUMBER}
+        folders/{FOLDER_NUMBER}
+        organizations/{ORGANIZATION_NUMBER}"
+    EOT
+  type        = string
+  default     = ""
+}
