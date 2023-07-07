@@ -21,12 +21,14 @@ import (
 	"github.com/abcxyz/pkg/cli"
 )
 
-// SupportedResourceScope defines the scopes that are supported
+// allowedScopes showes the scopes that are supported
 // when doing resources searching.
-var SupportedResourceScope = map[string]struct{}{
-	"projects":      {},
-	"folders":       {},
-	"organizations": {},
+// https://cloud.google.com/asset-inventory/docs/reference/rest/v1/TopLevel/searchAllResources#path-parameters
+var allowedScopes = []string{
+	"projects/{PROJECT_ID}",
+	"projects/{PROJECT_NUMBER}",
+	"folders/{FOLDER_NUMBER}",
+	"organizations/{ORGNANIZATION_NUMBER}",
 }
 
 // HandlerConfig defines the set over environment variables required
@@ -42,9 +44,10 @@ type HandlerConfig struct {
 // MappingConfig defines the environment variables required
 // for running mapping service.
 type MappingHandlerConfig struct {
-	// DefaultResourceScope is required for mapping service
-	DefaultResourceScope string `env:"PMAP_MAPPING_RESOURCE_SCOPE,required"`
-	HandlerConfig        HandlerConfig
+	// DefaultResourceScope is the default resource scope to search resources.
+	// This is only used for global resources such as GCS bucket.
+	DefaultResourceScope string `env:"PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE,required"`
+	HandlerConfig
 }
 
 // Validate validates the handler config after load.
@@ -71,22 +74,18 @@ func (cfg *MappingHandlerConfig) Validate() error {
 		return fmt.Errorf("PMAP_FAILURE_TOPIC_ID is empty and require a value for mapping service")
 	}
 
-	allowedScopes := []string{
-		"projects/{PROJECT_ID}",
-		"projects/{PROJECT_NUMBER}",
-		"folders/{FOLDER_NUMBER}",
-		"organizations/{ORGNANIZATION_NUMBER}",
-	}
-
 	if cfg.DefaultResourceScope == "" {
-		return fmt.Errorf(`PMAP_MAPPING_RESOURCE_SCOPE is empty, allowed values are: %v`, allowedScopes)
+		return fmt.Errorf(`PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE is empty, allowed values are: %v`, allowedScopes)
 	}
 
 	scope := strings.Split(cfg.DefaultResourceScope, "/")[0]
-	if _, ok := SupportedResourceScope[scope]; !ok {
-		return fmt.Errorf(`PMAP_MAPPING_RESOURCE_SCOPE: %s doesn't have a valid value, allowed values are: %s`,
-			cfg.DefaultResourceScope, allowedScopes)
+	switch scope {
+	case "projects", "folders", "organizations":
+		break
+	default:
+		return fmt.Errorf(`PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE: %s is required in one of the formats: %v`, cfg.DefaultResourceScope, allowedScopes)
 	}
+
 	return nil
 }
 
@@ -137,13 +136,9 @@ func (cfg *MappingHandlerConfig) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 	f.StringVar(&cli.StringVar{
 		Name:    "default-resource-scope",
 		Target:  &cfg.DefaultResourceScope,
-		EnvVar:  "PMAP_MAPPING_RESOURCE_SCOPE",
-		Example: "{projects/test-project-id}",
-		Usage: `The default scope to search for resources. Format: 
-		projects/{PROJECT_ID}
-		projects/{PROJECT_NUMBER}
-		folders/{FOLDER_NUMBER}
-		organizations/{ORGANIZATION_NUMBER}`,
+		EnvVar:  "PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE",
+		Example: "projects/test-project-id",
+		Usage:   fmt.Sprintf(`The default scope to search for resources. Format: %v`, allowedScopes),
 	})
 	return set
 }

@@ -13,7 +13,8 @@
 // limitations under the License.
 
 locals {
-  pubsub_svc_account_email = "service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+  pubsub_svc_account_email            = "service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+  pmap_mapping_default_resource_scope = var.pmap_mapping_default_resource_scope == "" ? format("projects/%s", var.project_id) : var.pmap_mapping_default_resource_scope
 }
 
 data "google_project" "project" {
@@ -40,7 +41,7 @@ module "service" {
     "PROJECT_ID" : var.project_id,
     "PMAP_SUCCESS_TOPIC_ID" : var.downstream_topic,
     "PMAP_FAILURE_TOPIC_ID" : var.downstream_failure_topic
-    "PMAP_MAPPING_RESOURCE_SCOPE" : var.pmap_mapping_resource_scope
+    "PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE" : local.pmap_mapping_default_resource_scope
   }
 }
 

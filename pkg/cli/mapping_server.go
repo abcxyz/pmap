@@ -97,15 +97,15 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 	logger.Debugw("loaded configuration", "config", c.cfg)
 
-	pubsubClient, err := pubsub.NewClient(ctx, c.cfg.HandlerConfig.ProjectID)
+	pubsubClient, err := pubsub.NewClient(ctx, c.cfg.ProjectID)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create pubsub client: %w", err)
 	}
 	closer = multicloser.Append(closer, pubsubClient.Close)
 
-	successTopic := pubsubClient.Topic(c.cfg.HandlerConfig.SuccessTopicID)
+	successTopic := pubsubClient.Topic(c.cfg.SuccessTopicID)
 	successMessenger := server.NewPubSubMessenger(successTopic)
-	failureTopic := pubsubClient.Topic(c.cfg.HandlerConfig.FailureTopicID)
+	failureTopic := pubsubClient.Topic(c.cfg.FailureTopicID)
 	failureMessenger := server.NewPubSubMessenger(failureTopic)
 	closer = multicloser.Append(closer, successTopic.Stop, failureTopic.Stop)
 
@@ -128,7 +128,7 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		return nil, nil, closer, fmt.Errorf("server.NewHandler: %w", err)
 	}
 
-	srv, err := serving.New(c.cfg.HandlerConfig.Port)
+	srv, err := serving.New(c.cfg.Port)
 	if err != nil {
 		return nil, nil, closer, fmt.Errorf("failed to create serving infrastructure: %w", err)
 	}

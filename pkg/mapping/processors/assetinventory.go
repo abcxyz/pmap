@@ -26,7 +26,6 @@ import (
 	"github.com/abcxyz/pkg/protoutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"github.com/abcxyz/pmap/pkg/pmaperrors"
-	"github.com/abcxyz/pmap/pkg/server"
 	"google.golang.org/api/iterator"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -249,7 +248,8 @@ func parseScope(resourceName string) (string, error) {
 	scopePrefix := ""
 	scope := ""
 	for i, e := range s {
-		if _, ok := server.SupportedResourceScope[e]; ok {
+		switch e {
+		case "projects", "folders", "organizations":
 			if i+1 >= len(s) || s[i+1] == "" {
 				// This is obviously an invalid input.
 				return "", fmt.Errorf("invalid resource name: %s", resourceName)

@@ -135,7 +135,7 @@ func TestConfig_MappingValidate(t *testing.T) {
 					ProjectID:      testProjectID,
 				},
 			},
-			wantErr: `PMAP_MAPPING_RESOURCE_SCOPE is empty`,
+			wantErr: `PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE is empty`,
 		},
 		{
 			name: "invalid_resource_scope",
@@ -147,7 +147,7 @@ func TestConfig_MappingValidate(t *testing.T) {
 				},
 				DefaultResourceScope: "foo/bar",
 			},
-			wantErr: `PMAP_MAPPING_RESOURCE_SCOPE: foo/bar doesn't have a valid value`,
+			wantErr: `PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE: foo/bar is required in one of the formats`,
 		},
 	}
 
