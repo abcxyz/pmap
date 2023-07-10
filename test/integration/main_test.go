@@ -125,14 +125,14 @@ func TestMappingEventHandling(t *testing.T) {
 		wantProcessErrSubStr string
 	}{
 		{
-			name:              "mapping_success_event_unscoped_resource",
-			resourceName:      fmt.Sprintf("//storage.googleapis.com/%s", cfg.StaticGCSBucket),
+			name:              "mapping_success_event_scoped_resource",
+			resourceName:      fmt.Sprintf("//artifactregistry.googleapis.com/projects/%s/locations/us-central1/repositories/%s", cfg.ProjectID, cfg.StaticARRepo),
 			bigqueryTable:     cfg.MappingTableID,
 			wantCAISProcessed: true,
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
-					Name:     fmt.Sprintf("//storage.googleapis.com/%s", cfg.StaticGCSBucket),
+					Name:     fmt.Sprintf("//artifactregistry.googleapis.com/projects/%s/locations/us-central1/repositories/%s", cfg.ProjectID, cfg.StaticARRepo),
 				},
 				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
 			},
@@ -147,14 +147,14 @@ func TestMappingEventHandling(t *testing.T) {
 			},
 		},
 		{
-			name:              "mapping_success_event_scoped_resource",
-			resourceName:      fmt.Sprintf("//artifactregistry.googleapis.com/projects/%s/locations/us-central1/repositories/%s", cfg.StaticGCSBucket, cfg.StaticARRepo),
+			name:              "mapping_success_event_unscoped_resource",
+			resourceName:      fmt.Sprintf("//storage.googleapis.com/%s", cfg.StaticGCSBucket),
 			bigqueryTable:     cfg.MappingTableID,
 			wantCAISProcessed: true,
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
-					Name:     fmt.Sprintf("//artifactregistry.googleapis.com/projects/%s/locations/us-central1/repositories/%s", cfg.StaticGCSBucket, cfg.StaticARRepo),
+					Name:     fmt.Sprintf("//storage.googleapis.com/%s", cfg.StaticGCSBucket),
 				},
 				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
 			},
