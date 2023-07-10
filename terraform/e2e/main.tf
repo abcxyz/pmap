@@ -65,7 +65,7 @@ resource "random_id" "default" {
 }
 
 locals {
-  dev_static_bucket_name = "pmap-static-ci-bucket-${random_id.default.hex}"
+  static_bucket_name = "pmap-static-ci-bucket-${random_id.default.hex}"
 }
 
 # Create a static GCS bucket in dev project
@@ -74,7 +74,7 @@ locals {
 resource "google_storage_bucket" "integ_test_dedicated_bucket" {
   project = var.project_id
 
-  name                        = local.dev_static_bucket_name
+  name                        = local.static_bucket_name
   location                    = "US"
   force_destroy               = false
   uniform_bucket_level_access = true
