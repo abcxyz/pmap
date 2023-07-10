@@ -59,3 +59,37 @@ module "policy_service" {
   oidc_service_account = module.common_infra.oidc_service_account
   gcs_events_filter    = var.policy_gcs_events_filter
 }
+
+resource "random_id" "default" {
+  byte_length = 2
+}
+
+locals {
+  dev_static_bucket_name = "pmap-static-ci-bucket-${random_id.default.hex}"
+}
+
+# Create a static GCS bucket in dev project
+# so integ test can test the customized scope functionality
+# from another project
+resource "google_storage_bucket" "integ_test_dedicated_bucket" {
+  project = var.project_id
+
+  name                        = local.dev_static_bucket_name
+  location                    = "US"
+  force_destroy               = false
+  uniform_bucket_level_access = true
+  public_access_prevention    = "enforced"
+
+  labels = {
+    env = "pmap-ci-test"
+  }
+}
+
+# Add service account to static bucket IAM
+# for testing purpose, therefore the IAM policy
+# list won't be empty
+resource "google_storage_bucket_iam_member" "static_bucket_object_viewer" {
+  bucket = google_storage_bucket.integ_test_dedicated_bucket.name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${module.common_infra.run_service_account}"
+}
