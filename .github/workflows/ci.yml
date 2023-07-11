@@ -161,7 +161,7 @@ jobs:
           echo pmap_service_account=\"${{ env.INTEG_TEST_RUN_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
           echo oidc_service_account=\"${{ env.INTEG_TEST_OIDC_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
           echo gcs_events_filter=\"hasPrefix\(attributes.objectId, \\\"mapping/${INTEG_TEST_OBJECT_PREFIX}\\\"\)\">> ${VAR_FILE};
-          echo extra_container_env_vars={PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE=\"projects/${{ env.INTEG_TEST_PROJECT_ID}}\"} >> ${VAR_FILE}
+          echo service_specific_container_env_vars={PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE=\"projects/${{ env.INTEG_TEST_PROJECT_ID}}\"} >> ${VAR_FILE}
 
           cat ${VAR_FILE};
           echo "MAPPING_TF_VAR_FILE=${VAR_FILE}" >> $GITHUB_ENV;

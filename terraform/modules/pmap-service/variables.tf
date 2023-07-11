@@ -74,10 +74,10 @@ variable "gcs_events_filter" {
   default     = null
 }
 
-variable "extra_container_env_vars" {
+variable "service_specific_container_env_vars" {
   type        = map(string)
   description = <<EOT
-        "The extra container envirnoment variables needed specific pmap services.
+        "The container envirnoment variables needed for specific pmap service.
         For example PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE is only required by
         mapping service.
         Example:

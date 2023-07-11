@@ -57,7 +57,7 @@ variable "bigquery_table_delete_protection" {
   default     = false
 }
 
-variable "extra_container_env_vars" {
+variable "service_specific_container_env_vars" {
   type        = map(string)
   description = <<EOT
         "The extra envirnoment variables for mapping services as key value pair.
