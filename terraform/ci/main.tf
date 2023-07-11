@@ -30,9 +30,12 @@ resource "random_id" "default" {
 
 
 locals {
-  static_bucket_name = "pmap-static-ci-bucket-${random_id.default.hex}"
+  static_bucket_name        = "pmap-static-ci-bucket-${random_id.default.hex}"
+  static_artifact_repo_name = "pmap-static-ci-artifact-registry-repo-${random_id.default.hex}"
 }
 
+# Add a static GCS bucket for integration test, as GCS bucket is
+# unscoped resource
 resource "google_storage_bucket" "integ_test_dedicated_bucket" {
   project = var.project_id
 
@@ -54,4 +57,31 @@ resource "google_storage_bucket_iam_member" "static_bucket_object_viewer" {
   bucket = google_storage_bucket.integ_test_dedicated_bucket.name
   role   = "roles/storage.objectViewer"
   member = "serviceAccount:${module.common_infra.run_service_account}"
+}
+
+# Add a static artifact registry repo for integration test, as artifact repo is
+# scoped resource.
+resource "google_artifact_registry_repository" "integ_test_deicated_artifact_repo" {
+  project = var.project_id
+
+  location      = "us-central1"
+  repository_id = local.static_artifact_repo_name
+  description   = "static artifact registry repo for pmap ci tests"
+  format        = "DOCKER"
+
+  labels = {
+    env = "pmap-ci-test"
+  }
+}
+
+# Add service account to static artifact registry repo
+# IAM for testing purpose, therefore the IAM policy
+# list won't be empty
+resource "google_artifact_registry_repository_iam_member" "static_artifact_repo_object_viewer" {
+  project = var.project_id
+
+  location   = google_artifact_registry_repository.integ_test_deicated_artifact_repo.location
+  repository = google_artifact_registry_repository.integ_test_deicated_artifact_repo.name
+  role       = "roles/artifactregistry.reader"
+  member     = "serviceAccount:${module.common_infra.run_service_account}"
 }
