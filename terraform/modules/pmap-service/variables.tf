@@ -74,10 +74,11 @@ variable "gcs_events_filter" {
   default     = null
 }
 
-variable "service_specific_container_env_vars" {
+variable "pmap_specific_envvars" {
   type        = map(string)
   description = <<EOT
-        "The container envirnoment variables needed for specific pmap service.
+        "The specific container envirnoment variables needed for pmap individual service.
+        This can be used by both mapping and policy service.
         For example PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE is only required by
         mapping service.
         Example:

@@ -42,7 +42,7 @@ module "service" {
     invokers   = ["serviceAccount:${var.oidc_service_account}"]
   }
 
-  envvars = merge(local.common_env_vars, var.service_specific_container_env_vars)
+  envvars = merge(local.common_env_vars, var.pmap_specific_envvars)
 }
 
 // Create push subscriptions with the pmap service push endpoint.
