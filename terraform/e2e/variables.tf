@@ -57,15 +57,19 @@ variable "bigquery_table_delete_protection" {
   default     = false
 }
 
-variable "pmap_mapping_default_resource_scope" {
+variable "extra_container_env_vars" {
+  type        = map(string)
   description = <<EOT
-        "The scope for where the resources resides in.
+        "The extra envirnoment variables for mapping services as key value pair.
+        Including <PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE>: 
+        The scope for where the resources resides in.
         Options can be one of the following:
         projects/{PROJECT_ID}
         projects/{PROJECT_NUMBER}
         folders/{FOLDER_NUMBER}
         organizations/{ORGANIZATION_NUMBER}"
+        Example:
+        {PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE: }
     EOT
-  type        = string
-  default     = ""
+  default     = {}
 }

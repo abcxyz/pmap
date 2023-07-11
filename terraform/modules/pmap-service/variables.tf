@@ -74,15 +74,14 @@ variable "gcs_events_filter" {
   default     = null
 }
 
-variable "pmap_mapping_default_resource_scope" {
+variable "extra_container_env_vars" {
+  type        = map(string)
   description = <<EOT
-        "The scope for where the resources resides in.
-        Options can be one of the following:
-        projects/{PROJECT_ID}
-        projects/{PROJECT_NUMBER}
-        folders/{FOLDER_NUMBER}
-        organizations/{ORGANIZATION_NUMBER}"
+        "The extra container envirnoment variables needed specific pmap services.
+        For example PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE is only required by
+        mapping service.
+        Example:
+        {PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE: projects/some-project-id}"
     EOT
-  type        = string
-  default     = ""
+  default     = {}
 }

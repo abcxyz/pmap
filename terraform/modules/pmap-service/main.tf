@@ -13,8 +13,13 @@
 // limitations under the License.
 
 locals {
-  pubsub_svc_account_email            = "service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
-  pmap_mapping_default_resource_scope = var.pmap_mapping_default_resource_scope == "" ? format("projects/%s", var.project_id) : var.pmap_mapping_default_resource_scope
+  pubsub_svc_account_email = "service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+
+  basic_env_var = {
+    "PROJECT_ID" : var.project_id,
+    "PMAP_SUCCESS_TOPIC_ID" : var.downstream_topic,
+    "PMAP_FAILURE_TOPIC_ID" : var.downstream_failure_topic
+  }
 }
 
 data "google_project" "project" {
@@ -37,12 +42,7 @@ module "service" {
     invokers   = ["serviceAccount:${var.oidc_service_account}"]
   }
 
-  envvars = {
-    "PROJECT_ID" : var.project_id,
-    "PMAP_SUCCESS_TOPIC_ID" : var.downstream_topic,
-    "PMAP_FAILURE_TOPIC_ID" : var.downstream_failure_topic
-    "PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE" : local.pmap_mapping_default_resource_scope
-  }
+  envvars = merge(local.basic_env_var, var.extra_container_env_vars)
 }
 
 // Create push subscriptions with the pmap service push endpoint.
