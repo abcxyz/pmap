@@ -34,6 +34,8 @@ env:
   INTEG_TEST_POLICY_UPSTREAM_TOPIC: 'policy-gcs'
   INTEG_TEST_POLICY_DOWNSTREAM_TOPIC: 'policy-bigquery'
   INTEG_TEST_STATIC_GCS_BUCKET: 'pmap-static-ci-bucket-7faa'
+  INTEG_TEST_STATIC_AR_REPO: 'pmap-static-ci-artifact-registry-repo-7faa'
+  INTEG_TEST_MAPPING_DEFAULT_RESOURCE_SCOPE: 'folders/1082218530939'
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
