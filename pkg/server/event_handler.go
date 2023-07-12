@@ -270,7 +270,7 @@ func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsu
 
 	b, err := h.getGCSObjectBytes(ctx, m.Attributes)
 	if err != nil {
-		return nil, errors.Join(processErr, fmt.Errorf("failed to get GCS object: %w", err))
+		return nil, fmt.Errorf("failed to get GCS object: %w", err)
 	}
 
 	// Convert the object bytes into a proto message wrapper.
@@ -290,7 +290,7 @@ func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsu
 
 	payload, err := anypb.New(p)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert object to pmap event payload: %w", err)
+		return nil, errors.Join(processErr, fmt.Errorf("failed to convert object to pmap event payload: %w", err))
 	}
 
 	var gr *v1alpha1.GitHubSource
