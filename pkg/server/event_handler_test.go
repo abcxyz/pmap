@@ -625,8 +625,7 @@ func (m *testMessenger) Send(_ context.Context, data []byte, attr map[string]str
 	// Also protojson.Unmarshal will return err
 	// when unmarshal an empty byte slice
 	if len(data) != 0 {
-		err := protojson.Unmarshal(data, m.gotPmapEvent)
-		if err != nil {
+		if err := protojson.Unmarshal(data, m.gotPmapEvent); err != nil {
 			return fmt.Errorf("failed to unmarshal to PmapEvent: %w", err)
 		}
 	}
