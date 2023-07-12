@@ -266,8 +266,6 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 
 func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsub.Message) ([]byte, error) {
 	// Get the GCS object as a proto message given GCS notification information.
-	var processErr error
-
 	b, err := h.getGCSObjectBytes(ctx, m.Attributes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get GCS object: %w", err)
@@ -280,6 +278,8 @@ func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsu
 	if err := protoutil.FromYAML(b, p); err != nil {
 		return nil, pmaperrors.New(fmt.Sprintf("failed to unmarshal object yaml: %v", err))
 	}
+
+	var processErr error
 
 	for _, processor := range h.processors {
 		if err := processor.Process(ctx, p); err != nil {
