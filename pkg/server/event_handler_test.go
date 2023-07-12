@@ -395,8 +395,15 @@ isOK: true`),
 			successMessenger: &testMessenger{
 				gotPmapEvent: &v1alpha1.PmapEvent{},
 			},
-			wantErrSubstr: "failed to unmarshal object yaml",
+			failureMessenger: &testMessenger{
+				gotPmapEvent: &v1alpha1.PmapEvent{},
+			},
 			wantPmapEvent: &v1alpha1.PmapEvent{},
+			wantAttr: map[string]string{
+				AttrKeyProcessErr: fmt.Sprintf("pmap process err: failed to unmarshal object yaml: failed to unmarshal yaml: %s",
+					"yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `foo, bar` into map[string]interface {}"),
+			},
+			wantFailuerPmapEvent: &v1alpha1.PmapEvent{},
 		},
 		{
 			name: "invalid_object_metadata",
@@ -613,11 +620,18 @@ func (m *testMessenger) Send(_ context.Context, data []byte, attr map[string]str
 	if m == nil {
 		return nil
 	}
-	err := protojson.Unmarshal(data, m.gotPmapEvent)
-	if err != nil {
-		return fmt.Errorf("failed to unmarshal to PmapEvent: %w", err)
+
+	// Don't record gotPmapEvent when data is nil.
+	// Also protojson.Unmarshal will return err
+	// when unmarshal an empty byte slice
+	if len(data) != 0 {
+		if err := protojson.Unmarshal(data, m.gotPmapEvent); err != nil {
+			return fmt.Errorf("failed to unmarshal to PmapEvent: %w", err)
+		}
 	}
+
 	m.gotAttr = attr
+
 	return m.returnErr
 }
 

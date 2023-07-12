@@ -266,11 +266,21 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 
 func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsub.Message) ([]byte, error) {
 	// Get the GCS object as a proto message given GCS notification information.
-	p, err := h.getGCSObjectProto(ctx, m.Attributes)
+	b, err := h.getGCSObjectBytes(ctx, m.Attributes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get GCS object: %w", err)
 	}
+
+	// Convert the object bytes into a proto message wrapper.
+	// This is a user facing error as the object bytes are from
+	// yaml files that user uploaded.
+	p := P(new(T))
+	if err := protoutil.FromYAML(b, p); err != nil {
+		return nil, pmaperrors.New(fmt.Sprintf("failed to unmarshal object yaml: %v", err))
+	}
+
 	var processErr error
+
 	for _, processor := range h.processors {
 		if err := processor.Process(ctx, p); err != nil {
 			processErr = fmt.Errorf("failed to process object: %w", err)
@@ -280,7 +290,7 @@ func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsu
 
 	payload, err := anypb.New(p)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert object to pmap event payload: %w", err)
+		return nil, errors.Join(processErr, fmt.Errorf("failed to convert object to pmap event payload: %w", err))
 	}
 
 	var gr *v1alpha1.GitHubSource
@@ -305,8 +315,8 @@ func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsu
 	return eventBytes, processErr
 }
 
-// getGCSObjectProto calls the GCS storage client with objAttrs information, and returns the object as a proto message.
-func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map[string]string) (P, error) {
+// getGCSObjectBytes calls the GCS storage client with objAttrs information, and returns the object as []byte.
+func (h *EventHandler[T, P]) getGCSObjectBytes(ctx context.Context, objAttrs map[string]string) ([]byte, error) {
 	// Get bucket and object id from message attributes.
 	bucketID, found := objAttrs["bucketId"]
 	if !found {
@@ -323,17 +333,11 @@ func (h *EventHandler[T, P]) getGCSObjectProto(ctx context.Context, objAttrs map
 		return nil, fmt.Errorf("failed to create GCS object reader: %w", err)
 	}
 	defer rc.Close()
-	yb, err := io.ReadAll(io.LimitReader(rc, gcsObjectSizeLimitInBytes))
+	b, err := io.ReadAll(io.LimitReader(rc, gcsObjectSizeLimitInBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read object from GCS: %w", err)
 	}
-
-	// Convert the object yaml bytes into a proto message wrapper.
-	p := P(new(T))
-	if err := protoutil.FromYAML(yb, p); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal object yaml: %w", err)
-	}
-	return p, nil
+	return b, nil
 }
 
 type notificationPayload struct {
