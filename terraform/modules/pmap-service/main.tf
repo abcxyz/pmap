@@ -70,6 +70,11 @@ resource "google_pubsub_subscription" "pmap" {
       max_delivery_attempts = 7
     }
   }
+
+  retry_policy {
+    minimum_backoff = "2s"
+    maximum_backoff = "300s"
+  }
 }
 
 resource "google_pubsub_topic" "gcs_dead_letter" {
