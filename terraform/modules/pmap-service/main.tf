@@ -62,4 +62,54 @@ resource "google_pubsub_subscription" "pmap" {
       service_account_email = var.oidc_service_account
     }
   }
+
+  dynamic "dead_letter_policy" {
+    for_each = var.enable_dead_lettering ? [1] : []
+    content {
+      dead_letter_topic     = google_pubsub_topic.gcs_dead_letter[0].id
+      max_delivery_attempts = 7
+    }
+  }
+}
+
+resource "google_pubsub_topic" "gcs_dead_letter" {
+  count = var.enable_dead_lettering ? 1 : 0
+  project = var.project_id
+  name  = "${module.service.service_name}-gcs-dead-letter"
+}
+
+# A dummy subscription is required as the dead letter topic should have at
+# least one subscription so that dead-lettered messages will not be lost.
+resource "google_pubsub_subscription" "gcs_dead_letter" {
+  count = var.enable_dead_lettering ? 1 : 0
+  project = var.project_id
+
+  name  = "${module.service.service_name}-gcs-dead-letter"
+  topic = google_pubsub_topic.gcs_dead_letter[0].name
+
+  expiration_policy {
+    ttl = "" # Never expire
+  }
+}
+
+# The Cloud Pub/Sub service account for this project needs the publisher role to
+# publish dead-lettered messages to the dead letter topic.
+resource "google_pubsub_topic_iam_member" "dead_letter_publisher" {
+  count = var.enable_dead_lettering ? 1 : 0
+  project = var.project_id
+
+  topic  = google_pubsub_topic.gcs_dead_letter[0].id
+  role   = "roles/pubsub.publisher"
+  member = "serviceAccount:${local.pubsub_svc_account_email}"
+}
+
+# The Cloud Pub/Sub service account for this project needs the subscriber role
+# to forward messages from this subscription to the dead letter topic.
+resource "google_pubsub_subscription_iam_member" "dead_letter_subscriber" {
+  count = var.enable_dead_lettering ? 1 : 0
+  project = var.project_id
+
+  subscription = google_pubsub_subscription.pmap.id
+  role         = "roles/pubsub.subscriber"
+  member       = "serviceAccount:${local.pubsub_svc_account_email}"
 }

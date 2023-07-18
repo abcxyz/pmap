@@ -86,3 +86,9 @@ variable "pmap_specific_envvars" {
     EOT
   default     = {}
 }
+
+variable "enable_dead_lettering" {
+  description = "Enables the creation of a dead letter topic for the pub/sub push subscription."
+  type        = bool
+  default     = true
+}
