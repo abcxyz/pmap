@@ -148,6 +148,10 @@ resource "google_pubsub_subscription" "bigquery_dead_letter" {
 
   name  = "${each.key}-bigquery-dead-letter"
   topic = google_pubsub_topic.bigquery_dead_letter[each.key].id
+
+  expiration_policy {
+    ttl = "" # Never expire
+  }
 }
 
 # Grant Pub/Sub publisher role of Pub/Sub topics to the pmap service account.
