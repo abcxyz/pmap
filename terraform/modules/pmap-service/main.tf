@@ -77,7 +77,7 @@ resource "google_pubsub_topic" "gcs_dead_letter" {
 
   project = var.project_id
 
-  name    = "${module.service.service_name}-gcs-dead-letter"
+  name = "${module.service.service_name}-gcs-dead-letter"
 }
 
 # A dummy subscription is required as the dead letter topic should have at

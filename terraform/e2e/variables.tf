@@ -15,19 +15,16 @@
 variable "project_id" {
   description = "The GCP project to host the pmap services and other resources created during CI."
   type        = string
-  default     = "xiyue-dev-816d2a"
 }
 
 variable "pmap_container_image" {
   description = "The container image for pmap."
   type        = string
-  default     = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/pmap:0.0.2-amd64"
 }
 
 variable "gcs_bucket_name" {
   description = "Globally unique GCS bucket name."
   type        = string
-  default     = "xiyue-local-dev-test"
 }
 
 variable "mapping_gcs_events_filter" {
