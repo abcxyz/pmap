@@ -125,6 +125,11 @@ resource "google_pubsub_subscription" "bigquery" {
     dead_letter_topic     = google_pubsub_topic.bigquery_dead_letter[each.key].id
     max_delivery_attempts = 7
   }
+
+  retry_policy {
+    minimum_backoff = "2s"
+    maximum_backoff = "300s"
+  }
 }
 
 resource "google_pubsub_topic" "bigquery_dead_letter" {
