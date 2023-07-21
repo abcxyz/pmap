@@ -38,9 +38,6 @@ type MappingServerCommand struct {
 	cli.BaseCommand
 
 	cfg *server.MappingHandlerConfig
-
-	// testFlagSetOpts is only used for testing.
-	testFlagSetOpts []cli.Option
 }
 
 func (c *MappingServerCommand) Desc() string {
@@ -57,7 +54,7 @@ Usage: {{ COMMAND }} [options]
 
 func (c *MappingServerCommand) Flags() *cli.FlagSet {
 	c.cfg = &server.MappingHandlerConfig{}
-	set := cli.NewFlagSet(c.testFlagSetOpts...)
+	set := c.NewFlagSet()
 	return c.cfg.ToFlags(set)
 }
 

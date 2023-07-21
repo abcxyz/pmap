@@ -23,7 +23,6 @@ import (
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/testutil"
-	"github.com/sethvargo/go-envconfig"
 )
 
 func TestMappingServerCommand(t *testing.T) {
@@ -100,13 +99,13 @@ func TestMappingServerCommand(t *testing.T) {
 			defer done()
 
 			var cmd MappingServerCommand
-			cmd.testFlagSetOpts = []cli.Option{cli.WithLookupEnv(envconfig.MultiLookuper(
-				envconfig.MapLookuper(tc.env),
-				envconfig.MapLookuper(map[string]string{
+			cmd.SetLookupEnv(cli.MultiLookuper(
+				cli.MapLookuper(tc.env),
+				cli.MapLookuper(map[string]string{
 					// Make the test choose a random port.
 					"PORT": "0",
 				}),
-			).Lookup)}
+			))
 
 			_, _, _ = cmd.Pipe()
 

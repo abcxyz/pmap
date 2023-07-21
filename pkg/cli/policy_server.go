@@ -35,9 +35,6 @@ type PolicyServerCommand struct {
 	cli.BaseCommand
 
 	cfg *server.HandlerConfig
-
-	// testFlagSetOpts is only used for testing.
-	testFlagSetOpts []cli.Option
 }
 
 func (c *PolicyServerCommand) Desc() string {
@@ -54,7 +51,7 @@ Usage: {{ COMMAND }} [options]
 
 func (c *PolicyServerCommand) Flags() *cli.FlagSet {
 	c.cfg = &server.HandlerConfig{}
-	set := cli.NewFlagSet(c.testFlagSetOpts...)
+	set := c.NewFlagSet()
 	return c.cfg.ToFlags(set)
 }
 
