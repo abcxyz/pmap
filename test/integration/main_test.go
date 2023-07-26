@@ -19,7 +19,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -33,9 +32,8 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"github.com/abcxyz/pmap/pkg/server"
+	"github.com/abcxyz/pmap/pkg/testutil"
 	"github.com/google/go-cmp/cmp"
-	"github.com/sethvargo/go-retry"
-	"google.golang.org/api/iterator"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -60,11 +58,6 @@ var (
 	// Global GCS client for integration test.
 	gcsClient *storage.Client
 )
-
-type bqEntry struct {
-	Data       string
-	Attributes string
-}
 
 type attributes struct {
 	ProcessErr string
@@ -231,7 +224,7 @@ contacts:
 			bqQuery := bqClient.Query(queryString)
 			bqQuery.Parameters = []bigquery.QueryParameter{{Value: traceID.String()}}
 
-			gotBQEntry := testGetFirstMatchedBQEntryWithRetries(ctx, t, bqQuery, cfg)
+			gotBQEntry := testGetFirstMatchedBQEntry(ctx, t, bqQuery, cfg)
 
 			gotPmapEvent := &v1alpha1.PmapEvent{}
 			if err := protojson.Unmarshal([]byte(gotBQEntry.Data), gotPmapEvent); err != nil {
@@ -339,7 +332,7 @@ deletion_timeline:
 			bqQuery := bqClient.Query(queryString)
 			bqQuery.Parameters = []bigquery.QueryParameter{{Value: traceID.String()}}
 
-			gotBQEntry := testGetFirstMatchedBQEntryWithRetries(ctx, t, bqQuery, cfg)
+			gotBQEntry := testGetFirstMatchedBQEntry(ctx, t, bqQuery, cfg)
 
 			gotPmapEvent := &v1alpha1.PmapEvent{}
 			if err := protojson.Unmarshal([]byte(gotBQEntry.Data), gotPmapEvent); err != nil {
@@ -426,7 +419,7 @@ func TestMappingReusableWorkflowCall(t *testing.T) {
 			bqQuery := bqClient.Query(queryString)
 			bqQuery.Parameters = []bigquery.QueryParameter{{Value: cfg.WorkflowRunID}}
 
-			gotBQEntry := testGetFirstMatchedBQEntryWithRetries(ctx, t, bqQuery, cfg)
+			gotBQEntry := testGetFirstMatchedBQEntry(ctx, t, bqQuery, cfg)
 
 			gotPmapEvent := &v1alpha1.PmapEvent{}
 			if err := protojson.Unmarshal([]byte(gotBQEntry.Data), gotPmapEvent); err != nil {
@@ -507,7 +500,7 @@ func TestPolicyReusableWorkflowCall(t *testing.T) {
 			bqQuery := bqClient.Query(queryString)
 			bqQuery.Parameters = []bigquery.QueryParameter{{Value: cfg.WorkflowRunID}}
 
-			gotBQEntry := testGetFirstMatchedBQEntryWithRetries(ctx, t, bqQuery, cfg)
+			gotBQEntry := testGetFirstMatchedBQEntry(ctx, t, bqQuery, cfg)
 
 			gotPmapEvent := &v1alpha1.PmapEvent{}
 			if err := protojson.Unmarshal([]byte(gotBQEntry.Data), gotPmapEvent); err != nil {
@@ -528,62 +521,15 @@ func TestPolicyReusableWorkflowCall(t *testing.T) {
 
 // testGetFirstMatchedBQEntryWithRetries queries the DB and get the matched BQEntry.
 // If no matched BQEntry was found, the query will be retried with the specified retry inputs.
-func testGetFirstMatchedBQEntryWithRetries(ctx context.Context, tb testing.TB, bqQuery *bigquery.Query, cfg *config) *bqEntry {
+func testGetFirstMatchedBQEntry(ctx context.Context, tb testing.TB, bqQuery *bigquery.Query, cfg *config) *testutil.BQEntry {
 	tb.Helper()
 
-	b := retry.NewConstant(cfg.QueryRetryWaitDuration)
-	var entry *bqEntry
-	if err := retry.Do(ctx, retry.WithMaxRetries(cfg.QueryRetryLimit, b), func(ctx context.Context) error {
-		results, err := queryBQEntries(ctx, bqQuery)
-		if err != nil {
-			tb.Logf("failed to query pmap events: %v", err)
-			return err
-		}
-
-		// Early exit retry if queried pmap event already found.
-		if len(results) > 0 {
-			entry = results[0]
-			return nil
-		}
-		tb.Log("Matching entry not found, retrying...")
-		return retry.RetryableError(fmt.Errorf("no matching pmap event found in bigquery after timeout"))
-	}); err != nil {
-		tb.Fatalf("Retry failed: %v.", err)
+	entry, err := testutil.GetFirstMatchedBQEntryWithRetries(ctx, bqQuery, cfg.QueryRetryWaitDuration, cfg.QueryRetryLimit)
+	if err != nil {
+		tb.Fatalf("failed to get matched bq entry: %v", err)
 	}
+
 	return entry
-}
-
-// queryBQEntries queries the BQ and checks if a bigqury entry matched the query exists or not and return the results.
-func queryBQEntries(ctx context.Context, query *bigquery.Query) ([]*bqEntry, error) {
-	job, err := query.Run(ctx)
-	if err != nil {
-		return nil, retry.RetryableError(fmt.Errorf("failed to run query: %w", err))
-	}
-
-	if status, err := job.Wait(ctx); err != nil {
-		return nil, retry.RetryableError(fmt.Errorf("failed to wait for query: %w", err))
-	} else if err = status.Err(); err != nil {
-		return nil, retry.RetryableError(fmt.Errorf("query failed: %w", err))
-	}
-	it, err := job.Read(ctx)
-	if err != nil {
-		return nil, retry.RetryableError(fmt.Errorf("failed to read job: %w", err))
-	}
-
-	var entries []*bqEntry
-	for {
-		var entry bqEntry
-		err := it.Next(&entry)
-		if errors.Is(err, iterator.Done) {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to get next entry: %w", err)
-		}
-
-		entries = append(entries, &entry)
-	}
-	return entries, nil
 }
 
 // testUploadFile uploads an object to the GCS bucket and
@@ -591,22 +537,7 @@ func queryBQEntries(ctx context.Context, query *bigquery.Query) ([]*bqEntry, err
 func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, data io.Reader) error {
 	tb.Helper()
 
-	tb.Cleanup(func() {
-		o := gcsClient.Bucket(bucket).Object(object)
-
-		if err := o.Delete(ctx); err != nil {
-			tb.Logf("failed to delete gcs object(%q).Delete: %v", object, err)
-		}
-	})
-
-	// TODO: #41 set up GCS upload retry.
-	o := gcsClient.Bucket(bucket).Object(object)
-	// For an object that does not yet exist, set the DoesNotExist precondition.
-	o = o.If(storage.Conditions{DoesNotExist: true})
-
-	// Upload an object with storage.Writer.
-	wc := o.NewWriter(ctx)
-	wc.Metadata = map[string]string{
+	metadata := map[string]string{
 		server.MetadataKeyGitHubCommit:               testGithubCommitValue,
 		server.MetadataKeyGitHubRepo:                 testGithubRepoValue,
 		server.MetadataKeyWorkflow:                   testWorkflowValue,
@@ -616,12 +547,16 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 		server.MetadataKeyWorkflowRunID:              testWorkflowRunID,
 	}
 
-	if _, err := io.Copy(wc, data); err != nil {
-		return fmt.Errorf("failed to copy bytes: %w", err)
+	closer, err := testutil.UploadGCSFile(ctx, gcsClient, bucket, object, data, metadata)
+	if err != nil {
+		return fmt.Errorf("failed to upload file: %w", err)
 	}
-	if err := wc.Close(); err != nil {
-		return fmt.Errorf("failed to close writer: %w", err)
-	}
+
+	tb.Cleanup(func() {
+		if err := closer(); err != nil {
+			tb.Logf("cleanup failed: %v", err)
+		}
+	})
 
 	return nil
 }
