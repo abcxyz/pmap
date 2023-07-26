@@ -43,10 +43,10 @@ func UploadGCSFile(ctx context.Context, gcsClient *storage.Client, bucket, objec
 	wc.Metadata = metadata
 
 	if _, err := io.Copy(wc, data); err != nil {
-		return nil, fmt.Errorf("failed to copy bytes: %w", err)
+		return closer, fmt.Errorf("failed to copy bytes: %w", err)
 	}
 	if err := wc.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close writer: %w", err)
+		return closer, fmt.Errorf("failed to close writer: %w", err)
 	}
 
 	return closer, nil
