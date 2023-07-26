@@ -23,7 +23,9 @@ import (
 )
 
 // UploadGCSFiles uploads an object to GCS bucket.
-func UploadGCSFile(ctx context.Context, gcsClient *storage.Client, bucket, object string, data io.Reader, metadata map[string]string) (func() error, error) {
+// This function returns a closer() that delete the files got uploaded
+// so users can choose whether or not the file needs to be cleaned.
+func UploadGCSFileWithDeleteOption(ctx context.Context, gcsClient *storage.Client, bucket, object string, data io.Reader, metadata map[string]string) (func() error, error) {
 	closer := func() error {
 		o := gcsClient.Bucket(bucket).Object(object)
 
