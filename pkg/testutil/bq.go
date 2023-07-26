@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// package testutil provides functions to query bigquery table and upload GCS objects.
 package testutil
 
 import (
@@ -25,6 +26,7 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+// BQEntry defines the fields we need from bigquery entry.
 type BQEntry struct {
 	Data       string
 	Attributes string

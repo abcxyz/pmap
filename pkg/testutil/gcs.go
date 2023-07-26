@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// package testutil provides functions to query bigquery table and upload GCS objects.
 package testutil
 
 import (
@@ -23,18 +24,7 @@ import (
 )
 
 // UploadGCSFiles uploads an object to GCS bucket.
-// This function returns a closer() that delete the files got uploaded
-// so users can choose whether or not the file needs to be cleaned.
-func UploadGCSFileWithDeleteOption(ctx context.Context, gcsClient *storage.Client, bucket, object string, data io.Reader, metadata map[string]string) (func() error, error) {
-	closer := func() error {
-		o := gcsClient.Bucket(bucket).Object(object)
-
-		if err := o.Delete(ctx); err != nil {
-			return fmt.Errorf("failed to delete gcs object(%q).Delete: %w", object, err)
-		}
-		return nil
-	}
-
+func UploadGCSFile(ctx context.Context, gcsClient *storage.Client, bucket, object string, data io.Reader, metadata map[string]string) error {
 	// TODO: #41 set up GCS upload retry.
 	o := gcsClient.Bucket(bucket).Object(object)
 	// For an object that does not yet exist, set the DoesNotExist precondition.
@@ -45,11 +35,11 @@ func UploadGCSFileWithDeleteOption(ctx context.Context, gcsClient *storage.Clien
 	wc.Metadata = metadata
 
 	if _, err := io.Copy(wc, data); err != nil {
-		return closer, fmt.Errorf("failed to copy bytes: %w", err)
+		return fmt.Errorf("failed to copy bytes: %w", err)
 	}
 	if err := wc.Close(); err != nil {
-		return closer, fmt.Errorf("failed to close writer: %w", err)
+		return fmt.Errorf("failed to close writer: %w", err)
 	}
 
-	return closer, nil
+	return nil
 }

@@ -547,17 +547,10 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 		server.MetadataKeyWorkflowRunID:              testWorkflowRunID,
 	}
 
-	closer, err := testutil.UploadGCSFile(ctx, gcsClient, bucket, object, data, metadata)
+	err := testutil.UploadGCSFile(ctx, gcsClient, bucket, object, data, metadata)
 	if err != nil {
 		return fmt.Errorf("failed to upload file: %w", err)
 	}
-
-	tb.Cleanup(func() {
-		if err := closer(); err != nil {
-			tb.Logf("cleanup failed: %v", err)
-		}
-	})
-
 	return nil
 }
 
