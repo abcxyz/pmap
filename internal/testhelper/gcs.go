@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package testutil provides functions to query bigquery table and upload GCS objects.
+// Package testhelper provides functions to query bigquery table and upload GCS objects.
 package testhelper
 
 import (
