@@ -31,7 +31,8 @@ import (
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
-	"github.com/abcxyz/pmap/pkg/internal/testhelper"
+
+	"github.com/abcxyz/pmap/internal/testhelper"
 	"github.com/abcxyz/pmap/pkg/server"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/encoding/protojson"
