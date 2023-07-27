@@ -31,8 +31,8 @@ import (
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/storage"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/abcxyz/pmap/pkg/internal/testhelper"
 	"github.com/abcxyz/pmap/pkg/server"
-	"github.com/abcxyz/pmap/pkg/testutil"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -521,10 +521,10 @@ func TestPolicyReusableWorkflowCall(t *testing.T) {
 
 // testGetFirstMatchedBQEntryWithRetries queries the DB and get the matched BQEntry.
 // If no matched BQEntry was found, the query will be retried with the specified retry inputs.
-func testGetFirstMatchedBQEntry(ctx context.Context, tb testing.TB, bqQuery *bigquery.Query, cfg *config) *testutil.BQEntry {
+func testGetFirstMatchedBQEntry(ctx context.Context, tb testing.TB, bqQuery *bigquery.Query, cfg *config) *testhelper.BQEntry {
 	tb.Helper()
 
-	entry, err := testutil.GetFirstMatchedBQEntryWithRetries(ctx, bqQuery, cfg.QueryRetryWaitDuration, cfg.QueryRetryLimit)
+	entry, err := testhelper.GetFirstMatchedBQEntryWithRetries(ctx, bqQuery, cfg.QueryRetryWaitDuration, cfg.QueryRetryLimit)
 	if err != nil {
 		tb.Fatalf("failed to get matched bq entry: %v", err)
 	}
@@ -547,8 +547,7 @@ func testUploadFile(ctx context.Context, tb testing.TB, bucket, object string, d
 		server.MetadataKeyWorkflowRunID:              testWorkflowRunID,
 	}
 
-	err := testutil.UploadGCSFile(ctx, gcsClient, bucket, object, data, metadata)
-	if err != nil {
+	if err := testhelper.UploadGCSFile(ctx, gcsClient, bucket, object, data, metadata); err != nil {
 		return fmt.Errorf("failed to upload file: %w", err)
 	}
 	return nil

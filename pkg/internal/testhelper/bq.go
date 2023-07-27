@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package testutil provides functions to query bigquery table and upload GCS objects.
-package testutil
+package testhelper
 
 import (
 	"context"
@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/bigquery"
+	"github.com/abcxyz/pkg/logging"
 	"github.com/sethvargo/go-retry"
 	"google.golang.org/api/iterator"
 )
@@ -35,11 +36,14 @@ type BQEntry struct {
 // GetFirstMatchedBQEntryWithRetries queries the DB and get the matched BQEntry.
 // If no matched BQEntry was found, the query will be retried with the specified retry inputs.
 func GetFirstMatchedBQEntryWithRetries(ctx context.Context, bqQuery *bigquery.Query, retryDuration time.Duration, retryLimit uint64) (*BQEntry, error) {
+	logger := logging.FromContext(ctx)
+
 	b := retry.NewConstant(retryDuration)
 	var entry *BQEntry
 	if err := retry.Do(ctx, retry.WithMaxRetries(retryLimit, b), func(ctx context.Context) error {
 		results, err := queryBQEntries(ctx, bqQuery)
 		if err != nil {
+			logger.Infof("failed query BQEntries: %v", err)
 			return err
 		}
 
@@ -48,6 +52,7 @@ func GetFirstMatchedBQEntryWithRetries(ctx context.Context, bqQuery *bigquery.Qu
 			entry = results[0]
 			return nil
 		}
+		logger.Info("Matching retry not found, retrying...")
 		return retry.RetryableError(fmt.Errorf("no matching pmap event found in bigquery after timeout"))
 	}); err != nil {
 		return nil, fmt.Errorf("retry failed: %w", err)
@@ -80,7 +85,7 @@ func queryBQEntries(ctx context.Context, query *bigquery.Query) ([]*BQEntry, err
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("failed to get next entry: %w", err)
+			return nil, retry.RetryableError(fmt.Errorf("failed to get next entry: %w", err))
 		}
 
 		entries = append(entries, &entry)
