@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package testhelper provides functions to query bigquery table and upload GCS objects.
+// Package testhelper provides utilities that are intended to enable easier and more concise writing of test and probder code.
 package testhelper
 
 import (
