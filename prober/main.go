@@ -45,6 +45,7 @@ const (
 	proberWorkflowRunAttempt   = "1"
 	proberGCSNamePrefix        = "//storage.googleapis.com"
 	proberMappingTraceIDPrefix = "prober-mapping"
+	proberMappingFilePrefix    = "prober-file"
 	proberResourceProvider     = "gcp"
 	proberResourceContact      = "pmap-prober@abcxyz.dev"
 )
@@ -133,7 +134,7 @@ contacts:
   - %s
 `, proberGCSNamePrefix, cfg.GCSBucketID, proberResourceProvider, traceID, proberResourceContact))
 
-	filepath := fmt.Sprintf("%s/%s-%s", cfg.ProberMappingServiceName, cfg.ProberMappingFilePrefix, timestamp)
+	filepath := fmt.Sprintf("%s/%s-%s", cfg.ProberMappingGCSBucketPrefix, proberMappingFilePrefix, timestamp)
 
 	if err := testhelper.UploadGCSFile(ctx, gcsClient, cfg.GCSBucketID, filepath, bytes.NewReader(data), getProberGCSMetadata()); err != nil {
 		return fmt.Errorf("failed to uploaded mapping object: %w", err)

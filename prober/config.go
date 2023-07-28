@@ -23,14 +23,13 @@ import (
 )
 
 type config struct {
-	ProjectID                string        `env:"PROBER_PROJECT_ID,required"`
-	GCSBucketID              string        `env:"PROBER_BUCKET_ID,required"`
-	BigQueryDataSetID        string        `env:"PROBER_BIGQUERY_DATASET_ID,required"`
-	MappingTableID           string        `env:"PROBER_MAPPING_TABLE_ID,required"`
-	QueryRetryWaitDuration   time.Duration `env:"PROBER_QUERY_RETRY_WAIT_DURATION,default=5s"`
-	QueryRetryLimit          uint64        `env:"PROBER_QUERY_RETRY_COUNT,default=10"`
-	ProberMappingServiceName string        `env:"PROBER_MAPPING_SERVICE_NAME,required"`
-	ProberMappingFilePrefix  string        `env:"PROBER_MAPPING_FILE_PREFIX,required"`
+	ProjectID                    string        `env:"PROBER_PROJECT_ID,required"`
+	GCSBucketID                  string        `env:"PROBER_BUCKET_ID,required"`
+	BigQueryDataSetID            string        `env:"PROBER_BIGQUERY_DATASET_ID,required"`
+	MappingTableID               string        `env:"PROBER_MAPPING_TABLE_ID,required"`
+	QueryRetryWaitDuration       time.Duration `env:"PROBER_QUERY_RETRY_WAIT_DURATION,default=5s"`
+	QueryRetryLimit              uint64        `env:"PROBER_QUERY_RETRY_COUNT,default=10"`
+	ProberMappingGCSBucketPrefix string        `env:"PROBER_MAPPING_BUCKET_PREFIX,required"`
 }
 
 func newTestConfig(ctx context.Context) (*config, error) {
