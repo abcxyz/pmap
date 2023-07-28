@@ -29,7 +29,7 @@ type config struct {
 	MappingTableID               string        `env:"PROBER_MAPPING_TABLE_ID,required"`
 	QueryRetryWaitDuration       time.Duration `env:"PROBER_QUERY_RETRY_WAIT_DURATION,default=5s"`
 	QueryRetryLimit              uint64        `env:"PROBER_QUERY_RETRY_COUNT,default=10"`
-	ProberMappingGCSBucketPrefix string        `env:"PROBER_MAPPING_BUCKET_PREFIX,required"`
+	ProberMappingGCSBucketPrefix string        `env:"PROBER_MAPPING_GCS_BUCKET_PREFIX,required"`
 }
 
 func newTestConfig(ctx context.Context) (*config, error) {

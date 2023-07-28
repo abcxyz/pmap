@@ -104,11 +104,9 @@ func realMain(ctx context.Context) error {
 	// errors.Join() is used here so we can join the errors from probePolicy and return them together.
 	// if err := probePolicy(ctx, ts); err != nil {
 	// 	probeErr = errors.Join(probeErr, fmt.Errorf("prober failed for policy service: %w", err))
-	// } else {
-	// 	logging.Info("Policy probe failed.")
 	// }
 	if probeErr == nil {
-		logging.Info("Mapping probe successed")
+		logging.Info("Mapping probe successed.")
 	}
 
 	return probeErr
