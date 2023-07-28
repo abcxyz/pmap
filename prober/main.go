@@ -195,9 +195,6 @@ contacts:
 	if _, ok := resourceMapping.GetAnnotations().GetFields()[v1alpha1.AnnotationKeyAssetInfo].GetStructValue().AsMap()["ancestors"]; !ok {
 		diffErr = errors.Join(diffErr, fmt.Errorf("ancestors is blank in resourcemapping.annotations"))
 	}
-	if _, ok := resourceMapping.GetAnnotations().GetFields()[v1alpha1.AnnotationKeyAssetInfo].GetStructValue().AsMap()["iamPolicies"]; !ok {
-		diffErr = errors.Join(diffErr, fmt.Errorf("iamPolicies is blank in resourcemapping.annotations"))
-	}
 
 	return diffErr
 }
