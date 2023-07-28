@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -44,7 +45,6 @@ const (
 	proberWorkflowRunAttempt   = "1"
 	proberGCSNamePrefix        = "//storage.googleapis.com"
 	proberMappingTraceIDPrefix = "prober-mapping"
-	proberMappingFilePrefix    = "mapping/prober-files/timestamp"
 	proberResourceProvider     = "gcp"
 	proberResourceContact      = "pmap-prober@abcxyz.dev"
 )
@@ -92,15 +92,22 @@ func realMain(ctx context.Context) error {
 	bqClient = bc
 	defer bc.Close()
 
-	ts := time.Now().Format(time.RFC3339)
+	ts := strconv.FormatInt(time.Now().Unix(), 10)
 
-	// TODO: add probePolicy() to probe policy service
-	// errors.Join() is used here so we can join the errors from probePolicy and return them together.
 	var probeErr error
 	if err := probeMapping(ctx, ts); err != nil {
 		probeErr = errors.Join(probeErr, fmt.Errorf("prober failed for mapping service: %w", err))
-	} else {
-		logging.Info("Mapping probe succeed.")
+	}
+
+	// TODO: add probePolicy() to probe policy service
+	// errors.Join() is used here so we can join the errors from probePolicy and return them together.
+	// if err := probePolicy(ctx, ts); err != nil {
+	// 	probeErr = errors.Join(probeErr, fmt.Errorf("prober failed for policy service: %w", err))
+	// } else {
+	// 	logging.Info("Policy probe failed.")
+	// }
+	if probeErr == nil {
+		logging.Info("Mapping probe successed")
 	}
 
 	return probeErr
@@ -126,7 +133,7 @@ contacts:
   - %s
 `, proberGCSNamePrefix, cfg.GCSBucketID, proberResourceProvider, traceID, proberResourceContact))
 
-	filepath := fmt.Sprintf("%s-%s", proberMappingFilePrefix, timestamp)
+	filepath := fmt.Sprintf("%s/%s-%s", cfg.ProberMappingServiceName, cfg.ProberMappingFilePrefix, timestamp)
 
 	if err := testhelper.UploadGCSFile(ctx, gcsClient, cfg.GCSBucketID, filepath, bytes.NewReader(data), getProberGCSMetadata()); err != nil {
 		return fmt.Errorf("failed to uploaded mapping object: %w", err)
@@ -180,8 +187,16 @@ contacts:
 		WorkflowRunAttempt: 1,
 	}
 
-	if diff := cmp.Diff(wantGithubSource, gotPmapEvent.GetGithubSource(), cmpOpts...); diff != "" {
+	if diff := cmp.Diff(wantGithubSource, gotPmapEvent.GetGithubSource(), protocmp.Transform()); diff != "" {
 		diffErr = errors.Join(diffErr, fmt.Errorf("githubSource unexpected diff (-want, +got):\n%s", diff))
+	}
+
+	// check CAIS annotation exist to make sure CAIS is working
+	if _, ok := resourceMapping.GetAnnotations().GetFields()[v1alpha1.AnnotationKeyAssetInfo].GetStructValue().AsMap()["ancestors"]; !ok {
+		diffErr = errors.Join(diffErr, fmt.Errorf("ancestors is blank in resourcemapping.annotations"))
+	}
+	if _, ok := resourceMapping.GetAnnotations().GetFields()[v1alpha1.AnnotationKeyAssetInfo].GetStructValue().AsMap()["iamPolicies"]; !ok {
+		diffErr = errors.Join(diffErr, fmt.Errorf("iamPolicies is blank in resourcemapping.annotations"))
 	}
 
 	return diffErr
