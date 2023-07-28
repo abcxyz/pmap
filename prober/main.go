@@ -19,8 +19,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,22 +26,27 @@ import (
 
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/storage"
+	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/abcxyz/pmap/internal/testhelper"
 	"github.com/abcxyz/pmap/pkg/server"
 	"github.com/google/go-cmp/cmp"
-	"github.com/sethvargo/go-retry"
-	"google.golang.org/api/iterator"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
 const (
-	testGithubCommitValue  = "prober-test-github-commit"
-	testGithubRepoValue    = "prober-test-github-repo"
-	testWorkflowValue      = "prober-test-workflow"
-	testWorkflowShaValue   = "prober-test-workflow-sha"
-	testWorkflowRunID      = "prober-test-workflow-id"
-	testWorkflowRunAttempt = "1"
+	proberGithubCommitValue    = "prober-test-github-commit"
+	proberGithubRepoValue      = "prober-test-github-repo"
+	proberWorkflowValue        = "prober-test-workflow"
+	proberWorkflowShaValue     = "prober-test-workflow-sha"
+	proberWorkflowRunID        = "prober-test-workflow-id"
+	proberWorkflowRunAttempt   = "1"
+	proberGCSNamePrefix        = "//storage.googleapis.com"
+	proberMappingTraceIDPrefix = "prober-mapping"
+	proberMappingFilePrefix    = "mapping/prober-files/timestamp"
+	proberResourceProvider     = "gcp"
+	proberResourceContact      = "pmap-prober@abcxyz.dev"
 )
 
 var (
@@ -65,6 +68,7 @@ func main() {
 }
 
 func realMain(ctx context.Context) error {
+	logging := logging.FromContext(ctx)
 	// create a global config
 	c, err := newTestConfig(ctx)
 	if err != nil {
@@ -90,12 +94,13 @@ func realMain(ctx context.Context) error {
 
 	ts := time.Now().Format(time.RFC3339)
 
-	// TODO: add probePolicy to probe policy service
+	// TODO: add probePolicy() to probe policy service
+	// errors.Join() is used here so we can join the errors from probePolicy and return them together.
 	var probeErr error
 	if err := probeMapping(ctx, ts); err != nil {
 		probeErr = errors.Join(probeErr, fmt.Errorf("prober failed for mapping service: %w", err))
 	} else {
-		log.Print("Mapping probe succeed")
+		logging.Info("Mapping probe succeed.")
 	}
 
 	return probeErr
@@ -104,23 +109,26 @@ func realMain(ctx context.Context) error {
 // probeMapping probe the mapping service by uploading file, query the bigquery table
 // and compare the result.
 func probeMapping(ctx context.Context, timestamp string) error {
-	log.Print("Mapping probe started")
-	traceID := fmt.Sprintf("prober-mapping-%s", timestamp)
-	log.Printf("using traceID: %s", traceID)
+	logging := logging.FromContext(ctx)
+	logging.Info("Mapping probe started")
+
+	traceID := fmt.Sprintf("%s-%s", proberMappingTraceIDPrefix, timestamp)
+	logging.Infof("using traceID: %s", traceID)
+
 	data := []byte(fmt.Sprintf(`
 resource:
-  name: //storage.googleapis.com/%s
-  provider: gcp
+  name: %s/%s
+  provider: %s
 annotations:
   traceID: %s
 contacts:
   email:
-  - prober@pmap.com
-`, cfg.GCSBucketID, traceID))
+  - %s
+`, proberGCSNamePrefix, cfg.GCSBucketID, proberResourceProvider, traceID, proberResourceContact))
 
-	filepath := fmt.Sprintf("mapping/prober-files/timestamp-%s", timestamp)
+	filepath := fmt.Sprintf("%s-%s", proberMappingFilePrefix, timestamp)
 
-	if err := uploadFile(ctx, cfg.GCSBucketID, filepath, bytes.NewReader(data)); err != nil {
+	if err := testhelper.UploadGCSFile(ctx, gcsClient, cfg.GCSBucketID, filepath, bytes.NewReader(data), getProberGCSMetadata()); err != nil {
 		return fmt.Errorf("failed to uploaded mapping object: %w", err)
 	}
 
@@ -130,17 +138,17 @@ contacts:
 	bqQuery := bqClient.Query(queryString)
 	bqQuery.Parameters = []bigquery.QueryParameter{{Value: traceID}}
 
-	gotBQEntry, err := getFirstMatchedBQEntryWithRetries(ctx, bqQuery, cfg)
+	gotBQEntry, err := getFirstMatchedBQEntry(ctx, bqQuery, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to get match bigquery result: %w", err)
 	}
 
 	wantResourceMapping := &v1alpha1.ResourceMapping{
 		Resource: &v1alpha1.Resource{
-			Provider: "gcp",
-			Name:     fmt.Sprintf("//storage.googleapis.com/%s", cfg.GCSBucketID),
+			Provider: proberResourceProvider,
+			Name:     fmt.Sprintf("%s/%s", proberGCSNamePrefix, cfg.GCSBucketID),
 		},
-		Contacts: &v1alpha1.Contacts{Email: []string{"prober@pmap.com"}},
+		Contacts: &v1alpha1.Contacts{Email: []string{proberResourceContact}},
 	}
 
 	gotPmapEvent := &v1alpha1.PmapEvent{}
@@ -164,11 +172,11 @@ contacts:
 	}
 
 	wantGithubSource := &v1alpha1.GitHubSource{
-		RepoName:           testGithubRepoValue,
-		Commit:             testGithubCommitValue,
-		Workflow:           testWorkflowValue,
-		WorkflowSha:        testWorkflowShaValue,
-		WorkflowRunId:      testWorkflowRunID,
+		RepoName:           proberGithubRepoValue,
+		Commit:             proberGithubCommitValue,
+		Workflow:           proberWorkflowValue,
+		WorkflowSha:        proberWorkflowShaValue,
+		WorkflowRunId:      proberWorkflowRunID,
 		WorkflowRunAttempt: 1,
 	}
 
@@ -179,88 +187,24 @@ contacts:
 	return diffErr
 }
 
-// uploadFile uploads a object to the GCS bucket.
-func uploadFile(ctx context.Context, bucket, object string, data io.Reader) error {
-	o := gcsClient.Bucket(bucket).Object(object)
-	o = o.If(storage.Conditions{DoesNotExist: true})
-
-	// Upload an object with storage.Writer.
-	wc := o.NewWriter(ctx)
-	wc.Metadata = map[string]string{
-		server.MetadataKeyGitHubCommit:       testGithubCommitValue,
-		server.MetadataKeyGitHubRepo:         testGithubRepoValue,
-		server.MetadataKeyWorkflow:           testWorkflowValue,
-		server.MetadataKeyWorkflowSha:        testWorkflowShaValue,
-		server.MetadataKeyWorkflowRunAttempt: testWorkflowRunAttempt,
-		server.MetadataKeyWorkflowRunID:      testWorkflowRunID,
+// getProberGCSMetadata returns the metadata of an object that being uploaded to GCS.
+func getProberGCSMetadata() map[string]string {
+	return map[string]string{
+		server.MetadataKeyGitHubCommit:       proberGithubCommitValue,
+		server.MetadataKeyGitHubRepo:         proberGithubRepoValue,
+		server.MetadataKeyWorkflow:           proberWorkflowValue,
+		server.MetadataKeyWorkflowSha:        proberWorkflowShaValue,
+		server.MetadataKeyWorkflowRunAttempt: proberWorkflowRunAttempt,
+		server.MetadataKeyWorkflowRunID:      proberWorkflowRunID,
 	}
-
-	if _, err := io.Copy(wc, data); err != nil {
-		return fmt.Errorf("failed to copy bytes: %w", err)
-	}
-	if err := wc.Close(); err != nil {
-		return fmt.Errorf("failed to close writer: %w", err)
-	}
-
-	return nil
 }
 
 // getFirstMatchedBQEntryWithRetries query BigQuery table to find and return the matching entry.
 // If no result is found, query will be retried with the retry config.
-func getFirstMatchedBQEntryWithRetries(ctx context.Context, bqQuery *bigquery.Query, cfg *config) (string, error) {
-	b := retry.NewConstant(cfg.QueryRetryWaitDuration)
-	var entry string
-	if err := retry.Do(ctx, retry.WithMaxRetries(cfg.QueryRetryLimit, b), func(ctx context.Context) error {
-		results, err := queryBQEntries(ctx, bqQuery)
-		if err != nil {
-			return err
-		}
-
-		// Early exit retry if queried pmap event already found.
-		if len(results) > 0 {
-			entry = results[0]
-			return nil
-		}
-		log.Print("Matching entry not found, retrying...")
-		return retry.RetryableError(fmt.Errorf("no matching pmap event found in bigquery after timeout"))
-	}); err != nil {
-		return "", fmt.Errorf("retry failed: %w", err)
-	}
-	return entry, nil
-}
-
-// queryBQEntries queries the BQ and checks if a bigqury entry matched the query exists or not and return the results.
-func queryBQEntries(ctx context.Context, query *bigquery.Query) ([]string, error) {
-	job, err := query.Run(ctx)
+func getFirstMatchedBQEntry(ctx context.Context, bqQuery *bigquery.Query, cfg *config) (string, error) {
+	entry, err := testhelper.GetFirstMatchedBQEntryWithRetries(ctx, bqQuery, cfg.QueryRetryWaitDuration, cfg.QueryRetryLimit)
 	if err != nil {
-		return nil, retry.RetryableError(fmt.Errorf("failed to run query: %w", err))
+		return "", fmt.Errorf("failed to get matched bq entry: %w", err)
 	}
-
-	if status, err := job.Wait(ctx); err != nil {
-		return nil, retry.RetryableError(fmt.Errorf("failed to wait for query: %w", err))
-	} else if err = status.Err(); err != nil {
-		return nil, retry.RetryableError(fmt.Errorf("query failed: %w", err))
-	}
-	it, err := job.Read(ctx)
-	if err != nil {
-		return nil, retry.RetryableError(fmt.Errorf("failed to read job: %w", err))
-	}
-
-	var entries []string
-	for {
-		var entry []bigquery.Value
-		err := it.Next(&entry)
-		if errors.Is(err, iterator.Done) {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to get next entry: %w", err)
-		}
-		v, ok := entry[0].(string)
-		if !ok {
-			return nil, fmt.Errorf("failed to parse %v to string: %w", entry[0], err)
-		}
-		entries = append(entries, v)
-	}
-	return entries, nil
+	return entry.Data, nil
 }
