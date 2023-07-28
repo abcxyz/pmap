@@ -127,6 +127,7 @@ resource:
   provider: %s
 annotations:
   traceID: %s
+  label: prober
 contacts:
   email:
   - %s
