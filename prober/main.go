@@ -262,8 +262,7 @@ deletion_timeline:
 
 	var diffErr error
 	if diff := cmp.Diff(wantPayload, gotPayload, protocmp.Transform()); diff != "" {
-		fmt.Println(diff)
-		errors.Join(diffErr, fmt.Errorf("gotPayload unexpected diff (-want,+got):\n%s", diff))
+		diffErr = errors.Join(diffErr, fmt.Errorf("gotPayload unexpected diff (-want,+got):\n%s", diff))
 	}
 
 	wantGithubSource := &v1alpha1.GitHubSource{
@@ -276,7 +275,7 @@ deletion_timeline:
 	}
 
 	if diff := cmp.Diff(wantGithubSource, gotPmapEvent.GetGithubSource(), protocmp.Transform()); diff != "" {
-		errors.Join(diffErr, fmt.Errorf("githubSource unexpected diff (-want, +got):\n%s", diff))
+		diffErr = errors.Join(diffErr, fmt.Errorf("githubSource unexpected diff (-want, +got):\n%s", diff))
 	}
 
 	return diffErr
