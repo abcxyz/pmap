@@ -27,9 +27,11 @@ type config struct {
 	GCSBucketID                  string        `env:"PROBER_BUCKET_ID,required"`
 	BigQueryDataSetID            string        `env:"PROBER_BIGQUERY_DATASET_ID,required"`
 	MappingTableID               string        `env:"PROBER_MAPPING_TABLE_ID,required"`
+	PolicyTableID                string        `env:"PROBER_POLICY_TABLE_ID,required"`
 	QueryRetryWaitDuration       time.Duration `env:"PROBER_QUERY_RETRY_WAIT_DURATION,default=5s"`
 	QueryRetryLimit              uint64        `env:"PROBER_QUERY_RETRY_COUNT,default=10"`
 	ProberMappingGCSBucketPrefix string        `env:"PROBER_MAPPING_GCS_BUCKET_PREFIX,required"`
+	ProberPolicyGCSBucketPrefix  string        `env:"PROBER_POLICY_GCS_BUCKET_PREFIX,required"`
 }
 
 func newTestConfig(ctx context.Context) (*config, error) {

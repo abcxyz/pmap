@@ -34,6 +34,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const (
@@ -45,9 +46,12 @@ const (
 	proberWorkflowRunAttempt   = "1"
 	proberGCSNamePrefix        = "//storage.googleapis.com"
 	proberMappingTraceIDPrefix = "prober-mapping"
-	proberMappingFilePrefix    = "prober-file"
+	proberPolicyTraceIDPrefix  = "prober-policy"
+	proberFilePrefix           = "prober-file"
 	proberResourceProvider     = "gcp"
 	proberResourceContact      = "pmap-prober@abcxyz.dev"
+	proberFakePolicyID         = "prober-fake-policy-id"
+	proberLabel                = "prober"
 )
 
 var (
@@ -100,13 +104,12 @@ func realMain(ctx context.Context) error {
 		probeErr = errors.Join(probeErr, fmt.Errorf("prober failed for mapping service: %w", err))
 	}
 
-	// TODO: add probePolicy() to probe policy service
-	// errors.Join() is used here so we can join the errors from probePolicy and return them together.
-	// if err := probePolicy(ctx, ts); err != nil {
-	// 	probeErr = errors.Join(probeErr, fmt.Errorf("prober failed for policy service: %w", err))
-	// }
+	if err := probePolicy(ctx, ts); err != nil {
+		probeErr = errors.Join(probeErr, fmt.Errorf("prober failed for policy service: %w", err))
+	}
+
 	if probeErr == nil {
-		logging.Info("Mapping probe successed.")
+		logging.Info("Mapping and Policy probe successed.")
 	}
 
 	return probeErr
@@ -127,14 +130,13 @@ resource:
   provider: %s
 annotations:
   traceID: %s
-  label: prober
+  label: %s
 contacts:
   email:
   - %s
-`, proberGCSNamePrefix, cfg.GCSBucketID, proberResourceProvider, traceID, proberResourceContact))
+`, proberGCSNamePrefix, cfg.GCSBucketID, proberResourceProvider, traceID, proberLabel, proberResourceContact))
 
-	filepath := fmt.Sprintf("%s/%s-%s", cfg.ProberMappingGCSBucketPrefix, proberMappingFilePrefix, timestamp)
-
+	filepath := fmt.Sprintf("%s/%s-%s", cfg.ProberMappingGCSBucketPrefix, proberFilePrefix, timestamp)
 	if err := testhelper.UploadGCSFile(ctx, gcsClient, cfg.GCSBucketID, filepath, bytes.NewReader(data), getProberGCSMetadata()); err != nil {
 		return fmt.Errorf("failed to uploaded mapping object: %w", err)
 	}
@@ -194,6 +196,87 @@ contacts:
 	// check CAIS annotation exist to make sure CAIS is working
 	if _, ok := resourceMapping.GetAnnotations().GetFields()[v1alpha1.AnnotationKeyAssetInfo].GetStructValue().AsMap()["ancestors"]; !ok {
 		diffErr = errors.Join(diffErr, fmt.Errorf("ancestors is blank in resourcemapping.annotations"))
+	}
+
+	return diffErr
+}
+
+// probePolicy probe the policy service by uploading file, query the bigquery table
+// and compare the result.
+func probePolicy(ctx context.Context, timestamp string) error {
+	logging := logging.FromContext(ctx)
+	logging.Info("Policy probe started")
+
+	traceID := fmt.Sprintf("%s-%s", proberPolicyTraceIDPrefix, timestamp)
+	logging.Infof("using traceID: %s", traceID)
+
+	data := []byte(fmt.Sprintf(`
+policy_id: %s
+annotations:
+  traceID: %s
+  label: %s
+deletion_timeline:
+  - 356 days
+  - 1 day
+`, proberFakePolicyID, traceID, proberLabel))
+
+	filepath := fmt.Sprintf("%s/%s-%s", cfg.ProberPolicyGCSBucketPrefix, proberFilePrefix, timestamp)
+
+	if err := testhelper.UploadGCSFile(ctx, gcsClient, cfg.GCSBucketID, filepath, bytes.NewReader(data), getProberGCSMetadata()); err != nil {
+		return fmt.Errorf("failed to uploaded policy object: %w", err)
+	}
+
+	queryString := fmt.Sprintf("SELECT data FROM `%s.%s.%s`", cfg.ProjectID, cfg.BigQueryDataSetID, cfg.PolicyTableID)
+	queryString += `WHERE JSON_VALUE(data.payload.value.annotations.traceID) = ?`
+
+	bqQuery := bqClient.Query(queryString)
+	bqQuery.Parameters = []bigquery.QueryParameter{{Value: traceID}}
+
+	gotBQEntry, err := getFirstMatchedBQEntry(ctx, bqQuery, cfg)
+	if err != nil {
+		return fmt.Errorf("failed to get match bigquery result: %w", err)
+	}
+
+	gotPmapEvent := &v1alpha1.PmapEvent{}
+	if err := protojson.Unmarshal([]byte(gotBQEntry), gotPmapEvent); err != nil {
+		return fmt.Errorf("failed to unmarshal bigquery result to pmapevent: %w", err)
+	}
+
+	gotPayload := &structpb.Struct{}
+	if err = gotPmapEvent.GetPayload().UnmarshalTo(gotPayload); err != nil {
+		return fmt.Errorf("failed to unmarshal to gotPayload: %w", err)
+	}
+
+	wantPayload := &structpb.Struct{
+		Fields: map[string]*structpb.Value{
+			"annotations": structpb.NewStructValue(&structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"traceID": structpb.NewStringValue(traceID),
+					"label":   structpb.NewStringValue(proberLabel),
+				},
+			}),
+			"deletion_timeline": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{structpb.NewStringValue("356 days"), structpb.NewStringValue("1 day")}}),
+			"policy_id":         structpb.NewStringValue(proberFakePolicyID),
+		},
+	}
+
+	var diffErr error
+	if diff := cmp.Diff(wantPayload, gotPayload, protocmp.Transform()); diff != "" {
+		fmt.Println(diff)
+		errors.Join(diffErr, fmt.Errorf("gotPayload unexpected diff (-want,+got):\n%s", diff))
+	}
+
+	wantGithubSource := &v1alpha1.GitHubSource{
+		RepoName:           proberGithubRepoValue,
+		Commit:             proberGithubCommitValue,
+		Workflow:           proberWorkflowValue,
+		WorkflowSha:        proberWorkflowShaValue,
+		WorkflowRunId:      proberWorkflowRunID,
+		WorkflowRunAttempt: 1,
+	}
+
+	if diff := cmp.Diff(wantGithubSource, gotPmapEvent.GetGithubSource(), protocmp.Transform()); diff != "" {
+		errors.Join(diffErr, fmt.Errorf("githubSource unexpected diff (-want, +got):\n%s", diff))
 	}
 
 	return diffErr
