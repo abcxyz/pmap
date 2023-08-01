@@ -1,5 +1,5 @@
 # Base image that supports bash
-FROM cgr.dev/chainguard/bash:latest
+FROM gcr.io/distroless/base-debian11:latest
 
 COPY pmap-prober /pmap-prober
 
