@@ -67,7 +67,7 @@ func (cfg *HandlerConfig) Validate() error {
 // ValidateMappingConfig validates the handler config for mapping service after load.
 func (cfg *MappingHandlerConfig) Validate() (retErr error) {
 	if err := cfg.HandlerConfig.Validate(); err != nil {
-		retErr = errors.Join(retErr, fmt.Errorf("invalid configuration: %w", err))
+		retErr = errors.Join(retErr, err)
 	}
 
 	// For mapping server, we also require a failure topic ID.
