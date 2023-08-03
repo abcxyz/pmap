@@ -15,6 +15,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -64,18 +65,18 @@ func (cfg *HandlerConfig) Validate() error {
 }
 
 // ValidateMappingConfig validates the handler config for mapping service after load.
-func (cfg *MappingHandlerConfig) Validate() error {
+func (cfg *MappingHandlerConfig) Validate() (retErr error) {
 	if err := cfg.HandlerConfig.Validate(); err != nil {
-		return err
+		retErr = errors.Join(retErr, err)
 	}
 
 	// For mapping server, we also require a failure topic ID.
 	if cfg.HandlerConfig.FailureTopicID == "" {
-		return fmt.Errorf("PMAP_FAILURE_TOPIC_ID is empty and require a value for mapping service")
+		retErr = errors.Join(retErr, fmt.Errorf("PMAP_FAILURE_TOPIC_ID is empty and require a value for mapping service"))
 	}
 
 	if cfg.DefaultResourceScope == "" {
-		return fmt.Errorf(`PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE is empty, allowed values are: %v`, allowedScopes)
+		retErr = errors.Join(retErr, fmt.Errorf(`PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE is empty, allowed values are: %v`, allowedScopes))
 	}
 
 	scope := strings.Split(cfg.DefaultResourceScope, "/")[0]
@@ -83,10 +84,10 @@ func (cfg *MappingHandlerConfig) Validate() error {
 	case "projects", "folders", "organizations":
 		break
 	default:
-		return fmt.Errorf(`PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE: %s is required in one of the formats: %v`, cfg.DefaultResourceScope, allowedScopes)
+		retErr = errors.Join(retErr, fmt.Errorf(`PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE: %s is required in one of the formats: %v`, cfg.DefaultResourceScope, allowedScopes))
 	}
 
-	return nil
+	return retErr
 }
 
 // ToFlags binds the config to the give [cli.FlagSet] and returns it.
