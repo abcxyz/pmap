@@ -32,6 +32,7 @@ import (
 	"github.com/abcxyz/pmap/internal/testhelper"
 	"github.com/abcxyz/pmap/pkg/server"
 	"github.com/google/go-cmp/cmp"
+	"github.com/sethvargo/go-retry"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -296,7 +297,8 @@ func getProberGCSMetadata() map[string]string {
 // getFirstMatchedBQEntryWithRetries query BigQuery table to find and return the matching entry.
 // If no result is found, query will be retried with the retry config.
 func getFirstMatchedBQEntry(ctx context.Context, bqQuery *bigquery.Query, cfg *config) (string, error) {
-	entry, err := testhelper.GetFirstMatchedBQEntryWithRetries(ctx, bqQuery, cfg.QueryRetryWaitDuration, cfg.QueryRetryLimit)
+	backoff := retry.WithMaxRetries(cfg.QueryRetryLimit, retry.NewConstant(cfg.QueryRetryWaitDuration))
+	entry, err := testhelper.SingleBQEntry(ctx, bqQuery, backoff)
 	if err != nil {
 		return "", fmt.Errorf("failed to get matched bq entry: %w", err)
 	}

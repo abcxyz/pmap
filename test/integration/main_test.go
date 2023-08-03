@@ -30,7 +30,11 @@ import (
 
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/storage"
+	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/sethvargo/go-retry"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest"
 
 	"github.com/abcxyz/pmap/internal/testhelper"
 	"github.com/abcxyz/pmap/pkg/server"
@@ -484,6 +488,7 @@ func TestPolicyReusableWorkflowCall(t *testing.T) {
 			t.Parallel()
 
 			ctx := context.Background()
+			ctx = logging.WithLogger(ctx, logging.TestLogger(t, zaptest.Level(zapcore.DebugLevel)))
 
 			t.Logf("using trace ID %s", tc.traceID)
 			t.Logf("using workflow run ID %s", cfg.WorkflowRunID)
@@ -525,7 +530,8 @@ func TestPolicyReusableWorkflowCall(t *testing.T) {
 func testGetFirstMatchedBQEntry(ctx context.Context, tb testing.TB, bqQuery *bigquery.Query, cfg *config) *testhelper.BQEntry {
 	tb.Helper()
 
-	entry, err := testhelper.GetFirstMatchedBQEntryWithRetries(ctx, bqQuery, cfg.QueryRetryWaitDuration, cfg.QueryRetryLimit)
+	backoff := retry.WithMaxRetries(cfg.QueryRetryLimit, retry.NewConstant(cfg.QueryRetryWaitDuration))
+	entry, err := testhelper.SingleBQEntry(ctx, bqQuery, backoff)
 	if err != nil {
 		tb.Fatalf("failed to get matched bq entry: %v", err)
 	}
