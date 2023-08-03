@@ -41,6 +41,7 @@ concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
   cancel-in-progress: true
 
+# Add some random test here.
 jobs:
   # Linting jobs - go, terraform.
   go_lint:
