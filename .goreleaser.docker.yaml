@@ -128,6 +128,9 @@ dockers:
       - '--label=org.opencontainers.image.title=pmap-prober'
       - '--label=org.opencontainers.image.version={{ .Version }}'
 
+archives:
+  - allow_different_binary_count: true
+
 docker_manifests:
   -
     name_template: '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}'
