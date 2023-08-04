@@ -22,7 +22,19 @@ on:
     branches:
       - 'main'
   workflow_dispatch:
+    inputs:
+      goreleaser_config_file:
+        description: 'The goreleaser config file for releasing docker images.'
+        type: 'string'
+        required: true
+        default: './.goreleaser.ci.docker.yaml'
   workflow_call:
+    inputs:
+      goreleaser_config_file:
+        description: 'The goreleaser config file for releasing docker images.'
+        type: 'string'
+        required: true
+        default: './.goreleaser.ci.docker.yaml'
 
 env:
   WIF_PROVIDER: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
@@ -125,7 +137,7 @@ jobs:
         uses: 'goreleaser/goreleaser-action@f82d6c1c344bcacabba2c841718984797f664a6b' # ratchet:goreleaser/goreleaser-action@v4
         with:
           version: 'v1.16.1' # Manually pinned
-          args: 'release -f .goreleaser.docker.yaml --clean'
+          args: 'release -f ${{ inputs.goreleaser_config_file }} --clean'
 
   # Deploy integration test infrastructure
   set_up_integration_infra:

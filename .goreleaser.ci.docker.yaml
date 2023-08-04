@@ -12,8 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is the goreleaser config file for pmap's release workflow.
-# Releasing for OS = [darwin, linux, windows], and Arch = [amd64, arm64].
+# This goreleaser yaml file is dedicated for ci workflows
+# and is identical to goreleaser.docker.ci.yaml.
+# The only difference is this only releases with OS=linux and Arch=amd64
+# for releasing images for arm architectures so we can have a faster
+# CI workflow run.
+# When doing a actual release, please use the release workflow or
+# goreleaser.docker.yaml.
 env:
   # Global env vars for Go build.
   - 'CGO_ENABLED=0'
@@ -41,12 +46,9 @@ builds:
       - '-X={{ .ModulePath }}/internal/version.Commit={{ .Commit }}'
       - '-extldflags=-static'
     goos:
-      - 'darwin'
       - 'linux'
-      - 'windows'
     goarch:
       - 'amd64'
-      - 'arm64'
 
   -
     id: 'pmap-prober'
@@ -64,12 +66,9 @@ builds:
       - '-X={{ .ModulePath }}/internal/version.Commit={{ .Commit }}'
       - '-extldflags=-static'
     goos:
-      - 'darwin'
       - 'linux'
-      - 'windows'
     goarch:
       - 'amd64'
-      - 'arm64'
 
 dockers:
   -
@@ -94,26 +93,6 @@ dockers:
 
   -
     ids:
-      - 'pmap'
-    use: 'buildx'
-    goos: 'linux'
-    goarch: 'arm64'
-    image_templates:
-      - '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-arm64'
-    build_flag_templates:
-      - '--platform=linux/arm64'
-      - '--pull'
-      - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
-      - '--label=org.opencontainers.image.description=Privacy data mapping tool'
-      - '--label=org.opencontainers.image.licenses=Apache-2.0'
-      - '--label=org.opencontainers.image.name=pmap'
-      - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
-      - '--label=org.opencontainers.image.source={{ .GitURL }}'
-      - '--label=org.opencontainers.image.title=pmap'
-      - '--label=org.opencontainers.image.version={{ .Version }}'
-
-  -
-    ids:
       - 'pmap-prober'
     use: 'buildx'
     goos: 'linux'
@@ -133,40 +112,16 @@ dockers:
       - '--label=org.opencontainers.image.title=pmap-prober'
       - '--label=org.opencontainers.image.version={{ .Version }}'
 
-  -
-    ids:
-      - 'pmap-prober'
-    use: 'buildx'
-    goos: 'linux'
-    goarch: 'arm64'
-    image_templates:
-      - '{{ .Env.DOCKER_REPO }}/pmap-prober:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-arm64'
-    dockerfile: './prober/prober.dockerfile'
-    build_flag_templates:
-      - '--platform=linux/arm64'
-      - '--pull'
-      - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
-      - '--label=org.opencontainers.image.description=Prober for pmap'
-      - '--label=org.opencontainers.image.licenses=Apache-2.0'
-      - '--label=org.opencontainers.image.name=pmap-prober'
-      - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
-      - '--label=org.opencontainers.image.source={{ .GitURL }}'
-      - '--label=org.opencontainers.image.title=pmap-prober'
-      - '--label=org.opencontainers.image.version={{ .Version }}'
-
-
 docker_manifests:
   -
     name_template: '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}'
     image_templates:
       - '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-amd64'
-      - '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-arm64'
 
   -
     name_template: '{{ .Env.DOCKER_REPO }}/pmap-prober:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}'
     image_templates:
       - '{{ .Env.DOCKER_REPO }}/pmap-prober:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-amd64'
-      - '{{ .Env.DOCKER_REPO }}/pmap-prober:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-arm64'
 
 # TODO: Follow up on signing.
 
