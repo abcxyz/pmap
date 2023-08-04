@@ -69,3 +69,13 @@ variable "pmap_specific_envvars" {
     EOT
   default     = {}
 }
+
+variable "pmap_prober_image" {
+  type        = string
+  description = "Docker image for pmap prober."
+}
+
+variable "notification_channel_email" {
+  type        = string
+  description = "The Email address where alert notifications send to."
+}
