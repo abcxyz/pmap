@@ -58,3 +58,16 @@ module "policy_service" {
   oidc_service_account = module.common_infra.oidc_service_account
   gcs_events_filter    = var.policy_gcs_events_filter
 }
+
+module "prober_job" {
+  source = "../modules/monitoring"
+
+  project_id = var.project_id
+
+  prober_bucket_id           = var.gcs_bucket_name
+  prober_bigquery_dataset_id = module.common_infra.bigquery_dataset
+  prober_mapping_table_id    = local.mapping_service_name
+  prober_policy_table_id     = local.policy_service_name
+  pmap_prober_image          = var.pmap_prober_image
+  notification_channel_email = var.notification_channel_email
+}
