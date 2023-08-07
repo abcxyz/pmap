@@ -100,3 +100,23 @@ variable "log_level" {
   description = "Log level for writting logs"
   default     = "DEBUG"
 }
+
+variable "pmap_subscription_ids" {
+  type        = list(string)
+  default     = []
+  description = "The subscription ids used in pmap"
+}
+
+## default is 3600s(1 hr)
+variable "oldest_unacked_messages_age_threshold" {
+  type        = number
+  default     = 3600
+  description = "The threshold of oldest unacked messages age to trigger the alert."
+}
+
+
+variable "num_of_undeliverable_messages_threshold" {
+  type        = number
+  default     = 10
+  description = "The threshold of number of undeliverable messages to trigger the alert."
+}
