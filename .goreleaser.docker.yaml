@@ -61,6 +61,7 @@ builds:
       - '-X={{ .ModulePath }}/internal/version.Version={{ .Version }}'
       - '-X={{ .ModulePath }}/internal/version.Commit={{ .Commit }}'
       - '-extldflags=-static'
+    # we only expect prober to run on linux amd64
     goos:
       - 'linux'
     goarch:
@@ -138,10 +139,6 @@ docker_manifests:
       - '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-amd64'
       - '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-arm64'
 
-  -
-    name_template: '{{ .Env.DOCKER_REPO }}/pmap-prober:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}'
-    image_templates:
-      - '{{ .Env.DOCKER_REPO }}/pmap-prober:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-amd64'
 
 # TODO: Follow up on signing.
 
