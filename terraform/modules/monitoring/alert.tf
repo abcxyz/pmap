@@ -76,3 +76,71 @@ resource "google_monitoring_alert_policy" "prober_service_success_number_below_t
 
   enabled = var.alert_enabled
 }
+
+resource "google_monitoring_alert_policy" "pmap_messages_too_old" {
+  for_each = toset(var.pmap_subscription_ids)
+
+  project = var.project_id
+
+  display_name = "Oldest unacked messages age for pmap subscription id {${each.key}} is too old[MEAN]"
+
+  combiner = "OR"
+  // It causes an alert when oldest unacked message age for pmap measured over 120-minutes intervals,
+  // exceeds a threshold of xxx seconds.
+  conditions {
+    display_name = "Oldest unacked messages age is too old[MEAN]"
+    condition_threshold {
+      threshold_value = var.oldest_unacked_messages_age_threshold_in_seconds
+      duration        = "0s"
+      comparison      = "COMPARISON_GT"
+      trigger {
+        count = 1
+      }
+      aggregations {
+        per_series_aligner   = "ALIGN_MEAN"
+        alignment_period     = "7200s"
+        cross_series_reducer = "REDUCE_MEAN"
+      }
+      filter = "metric.type=\"pubsub.googleapis.com/subscription/oldest_unacked_message_age\" resource.type=\"pubsub_subscription\" resource.label.\"subscription_id\"=\"${each.key}\" resource.label.\"project_id\"=\"${var.project_id}\""
+    }
+  }
+  notification_channels = [
+    google_monitoring_notification_channel.email_notification_channel.name
+  ]
+
+  enabled = var.alert_enabled
+}
+
+resource "google_monitoring_alert_policy" "pmap_num_of_undeliverable_messages_oversized" {
+  for_each = toset(var.pmap_subscription_ids)
+
+  project = var.project_id
+
+  display_name = "Nnumber of undeliverable messages for pmap subscription id {${each.key}} oversized[MEAN]"
+
+  combiner = "OR"
+  // It causes an alert when number of undelivered messages for pmap measured over 24h intervals,
+  // exceeds a threshold of 10.
+  conditions {
+    display_name = "Number of undeliverable messages oversized[MEAN]"
+    condition_threshold {
+      threshold_value = var.num_of_undeliverable_messages_threshold
+      duration        = "0s"
+      comparison      = "COMPARISON_GT"
+      trigger {
+        count = 1
+      }
+      aggregations {
+        per_series_aligner   = "ALIGN_MEAN"
+        alignment_period     = "86400s"
+        cross_series_reducer = "REDUCE_MEAN"
+      }
+      filter = "metric.type=\"pubsub.googleapis.com/subscription/dead_letter_message_count\" resource.type=\"pubsub_subscription\" resource.label.\"subscription_id\"=\"${each.key}\" resource.label.\"project_id\"=\"${var.project_id}\""
+    }
+  }
+  notification_channels = [
+    google_monitoring_notification_channel.email_notification_channel.name
+  ]
+
+  enabled = var.alert_enabled
+}
