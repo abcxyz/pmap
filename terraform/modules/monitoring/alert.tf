@@ -81,7 +81,9 @@ resource "google_monitoring_alert_policy" "pmap_messages_too_old" {
   for_each = toset(var.pmap_subscription_ids)
 
   project      = var.project_id
+
   display_name = "Oldest unacked messages age for pmap subscription id {${each.key}} is too old[MEAN]"
+
   combiner     = "OR"
   // It causes an alert when oldest unacked message age for pmap measured over 120-minutes intervals,
   // exceeds a threshold of xxx seconds.
@@ -113,7 +115,9 @@ resource "google_monitoring_alert_policy" "pmap_num_of_undeliverable_messages_ov
   for_each = toset(var.pmap_subscription_ids)
 
   project      = var.project_id
+
   display_name = "Nnumber of undeliverable messages for pmap subscription id {${each.key}} oversized[MEAN]"
+
   combiner     = "OR"
   // It causes an alert when number of undelivered messages for pmap measured over 24h intervals,
   // exceeds a threshold of 10.
