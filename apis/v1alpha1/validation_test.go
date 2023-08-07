@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/abcxyz/pkg/testutil"
+	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -25,9 +26,10 @@ func TestValidateResouceMapping(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name   string
-		expErr string
-		data   *ResourceMapping
+		name         string
+		expErr       string
+		data         *ResourceMapping
+		wantSubscope string
 	}{
 		{
 			name:   "invalid_email",
@@ -89,6 +91,81 @@ func TestValidateResouceMapping(t *testing.T) {
 				Resource: &Resource{
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
+					Subscope: "parent/foo/child/bar?key1=value1&key2=value2",
+				},
+				Contacts: &Contacts{
+					Email: []string{"pmap@example.com"},
+				},
+				Annotations: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"location": structpb.NewStringValue("global"),
+					},
+				},
+			},
+		},
+		{
+			name: "empty_subscope_success",
+			data: &ResourceMapping{
+				Resource: &Resource{
+					Provider: "gcp",
+					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
+				},
+				Contacts: &Contacts{
+					Email: []string{"pmap@example.com"},
+				},
+				Annotations: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"location": structpb.NewStringValue("global"),
+					},
+				},
+			},
+		},
+		{
+			name:   "invalid_subscope_url",
+			expErr: "failed to parse subscope string",
+			data: &ResourceMapping{
+				Resource: &Resource{
+					Provider: "gcp",
+					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
+					Subscope: "parent/foo/child/\\\bar?key1=value1&key2=value2",
+				},
+				Contacts: &Contacts{
+					Email: []string{"pmap@example.com"},
+				},
+				Annotations: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"location": structpb.NewStringValue("global"),
+					},
+				},
+			},
+		},
+		{
+			name:   "invalid_query_string",
+			expErr: "failed to parse qualifier string",
+			data: &ResourceMapping{
+				Resource: &Resource{
+					Provider: "gcp",
+					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
+					Subscope: "parent/foo/child/bar?key1=value1&;=value2",
+				},
+				Contacts: &Contacts{
+					Email: []string{"pmap@example.com"},
+				},
+				Annotations: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"location": structpb.NewStringValue("global"),
+					},
+				},
+			},
+		},
+		{
+			name:         "nomalize_subscope",
+			wantSubscope: "normalize?key1=value1",
+			data: &ResourceMapping{
+				Resource: &Resource{
+					Provider: "gcp",
+					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
+					Subscope: "NORMALIZE?KEY1=VALUE1",
 				},
 				Contacts: &Contacts{
 					Email: []string{"pmap@example.com"},
@@ -110,6 +187,11 @@ func TestValidateResouceMapping(t *testing.T) {
 			err := ValidateResourceMapping(tc.data)
 			if diff := testutil.DiffErrString(err, tc.expErr); diff != "" {
 				t.Errorf("ValidateResourceMapping got unexpected error: %s", diff)
+			}
+			if tc.wantSubscope != "" {
+				if diff := cmp.Diff(tc.data.Resource.Subscope, tc.wantSubscope); diff != "" {
+					t.Errorf("subscope normalization failed (-want, +got): %v", diff)
+				}
 			}
 		})
 	}

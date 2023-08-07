@@ -19,6 +19,8 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"net/url"
+	"strings"
 )
 
 const (
@@ -33,11 +35,54 @@ func ValidateResourceMapping(m *ResourceMapping) (vErr error) {
 			vErr = errors.Join(vErr, fmt.Errorf("invalid owner: %w", err))
 		}
 	}
-	if m.Resource.Provider == "" {
-		vErr = errors.Join(vErr, fmt.Errorf("empty resource provider"))
-	}
+	// if m.Resource.Provider == "" {
+	// 	vErr = errors.Join(vErr, fmt.Errorf("empty resource provider"))
+	// }
 	if _, ok := m.Annotations.AsMap()[AnnotationKeyAssetInfo]; ok {
 		vErr = errors.Join(vErr, fmt.Errorf("reserved key is included: %s", AnnotationKeyAssetInfo))
 	}
+
+	if err := validateResource(m.Resource); err != nil {
+		vErr = errors.Join(vErr, fmt.Errorf("invalid Resourc: %w", err))
+	}
+
 	return
+}
+
+func validateResource(r *Resource) (vErr error) {
+	if r.Name == "" {
+		vErr = errors.Join(vErr, fmt.Errorf("empty resource name"))
+	}
+
+	if r.Provider == "" {
+		vErr = errors.Join(vErr, fmt.Errorf("empty resource provider"))
+	}
+
+	if err := validateAndNormalizeSubscope(r); err != nil {
+		vErr = errors.Join(vErr, fmt.Errorf("invalid subscope: %w", err))
+	}
+
+	return
+}
+
+func validateAndNormalizeSubscope(r *Resource) error {
+	if r.Subscope == "" {
+		return nil
+	}
+
+	// normalize subscope string to only have lower cases
+	r.Subscope = strings.ToLower(r.Subscope)
+
+	u, err := url.Parse(r.Subscope)
+	if err != nil {
+		fmt.Println("hahahahahahah")
+		return fmt.Errorf("failed to parse subscope string: %w", err)
+	}
+	fmt.Println(u)
+
+	_, err = url.ParseQuery(u.RawQuery)
+	if err != nil {
+		return fmt.Errorf("failed to parse qualifier string: %w", err)
+	}
+	return nil
 }
