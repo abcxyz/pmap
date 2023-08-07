@@ -90,7 +90,7 @@ resource "google_monitoring_alert_policy" "pmap_messages_too_old" {
   conditions {
     display_name = "Oldest unacked messages age is too old[MEAN]"
     condition_threshold {
-      threshold_value = var.oldest_unacked_messages_age_threshold
+      threshold_value = var.oldest_unacked_messages_age_threshold_in_seconds
       duration        = "0s"
       comparison      = "COMPARISON_GT"
       trigger {

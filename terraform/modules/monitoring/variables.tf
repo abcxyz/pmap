@@ -108,7 +108,7 @@ variable "pmap_subscription_ids" {
 }
 
 ## default is 3600s(1 hr)
-variable "oldest_unacked_messages_age_threshold" {
+variable "oldest_unacked_messages_age_threshold_in_seconds" {
   type        = number
   default     = 3600
   description = "The threshold of oldest unacked messages age to trigger the alert."
