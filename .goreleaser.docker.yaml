@@ -61,13 +61,11 @@ builds:
       - '-X={{ .ModulePath }}/internal/version.Version={{ .Version }}'
       - '-X={{ .ModulePath }}/internal/version.Commit={{ .Commit }}'
       - '-extldflags=-static'
+    # we only expect prober to run on linux amd64
     goos:
-      - 'darwin'
       - 'linux'
-      - 'windows'
     goarch:
       - 'amd64'
-      - 'arm64'
 
 dockers:
   -
@@ -131,27 +129,8 @@ dockers:
       - '--label=org.opencontainers.image.title=pmap-prober'
       - '--label=org.opencontainers.image.version={{ .Version }}'
 
-  -
-    ids:
-      - 'pmap-prober'
-    use: 'buildx'
-    goos: 'linux'
-    goarch: 'arm64'
-    image_templates:
-      - '{{ .Env.DOCKER_REPO }}/pmap-prober:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-arm64'
-    dockerfile: './prober/prober.dockerfile'
-    build_flag_templates:
-      - '--platform=linux/arm64'
-      - '--pull'
-      - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
-      - '--label=org.opencontainers.image.description=Prober for pmap'
-      - '--label=org.opencontainers.image.licenses=Apache-2.0'
-      - '--label=org.opencontainers.image.name=pmap-prober'
-      - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
-      - '--label=org.opencontainers.image.source={{ .GitURL }}'
-      - '--label=org.opencontainers.image.title=pmap-prober'
-      - '--label=org.opencontainers.image.version={{ .Version }}'
-
+archives:
+  - allow_different_binary_count: true
 
 docker_manifests:
   -
@@ -160,11 +139,6 @@ docker_manifests:
       - '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-amd64'
       - '{{ .Env.DOCKER_REPO }}/pmap:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-arm64'
 
-  -
-    name_template: '{{ .Env.DOCKER_REPO }}/pmap-prober:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}'
-    image_templates:
-      - '{{ .Env.DOCKER_REPO }}/pmap-prober:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-amd64'
-      - '{{ .Env.DOCKER_REPO }}/pmap-prober:{{ if index .Env "DOCKER_TAG"  }}{{ .Env.DOCKER_TAG }}{{ else }}{{ .Version }}{{ end }}-arm64'
 
 # TODO: Follow up on signing.
 
