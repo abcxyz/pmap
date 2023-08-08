@@ -134,7 +134,8 @@ type Resource struct {
 	// in the format of parent/foo/child/bar.
 	// and qualifier_string represents the additional information of the subresource
 	// in the format of: key1=value1&key2=value2.
-	// Example: rows with userID=abcxyz in a database table1 would be: `table/table1?user=abcxyz`
+	// The subscope string will be normalized to only have lowercase.
+	// Example: rows with userID=abcxyz in a database table1 would be: `table/table1?userID=abcxyz`
 	Subscope string `protobuf:"bytes,3,opt,name=subscope,proto3" json:"subscope,omitempty"`
 }
 

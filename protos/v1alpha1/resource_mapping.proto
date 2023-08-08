@@ -59,7 +59,7 @@ message Resource {
   // and qualifier_string represents the additional information of the subresource
   // in the format of: key1=value1&key2=value2.
   // The subscope string will be normalized to only have lowercase.
-  // Example: rows with userID=abcxyz in a database table1 would be: `table/table1?user=abcxyz`
+  // Example: rows with userID=abcxyz in a database table1 would be: `table/table1?userID=abcxyz`
   string subscope = 3;
 }
 

@@ -35,9 +35,7 @@ func ValidateResourceMapping(m *ResourceMapping) (vErr error) {
 			vErr = errors.Join(vErr, fmt.Errorf("invalid owner: %w", err))
 		}
 	}
-	// if m.Resource.Provider == "" {
-	// 	vErr = errors.Join(vErr, fmt.Errorf("empty resource provider"))
-	// }
+
 	if _, ok := m.Annotations.AsMap()[AnnotationKeyAssetInfo]; ok {
 		vErr = errors.Join(vErr, fmt.Errorf("reserved key is included: %s", AnnotationKeyAssetInfo))
 	}
