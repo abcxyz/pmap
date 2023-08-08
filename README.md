@@ -5,9 +5,11 @@
 Privacy data mapping and related plans management.
 
 ## Set Up
+
 The admin of your GCP project/folder/org need to complete the steps below.
 
 ### Workload Identity Federation
+
 Set up [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation),
 and a service account with adequate condition and permission, see guide
 [here](https://github.com/google-github-actions/auth#setting-up-workload-identity-federation).
@@ -16,8 +18,8 @@ and a service account with adequate condition and permission, see guide
        needs [roles/storage.objectCreator] 
        to snapshot the privacy mapping data/retention plans from GitHub to GCS.
 
+### GitHub Central Repository
 
-### GitHub Central Repository 
 The GitHub central repository is the source of truth
 for privacy data mappings/wipeout plans.
 We rely on GitHub to preserve change history and enable multi-person review.
@@ -31,6 +33,7 @@ directly in the root of the central GitHub repository.
 #### Privacy Data Mapping
 
 * Presubmit workflows for sanity checks
+
 ```yaml
 name: 'Privacy Mapping Data Validation'
 
@@ -56,6 +59,7 @@ jobs:
 ```
 
 * Postsubmit workflows to snapshot added_files and modified_files of privacy data mappings to GCS
+
 ```yaml
 name: 'snapshot-privacy-mapping-data-change'
 
@@ -82,12 +86,13 @@ jobs:
 ```
 
 * Cron Workflows to snapshot the all files of privacy data mappings to GCS
+
 ```yaml
 name: 'snapshot-privacy-mapping-data-copy'
 
 on:
   schedule:
-    - cron:  'YOUR_CRON_JOB_FREQUENCY'
+    - cron: 'YOUR_CRON_JOB_FREQUENCY'
   workflow_dispatch:
 
 # Don't cancel in progress since we don't want to have half-baked file change snapshot.
@@ -106,9 +111,10 @@ jobs:
       path: 'YOUR_PRIVACY_DATA_MAPPING_SUBFOLDER'
 ```
 
-
 #### Retention Plan
+
 * Postsubmit workflows to snapshot added_files and modified_files of retention plans to GCS,
+
 ```yaml
 name: 'snapshot-retention-plan-data-change'
 
@@ -134,14 +140,14 @@ jobs:
       path: 'YOUR_RETENTION_PLAN_SUBFOLDER'
 ```
 
-
 * Cron Workflows to snapshot the all files of retention plans to GCS
+
 ```yaml
 name: 'snapshot-retention-plan-data-copy'
 
 on:
   schedule:
-    - cron:  'YOUR_CRON_JOB_FREQUENCY'
+    - cron: 'YOUR_CRON_JOB_FREQUENCY'
   workflow_dispatch:
 
 # Don't cancel in progress since we don't want to have half-baked file change snapshot.
@@ -159,6 +165,7 @@ jobs:
       destination_prefix: 'YOUR_GCS_DESTINATION_PREFIX_FOR_RETENTION_PLAN_DATA'
       path: 'YOUR_RETENTION_PLAN_SUBFOLDER'
 ```
+
 ### Infrastructure for pmap
 
 You can use the provided Terraform module to setup the basic infrastructure
