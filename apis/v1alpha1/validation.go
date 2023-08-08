@@ -21,8 +21,6 @@ import (
 	"net/mail"
 	"net/url"
 	"strings"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 const (
@@ -70,11 +68,6 @@ func validateAndNormalizeSubscope(r *Resource) error {
 		return nil
 	}
 
-	// normalize subscope string to only have lower cases
-	if diff := cmp.Diff(strings.ToLower(r.Subscope), r.Subscope); diff != "" {
-		return fmt.Errorf("subscope should only contain lower case char")
-	}
-
 	u, err := url.Parse(r.Subscope)
 	if err != nil {
 		return fmt.Errorf("failed to parse subscope string: %w", err)
@@ -86,13 +79,18 @@ func validateAndNormalizeSubscope(r *Resource) error {
 	}
 
 	// check if key value pairs are in alphabetical order
+	// and if key is in lower case
 	s := strings.Split(u.RawQuery, "&")
-	if len(s) <= 1 {
-		return nil
-	}
-	for i := 1; i < len(s); i++ {
-		if strings.Split(s[i], "=")[0] < strings.Split(s[i-1], "=")[0] {
-			return fmt.Errorf("keys should be in alphabetical order, got %s&%s, want %s&%s", s[i-1], s[i], s[i], s[i-1])
+
+	for i := 0; i < len(s); i++ {
+		s1 := strings.Split(s[i], "=")
+		if s1[0] != strings.ToLower(s1[0]) {
+			return fmt.Errorf("key should only contain lower case letter")
+		}
+		if i+1 < len(s) {
+			if s2 := strings.Split(s[i+1], "="); s1[0] > s2[0] {
+				return fmt.Errorf("keys should be in alphabetical order, got %s&%s, want %s&%s", s[i], s[i+1], s[i+1], s[i])
+			}
 		}
 	}
 
