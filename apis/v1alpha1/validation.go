@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/mail"
 	"net/url"
+	"sort"
 	"strings"
 )
 
@@ -56,42 +57,49 @@ func validateResource(r *Resource) (vErr error) {
 		vErr = errors.Join(vErr, fmt.Errorf("empty resource provider"))
 	}
 
-	if err := validateAndNormalizeSubscope(r); err != nil {
+	if err := validateSubscope(r); err != nil {
 		vErr = errors.Join(vErr, fmt.Errorf("invalid subscope: %w", err))
 	}
 
 	return
 }
 
-func validateAndNormalizeSubscope(r *Resource) error {
+func validateSubscope(r *Resource) error {
 	if r.Subscope == "" {
 		return nil
 	}
 
+	// If r.Subscope = "parent/foo/child/bar?key2=value2&key1=value1"
+	// after url.Parse(r.Subscope), we will have:
+	// u.Path = parent/foo/child/bar
+	// u.RawQuery = key2=value2&key1=value1
 	u, err := url.Parse(r.Subscope)
 	if err != nil {
 		return fmt.Errorf("failed to parse subscope string: %w", err)
 	}
 
-	_, err = url.ParseQuery(u.RawQuery)
+	q, err := url.ParseQuery(u.RawQuery)
 	if err != nil {
 		return fmt.Errorf("failed to parse qualifier string: %w", err)
 	}
 
-	// check if key value pairs are in alphabetical order
-	// and if key is in lower case
-	s := strings.Split(u.RawQuery, "&")
+	keys := make([]string, 0, len(q))
+	for k := range q {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
 
-	for i := 0; i < len(s); i++ {
-		s1 := strings.Split(s[i], "=")
-		if s1[0] != strings.ToLower(s1[0]) {
-			return fmt.Errorf("key should only contain lower case letter")
+	var kvPairs []string
+	for _, k := range keys {
+		sort.Strings(q[k])
+		for _, v := range q[k] {
+			kvPairs = append(kvPairs, fmt.Sprintf("%s=%s", k, v))
 		}
-		if i+1 < len(s) {
-			if s2 := strings.Split(s[i+1], "="); s1[0] > s2[0] {
-				return fmt.Errorf("keys should be in alphabetical order, got %s&%s, want %s&%s", s[i], s[i+1], s[i+1], s[i])
-			}
-		}
+	}
+
+	wantQueryString := strings.Join(kvPairs, "&")
+	if wantQueryString != u.RawQuery {
+		return fmt.Errorf("key values pairs should be in alphabetical order, want: %s, got %s", wantQueryString, u.RawQuery)
 	}
 
 	return nil

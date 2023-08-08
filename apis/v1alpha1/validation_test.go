@@ -161,27 +161,8 @@ func TestValidateResouceMapping(t *testing.T) {
 			},
 		},
 		{
-			name:   "non_lowercase_subscope_key",
-			expErr: "key should only contain lower case letter",
-			data: &ResourceMapping{
-				Resource: &Resource{
-					Provider: "gcp",
-					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
-					Subscope: "LOWERCASE?KEY1=VALUE1",
-				},
-				Contacts: &Contacts{
-					Email: []string{"pmap@example.com"},
-				},
-				Annotations: &structpb.Struct{
-					Fields: map[string]*structpb.Value{
-						"location": structpb.NewStringValue("global"),
-					},
-				},
-			},
-		},
-		{
 			name:   "keys_not_sorted",
-			expErr: "keys should be in alphabetical order",
+			expErr: "key values pairs should be in alphabetical order",
 			data: &ResourceMapping{
 				Resource: &Resource{
 					Provider: "gcp",
