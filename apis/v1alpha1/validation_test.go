@@ -161,13 +161,13 @@ func TestValidateResouceMapping(t *testing.T) {
 			},
 		},
 		{
-			name:         "nomalize_subscope",
-			wantSubscope: "normalize?key1=value1",
+			name:   "non_lowercase_subscope",
+			expErr: "subscope should only contain lower case char.",
 			data: &ResourceMapping{
 				Resource: &Resource{
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
-					Subscope: "NORMALIZE?KEY1=VALUE1",
+					Subscope: "LOWERCASE?KEY1=VALUE1",
 				},
 				Contacts: &Contacts{
 					Email: []string{"pmap@example.com"},
