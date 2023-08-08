@@ -72,7 +72,7 @@ func validateAndNormalizeSubscope(r *Resource) error {
 
 	// normalize subscope string to only have lower cases
 	if diff := cmp.Diff(strings.ToLower(r.Subscope), r.Subscope); diff != "" {
-		return fmt.Errorf("subscope should only contain lower case char.")
+		return fmt.Errorf("subscope should only contain lower case char")
 	}
 
 	u, err := url.Parse(r.Subscope)

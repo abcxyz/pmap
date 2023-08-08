@@ -162,7 +162,7 @@ func TestValidateResouceMapping(t *testing.T) {
 		},
 		{
 			name:   "non_lowercase_subscope",
-			expErr: "subscope should only contain lower case char.",
+			expErr: "subscope should only contain lower case char",
 			data: &ResourceMapping{
 				Resource: &Resource{
 					Provider: "gcp",
