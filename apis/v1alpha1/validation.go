@@ -81,6 +81,7 @@ func validateAndNormalizeSubscope(r *Resource) error {
 		return fmt.Errorf("failed to parse qualifier string: %w", err)
 	}
 
+	// check if key value pairs are in alphabetical order
 	s := strings.Split(u.RawQuery, "&")
 	if len(s) <= 1 {
 		return nil
