@@ -127,14 +127,14 @@ type Resource struct {
 	// `//spanner.googleapis.com/projects/p1/instances/i1/databases/d1`
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// Optional. The representation for subresource in the format of a URL.
-	// Subresource is the resource thats beyond the cloud resource level,
+	// Subscope is the resource that beyonds cloud resource level.
 	// like spanner table, GCS object.
 	// Format: "hierarchy_string?qualifier_string"
 	// where hierarchy_string represents the hierarchy of the subresource to this parent
 	// in the format of parent/foo/child/bar.
 	// and qualifier_string represents the additional information of the subresource
 	// in the format of: key1=value1&key2=value2.
-	// Example: rows with provider=gcp in a database table1 would be: `table/table1?provider=gcp`
+	// Example: rows with userID=abcxyz in a database table1 would be: `table/table1?user=abcxyz`
 	Subscope string `protobuf:"bytes,3,opt,name=subscope,proto3" json:"subscope,omitempty"`
 }
 

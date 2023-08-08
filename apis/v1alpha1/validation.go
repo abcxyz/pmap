@@ -75,14 +75,23 @@ func validateAndNormalizeSubscope(r *Resource) error {
 
 	u, err := url.Parse(r.Subscope)
 	if err != nil {
-		fmt.Println("hahahahahahah")
 		return fmt.Errorf("failed to parse subscope string: %w", err)
 	}
-	fmt.Println(u)
 
 	_, err = url.ParseQuery(u.RawQuery)
 	if err != nil {
 		return fmt.Errorf("failed to parse qualifier string: %w", err)
 	}
+
+	s := strings.Split(u.RawQuery, "&")
+	if len(s) <= 1 {
+		return nil
+	}
+	for i := 1; i < len(s); i++ {
+		if strings.Split(s[i], "=")[0] < strings.Split(s[i-1], "=")[0] {
+			return fmt.Errorf("keys should be in alphabetical order, got %s&%s, want %s&%s", s[i-1], s[i], s[i], s[i-1])
+		}
+	}
+
 	return nil
 }

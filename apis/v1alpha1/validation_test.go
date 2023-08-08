@@ -86,7 +86,8 @@ func TestValidateResouceMapping(t *testing.T) {
 			},
 		},
 		{
-			name: "success",
+			name:         "success",
+			wantSubscope: "parent/foo/child/bar?key1=value1&key2=value2",
 			data: &ResourceMapping{
 				Resource: &Resource{
 					Provider: "gcp",
@@ -140,8 +141,9 @@ func TestValidateResouceMapping(t *testing.T) {
 			},
 		},
 		{
-			name:   "invalid_query_string",
-			expErr: "failed to parse qualifier string",
+			name:         "invalid_query_string",
+			expErr:       "failed to parse qualifier string",
+			wantSubscope: "parent/foo/child/bar?key1=value1&;=value2",
 			data: &ResourceMapping{
 				Resource: &Resource{
 					Provider: "gcp",
@@ -166,6 +168,25 @@ func TestValidateResouceMapping(t *testing.T) {
 					Provider: "gcp",
 					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
 					Subscope: "NORMALIZE?KEY1=VALUE1",
+				},
+				Contacts: &Contacts{
+					Email: []string{"pmap@example.com"},
+				},
+				Annotations: &structpb.Struct{
+					Fields: map[string]*structpb.Value{
+						"location": structpb.NewStringValue("global"),
+					},
+				},
+			},
+		},
+		{
+			name:   "keys_not_sorted",
+			expErr: "keys should be in alphabetical order",
+			data: &ResourceMapping{
+				Resource: &Resource{
+					Provider: "gcp",
+					Name:     "//pubsub.googleapis.com/projects/test-project/topics/test-topic",
+					Subscope: "parent/foo/child/bar?key2=value2&key1=value1",
 				},
 				Contacts: &Contacts{
 					Email: []string{"pmap@example.com"},

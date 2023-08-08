@@ -51,14 +51,15 @@ message Resource {
   string name = 2;
 
   // Optional. The representation for subresource in the format of a URL. 
-  // Subresource is the resource thats beyond the cloud resource level,
+  // Subscope is the resource that beyonds cloud resource level.
   // like spanner table, GCS object.
   // Format: "hierarchy_string?qualifier_string"
   // where hierarchy_string represents the hierarchy of the subresource to this parent
   // in the format of parent/foo/child/bar.
   // and qualifier_string represents the additional information of the subresource
   // in the format of: key1=value1&key2=value2.
-  // Example: rows with provider=gcp in a database table1 would be: `table/table1?provider=gcp`
+  // The subscope string will be normalized to only have lowercase.
+  // Example: rows with userID=abcxyz in a database table1 would be: `table/table1?user=abcxyz`
   string subscope = 3;
 }
 
