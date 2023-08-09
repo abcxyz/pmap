@@ -185,3 +185,13 @@ module "pmap" {
   pmap_specific_envvars            = { "PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE" : "YOUR_DEFAULT_RESOURCE_SCOPE" }
 }
 ```
+## End User Workflows
+
+### Data Owners
+1. Create a wipeout plan by opening a PR in the yaml format file
+   (file has  `.yaml` filename suffix) under the sub folder where stores  
+   all the wipeout plans. See example [here](./docs/example/wipeout_plan.yaml).
+2. Register and annotate resources to associate the resources to its specific wipeout plan
+   by opening a PR in the yaml format file
+   (file has  `.yaml` filename suffix) under the sub folder where stores  
+   all the privacy data mappings. See example [here](./docs/example/resource_mapping.yaml).

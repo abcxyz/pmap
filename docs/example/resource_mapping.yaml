@@ -1,0 +1,8 @@
+resource:
+  name: //spanner.googleapis.com/projects/test_projects/instances/test_instance/databases/test_database
+  provider: gcp
+annotations:
+  wipeout_plan_id: retention/product_team_a/product_x_user_data_retention
+contacts:
+  email:
+    - product_team-a@gmail.com
