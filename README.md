@@ -195,3 +195,4 @@ module "pmap" {
    by opening a PR in the yaml format file
    (file has  `.yaml` filename suffix) under the sub folder where stores  
    all the privacy data mappings. See example [here](./docs/example/resource_mapping.yaml).
+   **NOTE:** The association of the resource to the wipeout plan is achieved via `annotations` field. 
