@@ -8,8 +8,8 @@ Monitoring consists of two parts: prober and alerting.
 
 [Prober](../prober/) is a go binary being deployed to [cloud run
 job](https://cloud.google.com/run/docs/overview/what-is-cloud-run#jobs), and is
-triggered by [cloud scheduler](https://cloud.google.com/scheduler) to
-constantly probing pmap services to check if the services are up.
+triggered by [cloud scheduler](https://cloud.google.com/scheduler) to constantly
+probing pmap services to check if the services are up.
 
 In each prober job, the prober will upload a yaml file to
 [gcs](https://cloud.google.com/storage), and query the bigquery table to see if
@@ -76,3 +76,6 @@ zone](https://cloud.google.com/scheduler/docs/configuring/cron-job-schedules?&_g
 ```terraform
 prober_scheduler = "*/10 * * * *"
 ```
+
+To add more alerting policies for pmap service, you can do so by adding code to
+[alert.tf](../terraform/modules/monitoring/alert.tf)
