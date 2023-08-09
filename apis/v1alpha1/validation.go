@@ -1,18 +1,19 @@
 // Copyright 2023 The Authors (see AUTHORS file)
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License. You may obtain a copy of
+// the License at
 //
 //      http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations under
+// the License.
 
-// Package v1alpha1 contains versioned pmap contracts, e.g. resource mapping definition.
+// Package v1alpha1 contains versioned pmap contracts, e.g. resource mapping
+// definition.
 package v1alpha1
 
 import (
@@ -42,7 +43,7 @@ func ValidateResourceMapping(m *ResourceMapping) (vErr error) {
 	}
 
 	if err := validateResource(m.Resource); err != nil {
-		vErr = errors.Join(vErr, fmt.Errorf("invalid Resource: %w", err))
+		vErr = errors.Join(vErr, err)
 	}
 
 	return
@@ -58,7 +59,7 @@ func validateResource(r *Resource) (vErr error) {
 	}
 
 	if err := validateSubscope(r); err != nil {
-		vErr = errors.Join(vErr, fmt.Errorf("invalid subscope: %w", err))
+		vErr = errors.Join(vErr, err)
 	}
 
 	return
@@ -69,18 +70,18 @@ func validateSubscope(r *Resource) error {
 		return nil
 	}
 
-	// If r.Subscope = "parent/foo/child/bar?key1=value1&key2=value2"
-	// after url.Parse(r.Subscope), we will have:
-	// u.RawQuery: key1=value1&key2=value2
+	// If r.Subscope = "parent/foo/child/bar?key1=value1&key2=value2" after
+	// url.Parse(r.Subscope), we will have: u.RawQuery: key1=value1&key2=value2
 	u, err := url.Parse(r.Subscope)
 	if err != nil {
-		return fmt.Errorf("failed to parse subscope string: %w", err)
+		return fmt.Errorf("subscope validation failed: failed to parse subscope string %s: %w", r.Subscope, err)
 	}
 
-	// ParseQuery is needed here to check if query string has errors
+	// [url.Parse] silently discards malformed value pairs. So we need to use
+	// [url.ParseQuery] to check if there are any errors.
 	q, err := url.ParseQuery(u.RawQuery)
 	if err != nil {
-		return fmt.Errorf("failed to parse qualifier string: %w", err)
+		return fmt.Errorf("subscope validation failed: failed to parse qualifier string %s: %w", u.RawQuery, err)
 	}
 
 	keys := make([]string, 0, len(q))
@@ -99,7 +100,7 @@ func validateSubscope(r *Resource) error {
 
 	wantQueryString := strings.Join(kvPairs, "&")
 	if wantQueryString != u.RawQuery {
-		return fmt.Errorf("key values pairs should be in alphabetical order, want: %s, got: %s", wantQueryString, u.RawQuery)
+		return fmt.Errorf("subscope validation failed: qualifiers must be in alphabetical order, want: %s, got: %s", wantQueryString, u.RawQuery)
 	}
 
 	return nil

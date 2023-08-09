@@ -127,17 +127,19 @@ type Resource struct {
 	// `//spanner.googleapis.com/projects/p1/instances/i1/databases/d1`
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// Optional. The representation for subresource in the format of a URL.
-	// Subscope is the resource that beyonds cloud resource level.
-	// like spanner table, GCS object.
-	// Format: "[HIERARCHY]?[QUALIFIERS]"
-	// where HIERARCHY represents the hierarchy of the subresource
-	// to its parent in the format of parent/foo/child/bar.
-	// and QUALIFIERS represents the additional information of
-	// the subresource in the format of: key1=value1&key2=value2.
-	// the keys and values should be in alphabetical order.
+	// Subscope is the resource that is beyond cloud resource level, e.g.
+	// spanner table, GCS object, etc.
 	//
-	// Example: rows with userid=abcxyz in a database table1 would be:
-	// `table/table1?userid=abcxyz`
+	// Format: "[SUBRESOURCE_HIERARCHY]?[ADDITIONAL_QUALIFIERS]"
+	//
+	// [SUBRESOURCE_HIERARCHY] represents the hierarchy of the subresource
+	// E.g. "databases/example-db/tables/example-table".
+	//
+	// [ADDITIONAL_QUALIFIERS] represents the additional qualifiers to select
+	// the data in the subresource. E.g. "source=example-org1&team=example-team".
+	// Notice the keys and values must be in alphabetical order.
+	//
+	// Full example: "databases/example-db/tables/example-table?source=example-org1&team=example-team".
 	Subscope string `protobuf:"bytes,3,opt,name=subscope,proto3" json:"subscope,omitempty"`
 }
 
