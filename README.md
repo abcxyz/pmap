@@ -6,7 +6,7 @@ Privacy data mapping and related plans management.
 
 ## Set Up
 
-The admin of your GCP project/folder/org need to complete the steps below.
+The central privacy team need to complete the steps below.
 
 ### Workload Identity Federation
 
@@ -24,7 +24,7 @@ The GitHub central repository is the source of truth
 for privacy data mappings/wipeout plans.
 We rely on GitHub to preserve change history and enable multi-person review.
 
-Users can determine how to group privacy data mappings/wipeout plans as long as
+The central privacy team can determine how to group privacy data mappings/wipeout plans as long as
 at least one level of group are needed
 (Sub folders in the root of the central GitHub repository are needed).
 Files containing privacy data mappings/wipeout plans can’t be stored
