@@ -12,13 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package v1alpha1 contains versioned pmap contracts, e.g. resource mapping definition.
+// Package v1alpha1 contains versioned pmap contracts, e.g. resource mapping
+// definition.
 package v1alpha1
 
 import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"net/url"
+	"sort"
+	"strings"
 )
 
 const (
@@ -33,11 +37,71 @@ func ValidateResourceMapping(m *ResourceMapping) (vErr error) {
 			vErr = errors.Join(vErr, fmt.Errorf("invalid owner: %w", err))
 		}
 	}
-	if m.Resource.Provider == "" {
-		vErr = errors.Join(vErr, fmt.Errorf("empty resource provider"))
-	}
+
 	if _, ok := m.Annotations.AsMap()[AnnotationKeyAssetInfo]; ok {
 		vErr = errors.Join(vErr, fmt.Errorf("reserved key is included: %s", AnnotationKeyAssetInfo))
 	}
+
+	if err := validateResource(m.Resource); err != nil {
+		vErr = errors.Join(vErr, err)
+	}
+
 	return
+}
+
+func validateResource(r *Resource) (vErr error) {
+	if r.Name == "" {
+		vErr = errors.Join(vErr, fmt.Errorf("empty resource name"))
+	}
+
+	if r.Provider == "" {
+		vErr = errors.Join(vErr, fmt.Errorf("empty resource provider"))
+	}
+
+	if err := validateSubscope(r); err != nil {
+		vErr = errors.Join(vErr, err)
+	}
+
+	return
+}
+
+func validateSubscope(r *Resource) error {
+	if r.Subscope == "" {
+		return nil
+	}
+
+	// If r.Subscope = "parent/foo/child/bar?key1=value1&key2=value2" after
+	// url.Parse(r.Subscope), we will have: u.RawQuery: key1=value1&key2=value2
+	u, err := url.Parse(r.Subscope)
+	if err != nil {
+		return fmt.Errorf("subscope validation failed: failed to parse subscope string %s: %w", r.Subscope, err)
+	}
+
+	// [url.Parse] silently discards malformed value pairs. So we need to use
+	// [url.ParseQuery] to check if there are any errors.
+	q, err := url.ParseQuery(u.RawQuery)
+	if err != nil {
+		return fmt.Errorf("subscope validation failed: failed to parse qualifier string %s: %w", u.RawQuery, err)
+	}
+
+	keys := make([]string, 0, len(q))
+	for k := range q {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var kvPairs []string
+	for _, k := range keys {
+		sort.Strings(q[k])
+		for _, v := range q[k] {
+			kvPairs = append(kvPairs, fmt.Sprintf("%s=%s", k, v))
+		}
+	}
+
+	wantQueryString := strings.Join(kvPairs, "&")
+	if wantQueryString != u.RawQuery {
+		return fmt.Errorf("subscope validation failed: qualifiers must be in alphabetical order, want: %s, got: %s", wantQueryString, u.RawQuery)
+	}
+
+	return nil
 }
