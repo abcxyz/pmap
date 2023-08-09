@@ -60,7 +60,7 @@ message Resource {
   // the subresource in the format of: key1=value1&key2=value2.
   // the keys and values should be in alphabetical order.
   // 
-  // Example: rows with userid=abcxyz in a database table1 would be: 
+  // Example: rows with userid=abcxyz in a database table1 would be:
   // `table/table1?userid=abcxyz`
   string subscope = 3;
 }

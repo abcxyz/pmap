@@ -15,6 +15,7 @@
 package v1alpha1
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/abcxyz/pkg/testutil"
@@ -161,8 +162,10 @@ func TestValidateResouceMapping(t *testing.T) {
 			},
 		},
 		{
-			name:   "keys_not_sorted",
-			expErr: "key values pairs should be in alphabetical order",
+			name: "keys_not_sorted",
+			expErr: fmt.Sprintf("key values pairs should be in alphabetical order, want: %s, got: %s",
+				"key1=value1&key2=value2",
+				"key2=value2&key1=value1"),
 			data: &ResourceMapping{
 				Resource: &Resource{
 					Provider: "gcp",

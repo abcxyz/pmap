@@ -42,7 +42,7 @@ func ValidateResourceMapping(m *ResourceMapping) (vErr error) {
 	}
 
 	if err := validateResource(m.Resource); err != nil {
-		vErr = errors.Join(vErr, fmt.Errorf("invalid Resourc: %w", err))
+		vErr = errors.Join(vErr, fmt.Errorf("invalid Resource: %w", err))
 	}
 
 	return
@@ -69,15 +69,15 @@ func validateSubscope(r *Resource) error {
 		return nil
 	}
 
-	// If r.Subscope = "parent/foo/child/bar?key2=value2&key1=value1"
+	// If r.Subscope = "parent/foo/child/bar?key1=value1&key2=value2"
 	// after url.Parse(r.Subscope), we will have:
-	// u.Path = parent/foo/child/bar
-	// u.RawQuery = key2=value2&key1=value1
+	// u.RawQuery: key1=value1&key2=value2
 	u, err := url.Parse(r.Subscope)
 	if err != nil {
 		return fmt.Errorf("failed to parse subscope string: %w", err)
 	}
 
+	// ParseQuery is needed here to check if query string has errors
 	q, err := url.ParseQuery(u.RawQuery)
 	if err != nil {
 		return fmt.Errorf("failed to parse qualifier string: %w", err)
@@ -99,7 +99,7 @@ func validateSubscope(r *Resource) error {
 
 	wantQueryString := strings.Join(kvPairs, "&")
 	if wantQueryString != u.RawQuery {
-		return fmt.Errorf("key values pairs should be in alphabetical order, want: %s, got %s", wantQueryString, u.RawQuery)
+		return fmt.Errorf("key values pairs should be in alphabetical order, want: %s, got: %s", wantQueryString, u.RawQuery)
 	}
 
 	return nil
