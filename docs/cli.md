@@ -18,4 +18,5 @@ pmap [command]
 Run `pmap -h` for details of available flags.
 
 Examples:
+
 * Validate Privacy Data Mappings - Run `pmap mapping validate -path "/path/to/file"`
