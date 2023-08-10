@@ -24,5 +24,5 @@ output "bigquery_topics" {
 
 output "bigquery_subscriptions" {
   description = "A map of event to Pub/Sub topics and BigQuery tables."
-  value       = module.common_infra.bigquery_subscriptions  
+  value       = module.common_infra.bigquery_subscriptions
 }
