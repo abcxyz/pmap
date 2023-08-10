@@ -125,12 +125,14 @@ func TestMappingEventHandling(t *testing.T) {
 		{
 			name:              "mapping_success_event_scoped_resource",
 			resourceName:      fmt.Sprintf("//artifactregistry.googleapis.com/projects/%s/locations/us-central1/repositories/%s", cfg.ProjectID, cfg.StaticARRepo),
+			subscope:          "parent/foo/child/bar?key1=value1&key2=value2",
 			bigqueryTable:     cfg.MappingTableID,
 			wantCAISProcessed: true,
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
 					Name:     fmt.Sprintf("//artifactregistry.googleapis.com/projects/%s/locations/us-central1/repositories/%s", cfg.ProjectID, cfg.StaticARRepo),
+					Subscope: "parent/foo/child/bar?key1=value1&key2=value2",
 				},
 				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
 			},
@@ -147,12 +149,14 @@ func TestMappingEventHandling(t *testing.T) {
 		{
 			name:              "mapping_success_event_unscoped_resource",
 			resourceName:      fmt.Sprintf("//storage.googleapis.com/%s", cfg.StaticGCSBucket),
+			subscope:          "parent/foo/child/bar?key1=value1&key2=value2",
 			bigqueryTable:     cfg.MappingTableID,
 			wantCAISProcessed: true,
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
 					Name:     fmt.Sprintf("//storage.googleapis.com/%s", cfg.StaticGCSBucket),
+					Subscope: "parent/foo/child/bar?key1=value1&key2=value2",
 				},
 				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
 			},
@@ -188,30 +192,6 @@ func TestMappingEventHandling(t *testing.T) {
 			},
 			wantProcessErrSubStr: "failed to validate and enrich",
 		},
-		{
-			name:              "subresouce_mapping_success_event",
-			resourceName:      fmt.Sprintf("//artifactregistry.googleapis.com/projects/%s/locations/us-central1/repositories/%s", cfg.ProjectID, cfg.StaticARRepo),
-			bigqueryTable:     cfg.MappingTableID,
-			subscope:          "parent/foo/child/bar?key1=vaue1&key2=value2",
-			wantCAISProcessed: true,
-			wantResourceMapping: &v1alpha1.ResourceMapping{
-				Resource: &v1alpha1.Resource{
-					Provider: "gcp",
-					Name:     fmt.Sprintf("//artifactregistry.googleapis.com/projects/%s/locations/us-central1/repositories/%s", cfg.ProjectID, cfg.StaticARRepo),
-					Subscope: "parent/foo/child/bar?key1=vaue1&key2=value2",
-				},
-				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
-			},
-			wantGithubSource: &v1alpha1.GitHubSource{
-				RepoName:                   testGithubRepoValue,
-				Commit:                     testGithubCommitValue,
-				Workflow:                   testWorkflowValue,
-				WorkflowSha:                testWorkflowShaValue,
-				WorkflowTriggeredTimestamp: testParseTime(t, testWorkflowTriggeredTimeValue),
-				WorkflowRunId:              testWorkflowRunID,
-				WorkflowRunAttempt:         1,
-			},
-		},
 	}
 
 	for _, tc := range cases {
@@ -230,20 +210,7 @@ func TestMappingEventHandling(t *testing.T) {
 
 			filePath := fmt.Sprintf("test-dir/traceID-%s.yaml", traceID)
 			tc.wantGithubSource.FilePath = filePath
-			var data []byte
-			if tc.subscope == "" {
-				data = []byte(fmt.Sprintf(`
-resource:
-  name: %s
-  provider: gcp
-annotations:
-  traceID: %s
-contacts:
-  email:
-  - group@example.com
-`, tc.resourceName, traceID.String()))
-			} else {
-				data = []byte(fmt.Sprintf(`
+			data := []byte(fmt.Sprintf(`
 resource:
   name: %s
   provider: gcp
@@ -254,7 +221,6 @@ contacts:
   email:
   - group@example.com
 `, tc.resourceName, tc.subscope, traceID.String()))
-			}
 			gcsObject := fmt.Sprintf("mapping/%s/gh-prefix/%s", cfg.ObjectPrefix, filePath)
 			// Upload data to GCS, this should trigger the pmap event handler via GCS notification behind the scenes.
 			if err := testUploadFile(ctx, t, cfg.GCSBucketID, gcsObject, bytes.NewReader(data)); err != nil {
