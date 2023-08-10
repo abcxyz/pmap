@@ -5,4 +5,4 @@ annotations:
   wipeout_plan_id: 'retention/product_team_a/product_x_user_data_retention'
 contacts:
   email:
-    - 'product_team-a@gmail.com'
+    - 'product_team-a@example.com'

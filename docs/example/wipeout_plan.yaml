@@ -2,26 +2,14 @@ plan_id: 'retention/product_team_a/product_x_user_data_retention'
 title: 'Wipeout Plan for User Data of Product X'
 description: 'This is an example wipeout plan.'
 scope: 'Product X'
-owner: 'producscopt_team_a@google.com'
-context: 'PDD link address'
+owner: 'product_team-a@example.com'
 data_type: 'User data'
 identifier: 'Customer ID'
 exempt: 'Not Exempt'
 deletion_timeline:
   - stage:
       action: 'Deletion'
-      purpose: 'User Health Data'
       trigger:
         trigger_event: 'User-initiated deletion'
         delay: '356 days'
-  - stage:
-      action: 'Deletion'
-      purpose: 'Spam and Abuse'
-      trigger:
-        trigger_event: 'Identifier expiration'
-        delay: '356 days'
-justification: 'Store data for expired users marked as abusive.'
-exception_information:
-  controls: 'Controls are...'
-  related_documents_or_issue: 'Issue link address'
-last_modified: '2023/06/13'
+

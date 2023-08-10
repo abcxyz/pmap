@@ -1,0 +1,21 @@
+name: 'snapshot-privacy-mapping-data-copy'
+
+on:
+  schedule:
+    - cron: 'YOUR_CRON_JOB_FREQUENCY'
+  workflow_dispatch:
+
+# Don't cancel in progress since we don't want to have half-baked file change snapshot.
+concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-snapshot-privacy-mapping-data-copy'
+
+jobs:
+  snapshot:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    uses: 'abcxyz/pmap/.github/workflows/snapshot-file-copy.yml@ref=main' #this should be pinned to the SHA desired
+    with:
+      workload_identity_provider: 'YOUR_WORKLOAD_IDENTITY_PROVIDER'
+      service_account: 'YOUR_SERVICE_ACCOUNT'
+      destination_prefix: 'YOUR_GCS_DESTINATION_PREFIX_FOR_PRIVACY_MAPPING_DATA'
+      path: 'YOUR_PRIVACY_DATA_MAPPING_SUBFOLDER'

@@ -2,7 +2,42 @@
 
 **This is not an official Google product.**
 
-Privacy data mapping and related plans management.
+## Background
+Privacy data management is the process of collecting, storing, using, and disposing of personal data in a way that protects the privacy of individuals.
+It is a critical part of any organization that collects or uses personal data, and organizations are typically required to maintain compliance with policies set by regulatory bodies.
+
+To ensure that organizations maintain compliance with policies set by regulatory bodies, people need to know the following:
+* The requirements for what teams must do, driven by legal requirements or external commitments (aka Privacy Policy).
+This includes translating the comprehensive external legal requirements into requirements that are tailored to
+products and services of the organizations.
+* Where the user data is stored. 
+This includes understanding the different systems and databases that store personal data,
+as well as the physical locations where user data is stored.
+* Which privacy policy applies to the datastore that stores user data(aka Data Mapping).
+This includes understanding how the organization's privacy policies are applied to different systems and databases.
+* The visibility of the privacy compliance.
+This includes being able to track and monitor the organization's compliance with its privacy policies and applicable laws and regulations.
+
+PMAP provides a solution for the first three problems. We are working on a solution to provide visibility of privacy compliance in the near future.
+
+## Architecture
+
+![pmap architecture](./docs/assets/arch.png)
+
+* Registration -  Data owners and policy owners will register data mappings and privacy policies in a central GitHub repository.
+* GCS Snapshots - Snapshot the data mappings and privacy policies from GitHub to GCS with Workload Identity Federation.
+* Additional Processors - Extension point for validation and enrichment.
+* Processing Service - The service that is responsible for ingesting, validating and storing the data mappings and privacy policies.
+* Storage and Analysis - The data warehouse for processed data mappings and privacy policies, and UI for dashboarding.
+
+### Why GitHub
+We choose GitHub as it can preserve change history and enable multi-person review and approval.
+Change history and review&approval process are crucial in privacy data management.
+
+### Why BigQuery
+We choose BigQuery for its excellent analytics support:
+* Be able to visualize data to reveal meaningful insights
+* Ideally be able to join data from other data sources in the future to achieve the privacy compliance monitoring.
 
 ## Set Up
 
@@ -19,10 +54,8 @@ and a service account with adequate condition and permission, see guide
        to snapshot the privacy mapping data/retention plans from GitHub to GCS.
 
 ### GitHub Central Repository
-
-The GitHub central repository is the source of truth
-for privacy data mappings/wipeout plans.
-We rely on GitHub to preserve change history and enable multi-person review.
+GitHub central repository is the source of truth
+for data mappings and privacy policies.
 
 The central privacy team can determine how to group privacy data mappings/wipeout plans as long as
 at least one level of group are needed
@@ -32,139 +65,22 @@ directly in the root of the central GitHub repository.
 
 #### Privacy Data Mapping
 
-* Presubmit workflows for sanity checks
+* Presubmit workflows for sanity checks, 
+see example [here](./docs/example/mapping_data_validation.yaml).
 
-```yaml
-name: 'Privacy Mapping Data Validation'
+* Postsubmit workflows to snapshot added_files and modified_files of privacy data mappings to GCS,
+see example [here](./docs/example/snapshot_mapping_data_change.yaml).
 
-on:
-  push:
-    branches:
-      - 'master'
-  pull_request:
-    branches:
-      - 'master'
-  workflow_dispatch:
+* Cron Workflows to snapshot the all files of privacy data mappings to GCS,
+see example [here](./docs/example/snapshot_mapping_data_copy.yaml).
 
-concurrency:
-  group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-privacy-mapping-data-validation'
-  cancel-in-progress: true
+#### Privacy Policy
 
-jobs:
-  snapshot:
-    uses: 'abcxyz/pmap/.github/workflows/resource-mapping-check.yml@ref=main' #this should be pinned to the SHA desired
-    with:
-      resource_mapping_directory: 'YOUR_PRIVACY_DATA_MAPPING_SUBFOLDER'
-      go_version: '>=1.20.0'
-```
+* Postsubmit workflows to snapshot added_files and modified_files of privacy policies to GCS,
+see example [here](./docs/example/snapshot_privacy_policy_change.yaml).
 
-* Postsubmit workflows to snapshot added_files and modified_files of privacy data mappings to GCS
-
-```yaml
-name: 'snapshot-privacy-mapping-data-change'
-
-on:
-  push:
-    branches:
-      - 'master'
-  workflow_dispatch:
-
-# Don't cancel in progress since we don't want to have half-baked file change snapshot.
-concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-snapshot-privacy-mapping-data-change'
-
-jobs:
-  snapshot:
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    uses: 'abcxyz/pmap/.github/workflows/snapshot-file-change.yml@ref=main' #this should be pinned to the SHA desired
-    with:
-      workload_identity_provider: 'YOUR_WORKLOAD_IDENTITY_PROVIDER'
-      service_account: 'YOUR_SERVICE_ACCOUNT'
-      destination_prefix: 'YOUR_GCS_DESTINATION_PREFIX_FOR_PRIVACY_MAPPING_DATA'
-      path: 'YOUR_PRIVACY_DATA_MAPPING_SUBFOLDER'
-```
-
-* Cron Workflows to snapshot the all files of privacy data mappings to GCS
-
-```yaml
-name: 'snapshot-privacy-mapping-data-copy'
-
-on:
-  schedule:
-    - cron: 'YOUR_CRON_JOB_FREQUENCY'
-  workflow_dispatch:
-
-# Don't cancel in progress since we don't want to have half-baked file change snapshot.
-concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-snapshot-privacy-mapping-data-copy'
-
-jobs:
-  snapshot:
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    uses: 'abcxyz/pmap/.github/workflows/snapshot-file-copy.yml@ref=main' #this should be pinned to the SHA desired
-    with:
-      workload_identity_provider: 'YOUR_WORKLOAD_IDENTITY_PROVIDER'
-      service_account: 'YOUR_SERVICE_ACCOUNT'
-      destination_prefix: 'YOUR_GCS_DESTINATION_PREFIX_FOR_PRIVACY_MAPPING_DATA'
-      path: 'YOUR_PRIVACY_DATA_MAPPING_SUBFOLDER'
-```
-
-#### Retention Plan
-
-* Postsubmit workflows to snapshot added_files and modified_files of retention plans to GCS,
-
-```yaml
-name: 'snapshot-retention-plan-data-change'
-
-on:
-  push:
-    branches:
-      - 'master'
-  workflow_dispatch:
-
-# Don't cancel in progress since we don't want to have half-baked file change snapshot.
-concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-snapshot-retention-plan-data-change'
-
-jobs:
-  snapshot:
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    uses: 'abcxyz/pmap/.github/workflows/snapshot-file-change.yml@ref=main' #this should be pinned to the SHA desired
-    with:
-      workload_identity_provider: 'YOUR_WORKLOAD_IDENTITY_PROVIDER'
-      service_account: 'YOUR_SERVICE_ACCOUNT'
-      destination_prefix: 'YOUR_GCS_DESTINATION_PREFIX_FOR_RETENTION_PLAN'
-      path: 'YOUR_RETENTION_PLAN_SUBFOLDER'
-```
-
-* Cron Workflows to snapshot the all files of retention plans to GCS
-
-```yaml
-name: 'snapshot-retention-plan-data-copy'
-
-on:
-  schedule:
-    - cron: 'YOUR_CRON_JOB_FREQUENCY'
-  workflow_dispatch:
-
-# Don't cancel in progress since we don't want to have half-baked file change snapshot.
-concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-snapshot-retention-plan-data-copy'
-
-jobs:
-  snapshot:
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    uses: 'abcxyz/pmap/.github/workflows/snapshot-file-copy.yml@ref=main' #this should be pinned to the SHA desired
-    with:
-      workload_identity_provider: 'YOUR_WORKLOAD_IDENTITY_PROVIDER'
-      service_account: 'YOUR_SERVICE_ACCOUNT'
-      destination_prefix: 'YOUR_GCS_DESTINATION_PREFIX_FOR_RETENTION_PLAN_DATA'
-      path: 'YOUR_RETENTION_PLAN_SUBFOLDER'
-```
+* Cron Workflows to snapshot the all files of privacy policies to GCS,
+see example [here](./docs/example/snapshot_privacy_policy_copy.yaml)
 
 ### Infrastructure for pmap
 
@@ -187,12 +103,16 @@ module "pmap" {
 ```
 ## End User Workflows
 
-### Data Owners
-1. Create a wipeout plan by opening a PR in the yaml format file
+### Policy Owner
+* Create a privacy policy (wipeout plan etc.) by opening a PR in the yaml format file
    (file has  `.yaml` filename suffix) under the sub folder where stores  
-   all the wipeout plans. See example [here](./docs/example/wipeout_plan.yaml).
-2. Register and annotate resources to associate the resources to its specific wipeout plan
+   all the privacy policies. See example [here](./docs/example/wipeout_plan.yaml).
+
+### Data Owner
+* Register and annotate resources to associate the resources to its specific wipeout plan
    by opening a PR in the yaml format file
    (file has  `.yaml` filename suffix) under the sub folder where stores  
    all the privacy data mappings. See example [here](./docs/example/resource_mapping.yaml).
-   **NOTE:** The association of the resource to the wipeout plan is achieved via `annotations` field. 
+   **NOTE:** The association of the resource to the wipeout plan is achieved via `annotations` field.
+
+### Data Governor(TODO)
