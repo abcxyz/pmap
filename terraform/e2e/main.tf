@@ -16,13 +16,15 @@ locals {
   mapping_service_name = "mapping"
   policy_service_name  = "policy"
 
-  alert_subscription_map = {
-    mapping_bigquery         = module.common_infra.bigquery_subscriptions[local.mapping_service_name].event_subscription_id,
-    mapping_bigquery_failure = module.common_infra.bigquery_subscriptions[local.mapping_service_name].failure_subscription_id,
-    policy_bigquery          = module.common_infra.bigquery_subscriptions[local.policy_service_name].failure_subscription_id,
-    mapping_gcs              = module.mapping_service.gcs_notification_subscription_id,
-    policy_gcs               = module.policy_service.gcs_notification_subscription_id
-  }
+  alert_subscription_list = [
+    module.common_infra.bigquery_subscriptions[local.mapping_service_name].event_subscription_id,
+    module.common_infra.bigquery_subscriptions[local.mapping_service_name].failure_subscription_id,
+    module.common_infra.bigquery_subscriptions[local.policy_service_name].event_subscription_id,
+    module.common_infra.bigquery_subscriptions[local.policy_service_name].failure_subscription_id,
+    module.mapping_service.gcs_notification_subscription_id,
+    module.policy_service.gcs_notification_subscription_id,
+  ]
+
 }
 
 module "common_infra" {
@@ -78,5 +80,5 @@ module "monitoring" {
   prober_policy_table_id     = local.policy_service_name
   pmap_prober_image          = var.pmap_prober_image
   notification_channel_email = var.notification_channel_email
-  pmap_subscription_ids      = local.alert_subscription_map
+  pmap_subscription_ids      = local.alert_subscription_list
 }
