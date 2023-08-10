@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   snapshot:
-    uses: 'abcxyz/pmap/.github/workflows/resource-mapping-check.yml@ref=main' #this should be pinned to the SHA desired
+    uses: 'abcxyz/pmap/.github/workflows/resource-mapping-check.yml@ref=main' # this should be pinned to the SHA desired
     with:
       resource_mapping_directory: 'YOUR_PRIVACY_DATA_MAPPING_SUBFOLDER'
       go_version: '>=1.20.0'

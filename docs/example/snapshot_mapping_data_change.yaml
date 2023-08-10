@@ -14,7 +14,7 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
-    uses: 'abcxyz/pmap/.github/workflows/snapshot-file-change.yml@ref=main' #this should be pinned to the SHA desired
+    uses: 'abcxyz/pmap/.github/workflows/snapshot-file-change.yml@ref=main' # this should be pinned to the SHA desired
     with:
       workload_identity_provider: 'YOUR_WORKLOAD_IDENTITY_PROVIDER'
       service_account: 'YOUR_SERVICE_ACCOUNT'
