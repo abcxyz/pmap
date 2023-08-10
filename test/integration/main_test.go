@@ -110,13 +110,14 @@ func TestMain(m *testing.M) {
 
 // TestMappingEventHandling tests the entire flow from uploading a mapping data
 // to GCS, triggering pmap event handler, to writing it to a BigQuery table.
-// TODO(#56): add validation logic for github source attributes as object metadata.
+// TODO(#185): Refactor so we don't have to enforce subscope in every test case.
 func TestMappingEventHandling(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name                 string
 		resourceName         string
 		bigqueryTable        string
+		subscope             string
 		wantCAISProcessed    bool
 		wantGithubSource     *v1alpha1.GitHubSource
 		wantResourceMapping  *v1alpha1.ResourceMapping
@@ -125,12 +126,14 @@ func TestMappingEventHandling(t *testing.T) {
 		{
 			name:              "mapping_success_event_scoped_resource",
 			resourceName:      fmt.Sprintf("//artifactregistry.googleapis.com/projects/%s/locations/us-central1/repositories/%s", cfg.ProjectID, cfg.StaticARRepo),
+			subscope:          "parent/foo/child/bar?key1=value1&key2=value2",
 			bigqueryTable:     cfg.MappingTableID,
 			wantCAISProcessed: true,
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
 					Name:     fmt.Sprintf("//artifactregistry.googleapis.com/projects/%s/locations/us-central1/repositories/%s", cfg.ProjectID, cfg.StaticARRepo),
+					Subscope: "parent/foo/child/bar?key1=value1&key2=value2",
 				},
 				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
 			},
@@ -147,12 +150,14 @@ func TestMappingEventHandling(t *testing.T) {
 		{
 			name:              "mapping_success_event_unscoped_resource",
 			resourceName:      fmt.Sprintf("//storage.googleapis.com/%s", cfg.StaticGCSBucket),
+			subscope:          "parent/foo/child/bar?key1=value1&key2=value2",
 			bigqueryTable:     cfg.MappingTableID,
 			wantCAISProcessed: true,
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
 					Name:     fmt.Sprintf("//storage.googleapis.com/%s", cfg.StaticGCSBucket),
+					Subscope: "parent/foo/child/bar?key1=value1&key2=value2",
 				},
 				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
 			},
@@ -169,11 +174,13 @@ func TestMappingEventHandling(t *testing.T) {
 		{
 			name:          "mapping_failure_event",
 			resourceName:  fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
+			subscope:      "parent/foo/child/bar?key1=value1&key2=value2",
 			bigqueryTable: cfg.MappingFailureTableID,
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
 					Name:     fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
+					Subscope: "parent/foo/child/bar?key1=value1&key2=value2",
 				},
 				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
 			},
@@ -206,17 +213,17 @@ func TestMappingEventHandling(t *testing.T) {
 
 			filePath := fmt.Sprintf("test-dir/traceID-%s.yaml", traceID)
 			tc.wantGithubSource.FilePath = filePath
-
 			data := []byte(fmt.Sprintf(`
 resource:
   name: %s
   provider: gcp
+  subscope: %s
 annotations:
   traceID: %s
 contacts:
   email:
   - group@example.com
-`, tc.resourceName, traceID.String()))
+`, tc.resourceName, tc.subscope, traceID.String()))
 			gcsObject := fmt.Sprintf("mapping/%s/gh-prefix/%s", cfg.ObjectPrefix, filePath)
 			// Upload data to GCS, this should trigger the pmap event handler via GCS notification behind the scenes.
 			if err := testUploadFile(ctx, t, cfg.GCSBucketID, gcsObject, bytes.NewReader(data)); err != nil {
