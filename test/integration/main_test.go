@@ -110,10 +110,9 @@ func TestMain(m *testing.M) {
 
 // TestMappingEventHandling tests the entire flow from uploading a mapping data
 // to GCS, triggering pmap event handler, to writing it to a BigQuery table.
+// TODO(#185): Refactor so we don't have to enforce subscope in every test case.
 func TestMappingEventHandling(t *testing.T) {
 	t.Parallel()
-
-	// TODO(#185): Refactor so we don't have to enforce subscope in every test case.
 	cases := []struct {
 		name                 string
 		resourceName         string
