@@ -6,12 +6,18 @@ Monitoring consists of two parts: prober and alerting.
 
 ## Prober
 
-[Prober](../prober/) is a go binary being deployed to [cloud run
+[Prober](../prober/) is a tool that constantly probes pmap services to check if
+the services are up. It is built as a go binary and deployed to [cloud run
 job](https://cloud.google.com/run/docs/overview/what-is-cloud-run#jobs), and is
 triggered by [cloud scheduler](https://cloud.google.com/scheduler) to constantly
 probing pmap services to check if the services are up.
 
-In each prober job, the prober will upload a yaml file to
+In each prober job, the prober will cover two CUJ:
+
+- Resource mapping (mapping service user journey)
+- Wipeout planning (policy service user journey)
+
+For each CUJ, prober will upload a yaml file to
 [gcs](https://cloud.google.com/storage), and query the bigquery table to see if
 a corrosponding entry exists in bigquery table. The job is considered as success
 on if the following requirements for both mapping and policy service are met:
@@ -21,21 +27,26 @@ on if the following requirements for both mapping and policy service are met:
 
 ## Monitoring and Alert Policies
 
-We monitor the pmap service with [native cloud run monitoring
-metrics](https://cloud.google.com/monitoring/api/metrics_gcp#gcp-run) and set up
-the alert for all pubsub subscriptions base on the following metrics:
+We use [pubsub
+metrics](https://cloud.google.com/monitoring/api/metrics_gcp#gcp-pubsub) to
+monitor pubsub subsrciption and sent out alerts. The metrics used are:
 
 - subscription/oldest_unacked_message_age
 - subscription/dead_letter_message_counts
 
-We also have alert base on the prober job execution result. The metrics used is:
+We also use [cloud run
+metircs](https://cloud.google.com/monitoring/api/metrics_gcp#gcp-run) to monitor
+and send alert base prober job execution result. The metric used is:
 
 - job/completed_execution_count
 
 ## Installation
 
-You can use the provided Terraform module to setup Prober, or you can refer to
-the provided module to build it from scratch.
+### Default setup
+
+If you used the e2e module to set up pmap service, then you don't need to set up
+prober separately. Otherwise, you can use the following terraform code to set up
+your prober. All these variables are required.
 
 ```terraform
 module "prober_and_monitoring" {
@@ -52,6 +63,8 @@ module "prober_and_monitoring" {
   pmap_subscription_ids      = "The subscription ids used in pmap"
 }
 ```
+
+### Customization
 
 By default, alerting is disabled, you can enable it by setting the following
 variables:
