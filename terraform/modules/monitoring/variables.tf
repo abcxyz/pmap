@@ -102,8 +102,8 @@ variable "log_level" {
 }
 
 variable "pmap_subscription_ids" {
-  type        = list(string)
-  default     = []
+  type        = map(string)
+  default     = {}
   description = "The subscription ids used in pmap"
 }
 

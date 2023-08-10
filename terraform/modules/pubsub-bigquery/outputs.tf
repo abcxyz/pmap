@@ -24,3 +24,11 @@ output "bigquery_topic" {
     failure_table = google_bigquery_table.pmap[local.failure_table].id
   }
 }
+
+output "bigquery_subscription" {
+  description = "The ID of the pubsub subscriptions."
+  value = {
+    event_subscription_id   = google_pubsub_subscription.bigquery[local.success_table].id
+    failure_subscription_id = google_pubsub_subscription.bigquery[local.failure_table].id
+  }
+}

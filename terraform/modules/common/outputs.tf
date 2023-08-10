@@ -54,3 +54,10 @@ output "bigquery_topics" {
   description = "A map of event to Pub/Sub topics and BigQuery tables."
   value       = { for event in var.event_types : event => module.pubsub_bigquery[event].bigquery_topic }
 }
+
+output "bigquery_subscriptions" {
+  description = "A set of bigquery subscription id"
+  value = {
+    for event in var.event_types : event => module.pubsub_bigquery[event].bigquery_subscription
+  }
+}
