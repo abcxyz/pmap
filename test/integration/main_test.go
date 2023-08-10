@@ -173,11 +173,13 @@ func TestMappingEventHandling(t *testing.T) {
 		{
 			name:          "mapping_failure_event",
 			resourceName:  fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
+			subscope:      "parent/foo/child/bar?key1=value1&key2=value2",
 			bigqueryTable: cfg.MappingFailureTableID,
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
 					Name:     fmt.Sprintf("//pubsub.googleapis.com/projects/%s/topics/%s", cfg.ProjectID, "non_existent_topic"),
+					Subscope: "parent/foo/child/bar?key1=value1&key2=value2",
 				},
 				Contacts: &v1alpha1.Contacts{Email: []string{"group@example.com"}},
 			},
