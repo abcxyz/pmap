@@ -48,7 +48,7 @@ type MappingHandlerConfig struct {
 	// DefaultResourceScope is the default resource scope to search resources.
 	// This is only used for global resources such as GCS bucket.
 	// Please make sure the Service Account used in the Cloud Run service for
-	// Data Mapping is granted the roles/cloudasset.viewer to the corresponding
+	// Data Mapping is granted the 'roles/cloudasset.viewer' to the corresponding
 	// scope level.
 	DefaultResourceScope string `env:"PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE,required"`
 	HandlerConfig
