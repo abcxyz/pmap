@@ -7,12 +7,12 @@ Monitoring consists of two parts: prober and alerting.
 ## Prober
 
 [Prober](../prober/) is a tool that constantly probes pmap services to check if
-the services are up. It is built as a go binary and deployed to [cloud run
-job](https://cloud.google.com/run/docs/overview/what-is-cloud-run#jobs), and is
+the services are up. It is built as a go binary and deployed as [cloud run
+job](https://cloud.google.com/run/docs/overview/what-is-cloud-run#jobs), and
 triggered by [cloud scheduler](https://cloud.google.com/scheduler) to constantly
 probing pmap services to check if the services are up.
 
-In each prober execution, the prober will cover two CUJ:
+In each prober execution, the prober will cover two CUJs:
 
 - Import resource mapping to BigQuery from GCS
 - Import policies to BigQuery from GCS
@@ -62,13 +62,13 @@ module "prober_and_monitoring" {
 
   project_id = var.project_id
 
-  prober_bucket_id           = "GCS bucket id for where objects are uploaded to."
-  prober_bigquery_dataset_id = "The ID of the bigquery dataset where prober run queries from."
-  prober_mapping_table_id    = "The ID of the bigquery table which stores the resource mapping result."
-  prober_policy_table_id     = "The ID of the bigquery table which stores the policy result."
-  pmap_prober_image          = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/pmap-prober:0.0.4-amd64"
-  notification_channel_email = "Email to which alert will be sent to"
-  pmap_subscription_ids      = "The subscription ids used in pmap"
+  prober_bucket_id           = "<YOUR_GCS_bucket_id_for_where_objects_are_uploaded to>"
+  prober_bigquery_dataset_id = "<YOUR_BIGQUERY_DATASET_ID_where_prober_run_queries_from>"
+  prober_mapping_table_id    = "<YOUR_BIGQUERY_TABLE_ID_which_stores_the_resource_mapping_result>"
+  prober_policy_table_id     = "<YOUR_BIGQUERY_TABLE_ID_which_stores_the_policy_result>"
+  pmap_prober_image          = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/pmap-prober:0.0.4-amd64" # change image version
+  notification_channel_email = "<Email_ADDRESS_to_which_alert_will_be_sent_to>"
+  pmap_subscription_ids      = "<YOUR_SUBSCRIPTION_ID_which_you_want_to_monitor_on>"
 }
 ```
 
