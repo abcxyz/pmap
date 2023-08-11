@@ -14,7 +14,7 @@ To ensure that organizations maintain compliance with policies set by regulatory
 bodies, they need to know the following:
 
 * **The requirements for what teams
-  must do, driven by legal requirements or external commitments (aka. privacy
+  must do, driven by legal requirements or external commitments (aka. 
   policy and compliance controls).** This includes translating the comprehensive
   external legal requirements into requirements that are tailored to products and
   services of the organizations.
@@ -23,13 +23,13 @@ bodies, they need to know the following:
   different systems and databases that store or process user data, as well as the
   physical locations where user data is stored or processed.
 
-* **Which privacy policy or compliance control applies to
+* **Which policy or compliance control applies to
   the system that stores/processes user data (aka. data mapping).** This includes
-  understanding how the organization's privacy policies and compliance control are applied to
+  understanding how the organization's policies and compliance control are applied to
   different systems and databases.
 
 * **The visibility of the privacy compliance.** This includes
-  being able to track and monitor the organization's compliance with its privacy policies/controls
+  being able to track and monitor the organization's compliance with its policies/controls
   and applicable laws and regulations.
   PMAP provides a solution for the first three problems. We are working on a
   solution to provide visibility of privacy compliance in the near future.
@@ -90,23 +90,23 @@ root of the central GitHub repository.
 #### Data Mapping
 
 *   Presubmit workflows for sanity checks, see example
-    [here](docs/example/workflows/mapping_data_validation.yaml).
+    [here](docs/example/workflows/data_mapping_validation.yaml).
 
-*   Postsubmit workflows to snapshot added_files and modified_files of privacy
+*   Postsubmit workflows to snapshot added_files and modified_files of
     data mappings to GCS, see example
-    [here](docs/example/workflows/snapshot_mapping_data_change.yaml).
+    [here](docs/example/workflows/snapshot_data_mapping_change.yaml).
 
-*   Cron Workflows to snapshot the all files of privacy data mappings to GCS,
-    see example [here](docs/example/workflows/snapshot_mapping_data_copy.yaml).
+*   Cron Workflows to snapshot the all files of data mappings to GCS,
+    see example [here](docs/example/workflows/snapshot_data_mapping_copy.yaml).
 
 #### Policy and Control
 
-*   Postsubmit workflows to snapshot added_files and modified_files of privacy
-    policies to GCS, see example
-    [here](docs/example/workflows/snapshot_privacy_policy_change.yaml).
+*   Postsubmit workflows to snapshot added_files and modified_files of
+    policies/controls to GCS, see example
+    [here](docs/example/workflows/snapshot_policy_change.yaml).
 
-*   Cron Workflows to snapshot the all files of privacy policies to GCS, see
-    example [here](docs/example/workflows/snapshot_privacy_policy_copy.yaml)
+*   Cron Workflows to snapshot the all files of policies/controls to GCS, see
+    example [here](docs/example/workflows/snapshot_policy_copy.yaml)
 
 ### Infrastructure for pmap
 

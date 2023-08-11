@@ -1,4 +1,4 @@
-name: 'snapshot-privacy-mapping-data-change'
+name: 'snapshot-data-mapping-change'
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 # Don't cancel in progress since we don't want to have half-baked file change snapshot.
-concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-snapshot-privacy-mapping-data-change'
+concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-snapshot-data-mapping-change'
 
 jobs:
   snapshot:
@@ -18,5 +18,5 @@ jobs:
     with:
       workload_identity_provider: 'YOUR_WORKLOAD_IDENTITY_PROVIDER'
       service_account: 'YOUR_SERVICE_ACCOUNT'
-      destination_prefix: 'YOUR_GCS_DESTINATION_PREFIX_FOR_PRIVACY_MAPPING_DATA'
-      path: 'YOUR_PRIVACY_DATA_MAPPING_SUBFOLDER'
+      destination_prefix: 'YOUR_GCS_DESTINATION_PREFIX_FOR_DATA_MAPPING'
+      path: 'YOUR_DATA_MAPPING_SUBFOLDER'

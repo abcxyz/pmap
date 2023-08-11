@@ -1,4 +1,4 @@
-name: 'snapshot-privacy-policy-data-copy'
+name: 'snapshot-policy-data-copy'
 
 on:
   schedule:
@@ -17,5 +17,5 @@ jobs:
     with:
       workload_identity_provider: 'YOUR_WORKLOAD_IDENTITY_PROVIDER'
       service_account: 'YOUR_SERVICE_ACCOUNT'
-      destination_prefix: 'YOUR_GCS_DESTINATION_PREFIX_FOR_PRIVACY_POLICY_DATA'
-      path: 'YOUR_WIPEOUT_PLAN_SUBFOLDER'
+      destination_prefix: 'YOUR_GCS_DESTINATION_PREFIX_FOR_POLICY_DATA'
+      path: 'YOUR_POLICY_SUBFOLDER'
