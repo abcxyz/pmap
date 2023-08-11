@@ -101,10 +101,18 @@ variable "log_level" {
   default     = "DEBUG"
 }
 
+// The subscriptions are created by other modules, if we make this variable of
+// type list terraform will throw errors saying Terraform cannot determine the
+// full set of keys that will identify the instances of this resource, so we
+// have to make this a map The keys of this list can be the name the event which
+// we subscribed to.
+//
+// Example of keys: mapping, mapping-bigquery, mapping-bigquery-failure policy,
+// policy-bigquery, policy-bigqeury-failure.
 variable "pmap_subscription_ids" {
-  type        = list(string)
-  default     = []
-  description = "The subscription ids used in pmap"
+  type        = map(string)
+  default     = {}
+  description = "The subscription ids used in pmap."
 }
 
 ## default is 3600s(1 hr)

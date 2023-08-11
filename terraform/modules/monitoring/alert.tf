@@ -78,11 +78,11 @@ resource "google_monitoring_alert_policy" "prober_service_success_number_below_t
 }
 
 resource "google_monitoring_alert_policy" "pmap_messages_too_old" {
-  for_each = toset(var.pmap_subscription_ids)
+  for_each = var.pmap_subscription_ids
 
   project = var.project_id
 
-  display_name = "Oldest unacked messages age for pmap subscription id {${each.key}} is too old[MEAN]"
+  display_name = "Oldest unacked messages age for pmap subscription id {${each.value}} is too old[MEAN]"
 
   combiner = "OR"
   // It causes an alert when oldest unacked message age for pmap measured over 120-minutes intervals,
@@ -101,7 +101,7 @@ resource "google_monitoring_alert_policy" "pmap_messages_too_old" {
         alignment_period     = "7200s"
         cross_series_reducer = "REDUCE_MEAN"
       }
-      filter = "metric.type=\"pubsub.googleapis.com/subscription/oldest_unacked_message_age\" resource.type=\"pubsub_subscription\" resource.label.\"subscription_id\"=\"${each.key}\" resource.label.\"project_id\"=\"${var.project_id}\""
+      filter = "metric.type=\"pubsub.googleapis.com/subscription/oldest_unacked_message_age\" resource.type=\"pubsub_subscription\" resource.label.\"subscription_id\"=\"${each.value}\" resource.label.\"project_id\"=\"${var.project_id}\""
     }
   }
   notification_channels = [
@@ -112,11 +112,11 @@ resource "google_monitoring_alert_policy" "pmap_messages_too_old" {
 }
 
 resource "google_monitoring_alert_policy" "pmap_num_of_undeliverable_messages_oversized" {
-  for_each = toset(var.pmap_subscription_ids)
+  for_each = var.pmap_subscription_ids
 
   project = var.project_id
 
-  display_name = "Nnumber of undeliverable messages for pmap subscription id {${each.key}} oversized[MEAN]"
+  display_name = "Number of undeliverable messages for pmap subscription id {${each.value}} oversized[MEAN]"
 
   combiner = "OR"
   // It causes an alert when number of undelivered messages for pmap measured over 24h intervals,
@@ -135,7 +135,7 @@ resource "google_monitoring_alert_policy" "pmap_num_of_undeliverable_messages_ov
         alignment_period     = "86400s"
         cross_series_reducer = "REDUCE_MEAN"
       }
-      filter = "metric.type=\"pubsub.googleapis.com/subscription/dead_letter_message_count\" resource.type=\"pubsub_subscription\" resource.label.\"subscription_id\"=\"${each.key}\" resource.label.\"project_id\"=\"${var.project_id}\""
+      filter = "metric.type=\"pubsub.googleapis.com/subscription/dead_letter_message_count\" resource.type=\"pubsub_subscription\" resource.label.\"subscription_id\"=\"${each.value}\" resource.label.\"project_id\"=\"${var.project_id}\""
     }
   }
   notification_channels = [
