@@ -19,7 +19,8 @@ locals {
   alert_subscription_map = {
     mapping_bigquery         = module.common_infra.bigquery_subscriptions[local.mapping_service_name].event_subscription_id,
     mapping_bigquery_failure = module.common_infra.bigquery_subscriptions[local.mapping_service_name].failure_subscription_id,
-    policy_bigquery          = module.common_infra.bigquery_subscriptions[local.policy_service_name].failure_subscription_id,
+    policy_bigquery          = module.common_infra.bigquery_subscriptions[local.policy_service_name].event_subscription_id,
+    policy_bigquery_failure  = module.common_infra.bigquery_subscriptions[local.policy_service_name].failure_subscription_id,
     mapping_gcs              = module.mapping_service.gcs_notification_subscription_id,
     policy_gcs               = module.policy_service.gcs_notification_subscription_id
   }
