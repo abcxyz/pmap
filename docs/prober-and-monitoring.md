@@ -12,10 +12,10 @@ job](https://cloud.google.com/run/docs/overview/what-is-cloud-run#jobs), and is
 triggered by [cloud scheduler](https://cloud.google.com/scheduler) to constantly
 probing pmap services to check if the services are up.
 
-In each prober job, the prober will cover two CUJ:
+In each prober execution, the prober will cover two CUJ:
 
-- Resource mapping (mapping service user journey)
-- Wipeout planning (policy service user journey)
+- Import resource mapping to BigQuery from GCS
+- Import policies to BigQuery from GCS
 
 For each CUJ, prober will upload a yaml file to
 [gcs](https://cloud.google.com/storage), and query the bigquery table to see if
@@ -25,20 +25,28 @@ on if the following requirements for both mapping and policy service are met:
 1. The object is uploaded.
 2. There is an entry in bigquery table that matches the traceID.
 
+### Limitation
+
+Ideally the prober should cover the full user journey which includes checking in
+resource mappings and policies in a GitHub repository. However, there is no
+effective way to automate PR authoring and bypass branch protection. As a result,
+we seek the next closest journey - upload probing files to GCS bucket directly.
+
 ## Monitoring and Alert Policies
-
-We use [pubsub
-metrics](https://cloud.google.com/monitoring/api/metrics_gcp#gcp-pubsub) to
-monitor pubsub subsrciption and sent out alerts. The metrics used are:
-
-- subscription/oldest_unacked_message_age
-- subscription/dead_letter_message_counts
 
 We also use [cloud run
 metircs](https://cloud.google.com/monitoring/api/metrics_gcp#gcp-run) to monitor
 and send alert base prober job execution result. The metric used is:
 
 - job/completed_execution_count
+
+We also use [pubsub
+metrics](https://cloud.google.com/monitoring/api/metrics_gcp#gcp-pubsub) to
+monitor pubsub subsrciption and sent out alerts. Pubsub messages plays a vital role in pmap services, as they are used to trigger mapping and policy
+services, and write processing result into bigquery. The metrics used are:
+
+- subscription/oldest_unacked_message_age
+- subscription/dead_letter_message_counts
 
 ## Installation
 
