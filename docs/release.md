@@ -41,7 +41,7 @@ artifacts (e.g. code zip, binaries, etc.). Note: Goreleaser will automatically
 use the git change log to fill the release note. 
 - Test, build and upload
 artifacts to Artifact Registry (e.g. container images etc.).
-- Deploy to pmap example project.
+- Deploy to PMAP demo GCP project.
 
 ## Manually Release Images
 
