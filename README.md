@@ -122,11 +122,11 @@ module "pmap" {
 
   gcs_bucket_name                  = "pmap"
   pmap_container_image             = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/pmap:0.0.4-amd64"
-  pmap_prober_image             = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/pmap-prober:0.0.4-amd64"
+  pmap_prober_image                = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/pmap-prober:0.0.4-amd64"
   bigquery_table_delete_protection = true
   # This is used when searching global Cloud Resources like GCS bucket.
   pmap_specific_envvars            = { "PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE" : "YOUR_DEFAULT_RESOURCE_SCOPE" }
-  notification_channel_email         = "YOUR_NOTIFICATION_CHANNEL_EMAIL"
+  notification_channel_email       = "YOUR_NOTIFICATION_CHANNEL_EMAIL"
 }
 ```
 
