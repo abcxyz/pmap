@@ -41,6 +41,7 @@ artifacts (e.g. code zip, binaries, etc.). Note: Goreleaser will automatically
 use the git change log to fill the release note. 
 - Test, build and upload
 artifacts to Artifact Registry (e.g. container images etc.).
+- Deploy to pmap example project.
 
 ## Manually Release Images
 
@@ -48,7 +49,7 @@ Or if you want to build/push images for local development.
 
 ```sh
 # Set the container registry for the images, for example:
-CONTAINER_REGISTRY=us-docker.pkg.dev/my-project/images
+DOCKER_REPO=us-docker.pkg.dev/my-project/images
 
 # goreleaser expects a "clean" repo to release so commit any local changes if
 # needed.
