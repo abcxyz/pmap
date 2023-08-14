@@ -110,7 +110,7 @@ root of the central GitHub repository.
 
 ### Infrastructure for pmap
 
-You can use the provided Terraform module to setup the basic infrastructure
+* You can use the provided Terraform module to setup the basic infrastructure
 needed for this service. Otherwise you can refer to the provided module to see
 how to build your own Terraform from scratch.
 
@@ -121,12 +121,25 @@ module "pmap" {
   project_id = "YOUR_PROJECT_ID"
 
   gcs_bucket_name                  = "pmap"
-  pmap_container_image             = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/pmap:0.0.3-amd64"
+  pmap_container_image             = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/pmap:0.0.4-amd64"
+  pmap_prober_image             = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/pmap-prober:0.0.4-amd64"
   bigquery_table_delete_protection = true
   # This is used when searching global Cloud Resources like GCS bucket.
   pmap_specific_envvars            = { "PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE" : "YOUR_DEFAULT_RESOURCE_SCOPE" }
+  notification_channel_email         = "YOUR_NOTIFICATION_CHANNEL_EMAIL"
 }
 ```
+
+* Make sure the Service Account used in the Cloud Run service for
+Data Mapping is granted the `roles/cloudasset.viewer` to the corresponding
+scope `PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE` level 
+following docs [here](https://cloud.google.com/iam/docs/granting-changing-revoking-access#grant-single-role).
+
+```sh
+# Grep the Service Account used in the Cloud Run service for Data Mapping 
+gcloud run services describe <NAME_OF_DATA_MAPPING_CLOUD_RUN_SERVICE> 
+```
+
 
 ## End User Workflows
 
