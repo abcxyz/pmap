@@ -1,0 +1,15 @@
+plan_id: 'retention/product_team_a/product_x_user_data_retention'
+title: 'Wipeout Plan for User Data of Product X'
+description: 'This is an example wipeout plan.'
+scope: 'Product X'
+owner: 'product_team-a@example.com'
+data_type: 'User data'
+identifier: 'Customer ID'
+exempt: 'Not Exempt'
+deletion_timeline:
+  - stage:
+      action: 'Deletion'
+      trigger:
+        trigger_event: 'User-initiated deletion'
+        delay: '356 days'
+

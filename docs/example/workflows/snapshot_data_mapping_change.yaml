@@ -1,0 +1,22 @@
+name: 'snapshot-data-mapping-change'
+
+on:
+  push:
+    branches:
+      - 'master'
+  workflow_dispatch:
+
+# Don't cancel in progress since we don't want to have half-baked file change snapshot.
+concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-snapshot-data-mapping-change'
+
+jobs:
+  snapshot:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    uses: 'abcxyz/pmap/.github/workflows/snapshot-file-change.yml@ref=main' # this should be pinned to the SHA desired
+    with:
+      workload_identity_provider: 'YOUR_WORKLOAD_IDENTITY_PROVIDER'
+      service_account: 'YOUR_SERVICE_ACCOUNT'
+      destination_prefix: 'YOUR_GCS_DESTINATION_PREFIX_FOR_DATA_MAPPING'
+      path: 'YOUR_DATA_MAPPING_SUBFOLDER'
