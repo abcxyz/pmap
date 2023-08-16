@@ -58,6 +58,7 @@ resource "google_cloud_run_v2_job" "pmap_prober" {
   lifecycle {
     ignore_changes = [
       launch_stage,
+      template[0].template[0].containers[0].image,
     ]
   }
 }
