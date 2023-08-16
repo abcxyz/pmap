@@ -126,6 +126,12 @@ jobs:
         with:
           version: 'v1.16.1' # Manually pinned
           args: 'release -f .goreleaser.docker.yaml --clean'
+      - name: 'Apply artifact registy cleanup policy'
+        run: |-
+          gcloud artifacts repositories set-cleanup-policies ci-images\
+            --project=${{ env.INTEG_TEST_PROJECT_ID }}\
+            --location=us --policy=internal/testhelper/ci-ar-cleanup-policy.json\
+            --dry-run
 
   # Deploy integration test infrastructure
   set_up_integration_infra:
