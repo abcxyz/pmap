@@ -25,9 +25,6 @@ name: 'update-ci-ar-cleanup-policy'
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches:
-      - 'main'
 
 env:
   WIF_PROVIDER: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
@@ -81,4 +78,4 @@ jobs:
           gcloud artifacts repositories set-cleanup-policies ${{ env.DOCKER_REPO }}\
             --project=${{ env.CI_PROJECT_ID }}\
             --location=us --policy=${{ env.AR_CONFIG_FILE }}\
-            --dry-run
+            --no-dry-run
