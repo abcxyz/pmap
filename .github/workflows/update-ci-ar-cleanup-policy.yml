@@ -55,7 +55,7 @@ jobs:
           username: 'oauth2accesstoken'
           password: '${{ steps.auth.outputs.access_token }}'
           registry: '${{ env.DOCKER_REGISTRY }}'
-      - name: 'write_cleanup_config'
+      - name: 'Write cleanup config file'
         run: |-
           CONFIG_FILE='${{ runner.temp }}/ci-clean-policy.json'
 
@@ -73,9 +73,10 @@ jobs:
           EOT
           cat ${CONFIG_FILE}
           echo "AR_CONFIG_FILE=${CONFIG_FILE}" >> $GITHUB_ENV;
-      - name: 'apply_cleanup_config'
+      - name: 'Apply cleanup config'
         run: |-
           gcloud artifacts repositories set-cleanup-policies ${{ env.DOCKER_REPO }}\
             --project=${{ env.CI_PROJECT_ID }}\
-            --location=us --policy=${{ env.AR_CONFIG_FILE }}\
+            --location=us\
+            --policy=${{ env.AR_CONFIG_FILE }}\
             --no-dry-run
