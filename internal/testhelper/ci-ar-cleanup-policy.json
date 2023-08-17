@@ -1,9 +1,0 @@
-[
-    {
-      "name": "delete-old-ci-images",
-      "action": {"type": "Delete"},
-      "condition": {
-        "olderThan": "1d"
-      }
-    }
-]
