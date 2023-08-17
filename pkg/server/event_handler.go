@@ -198,12 +198,12 @@ type PubSubMessage struct {
 func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		logger := logging.FromContext(ctx)
+		logger := logging.FromContext(ctx).With("logger", fmt.Sprintf("%T", h))
 
 		// Handle Pub/Sub http request which is a GCS notification message.
 		body, err := io.ReadAll(io.LimitReader(r.Body, httpRequestSizeLimitInBytes))
 		if err != nil {
-			logger.Errorw("failed to read the request body", "code", http.StatusBadRequest, "error", err)
+			logger.ErrorContext(ctx, "failed to read the request body", "code", http.StatusBadRequest, "error", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -212,11 +212,13 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 		var m PubSubMessage
 		// Handle message body(base64-encoded) decoding.
 		if err := json.Unmarshal(body, &m); err != nil {
-			logger.Errorw("failed to unmarshal the request body", "code", http.StatusBadRequest, "error", err)
+			logger.ErrorContext(ctx, "failed to unmarshal the request body", "code", http.StatusBadRequest, "error", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		logger.Debug("%T: handling message from Pub/Sub subscription: %q", h, m.Subscription)
+		logger.DebugContext(ctx, "")
+		logger.DebugContext(ctx, "handling message from pub/sub subscription",
+			"subscription", m.Subscription)
 
 		// Extract out notification information.
 		n := pubsub.Message{
@@ -224,7 +226,7 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 			Attributes: m.Message.Attributes,
 		}
 		if err := h.Handle(ctx, n); err != nil {
-			logger.Errorw("failed to handle request", "code", http.StatusInternalServerError,
+			logger.ErrorContext(ctx, "failed to handle request", "code", http.StatusInternalServerError,
 				"error", err, "bucketId", n.Attributes["bucketId"], "objectId", n.Attributes["objectId"])
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -252,7 +254,7 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 			return err
 		}
 		attr[AttrKeyProcessErr] = err.Error()
-		logger.Errorw(err.Error(), "bucketId", m.Attributes["bucketId"], "objectId", m.Attributes["objectId"])
+		logger.ErrorContext(ctx, err.Error(), "bucketId", m.Attributes["bucketId"], "objectId", m.Attributes["objectId"])
 		if err := h.failureMessenger.Send(ctx, eventBytes, attr); err != nil {
 			return fmt.Errorf("failed to send failure event downstream: %w", err)
 		}
@@ -357,7 +359,9 @@ func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]str
 	// Set github-commit.
 	c, found := pm.Metadata[MetadataKeyGitHubCommit]
 	if !found {
-		logger.Infof("%s not found", MetadataKeyGitHubCommit)
+		logger.InfoContext(ctx, "metadata key not found",
+			"metadata", pm.Metadata,
+			"key", MetadataKeyGitHubCommit)
 	} else {
 		r.Commit = c
 	}
@@ -365,7 +369,9 @@ func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]str
 	// Set github-repo.
 	rn, found := pm.Metadata[MetadataKeyGitHubRepo]
 	if !found {
-		logger.Infof("%s not found", MetadataKeyGitHubRepo)
+		logger.InfoContext(ctx, "metadata key not found",
+			"metadata", pm.Metadata,
+			"key", MetadataKeyGitHubRepo)
 	} else {
 		r.RepoName = rn
 	}
@@ -373,7 +379,9 @@ func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]str
 	// Set github-workflow.
 	w, found := pm.Metadata[MetadataKeyWorkflow]
 	if !found {
-		logger.Infof("%s not found", MetadataKeyWorkflow)
+		logger.InfoContext(ctx, "metadata key not found",
+			"metadata", pm.Metadata,
+			"key", MetadataKeyWorkflow)
 	} else {
 		r.Workflow = w
 	}
@@ -381,7 +389,9 @@ func parseGitHubSource(ctx context.Context, data []byte, objAttrs map[string]str
 	// Set github-workflow-sha.
 	ws, found := pm.Metadata[MetadataKeyWorkflowSha]
 	if !found {
-		logger.Infof("%s not found", MetadataKeyWorkflowSha)
+		logger.InfoContext(ctx, "metadata key not found",
+			"metadata", pm.Metadata,
+			"key", MetadataKeyWorkflowSha)
 	} else {
 		r.WorkflowSha = ws
 	}

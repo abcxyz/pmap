@@ -59,10 +59,12 @@ func (c *MappingServerCommand) Flags() *cli.FlagSet {
 }
 
 func (c *MappingServerCommand) Run(ctx context.Context, args []string) error {
+	logger := logging.FromContext(ctx)
+
 	srv, handler, closer, err := c.RunUnstarted(ctx, args)
 	defer func() {
 		if err := closer.Close(); err != nil {
-			logging.FromContext(ctx).Errorw("failed to close", "error", err)
+			logger.ErrorContext(ctx, "failed to close", "error", err)
 		}
 	}()
 	if err != nil {
@@ -85,14 +87,14 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 
 	logger := logging.FromContext(ctx)
-	logger.Debugw("server starting",
+	logger.DebugContext(ctx, "server starting",
 		"commit", version.Commit,
 		"version", version.Version)
 
 	if err := c.cfg.Validate(); err != nil {
 		return nil, nil, closer, fmt.Errorf("invalid mapping configuration: %w", err)
 	}
-	logger.Debugw("loaded configuration", "config", c.cfg)
+	logger.DebugContext(ctx, "loaded configuration", "config", c.cfg)
 
 	pubsubClient, err := pubsub.NewClient(ctx, c.cfg.ProjectID)
 	if err != nil {

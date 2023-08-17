@@ -74,7 +74,8 @@ func main() {
 }
 
 func realMain(ctx context.Context) error {
-	logging := logging.FromContext(ctx)
+	logger := logging.FromContext(ctx)
+
 	// create a global config
 	c, err := newTestConfig(ctx)
 	if err != nil {
@@ -110,7 +111,7 @@ func realMain(ctx context.Context) error {
 	}
 
 	if probeErr == nil {
-		logging.Info("Mapping and Policy probe successed.")
+		logger.InfoContext(ctx, "mapping and Policy probe successed")
 	}
 
 	return probeErr
@@ -119,11 +120,10 @@ func realMain(ctx context.Context) error {
 // probeMapping probe the mapping service by uploading file, query the bigquery table
 // and compare the result.
 func probeMapping(ctx context.Context, timestamp string) error {
-	logging := logging.FromContext(ctx)
-	logging.Info("Mapping probe started")
-
 	traceID := fmt.Sprintf("%s-%s", proberMappingTraceIDPrefix, timestamp)
-	logging.Infof("using traceID: %s", traceID)
+
+	logger := logging.FromContext(ctx).With("trace_id", traceID)
+	logger.InfoContext(ctx, "mapping probe started")
 
 	data := []byte(fmt.Sprintf(`
 resource:
@@ -205,11 +205,10 @@ contacts:
 // probePolicy probe the policy service by uploading file, query the bigquery table
 // and compare the result.
 func probePolicy(ctx context.Context, timestamp string) error {
-	logging := logging.FromContext(ctx)
-	logging.Info("Policy probe started")
-
 	traceID := fmt.Sprintf("%s-%s", proberPolicyTraceIDPrefix, timestamp)
-	logging.Infof("using traceID: %s", traceID)
+
+	logger := logging.FromContext(ctx).With("trace_id", traceID)
+	logger.Info("policy probe started")
 
 	data := []byte(fmt.Sprintf(`
 policy_id: %s
