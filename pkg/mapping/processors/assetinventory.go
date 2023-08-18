@@ -71,12 +71,13 @@ func NewAssetInventoryProcessor(ctx context.Context, client *asset.Client, defau
 // and enriches ResourceMapping with additional annotations such location, ancestors, etc.
 // based on info fetched from Asset Inventory.
 func (p *AssetInventoryProcessor) Process(ctx context.Context, resourceMapping *v1alpha1.ResourceMapping) error {
-	logger := logging.FromContext(ctx)
+	logger := logging.FromContext(ctx).With("logger", fmt.Sprintf("%T", p))
 
 	if resourceMapping.GetResource().GetProvider() != gcpProvider {
 		// Skip non-GCP ResourceMapping
-		logger.Debug("%T: skipping unsupported resource provider %q, want %q", p,
-			resourceMapping.GetResource().GetProvider(), gcpProvider)
+		logger.DebugContext(ctx, "skipping unsupported resource provider",
+			"got", resourceMapping.GetResource().GetProvider(),
+			"want", gcpProvider)
 		return nil
 	}
 

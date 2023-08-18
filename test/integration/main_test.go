@@ -33,8 +33,6 @@ import (
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"github.com/sethvargo/go-retry"
-	"go.uber.org/zap/zapcore"
-	"go.uber.org/zap/zaptest"
 
 	"github.com/abcxyz/pmap/internal/testhelper"
 	"github.com/abcxyz/pmap/pkg/server"
@@ -495,7 +493,7 @@ func TestPolicyReusableWorkflowCall(t *testing.T) {
 			t.Parallel()
 
 			ctx := context.Background()
-			ctx = logging.WithLogger(ctx, logging.TestLogger(t, zaptest.Level(zapcore.DebugLevel)))
+			ctx = logging.WithLogger(ctx, logging.TestLogger(t))
 
 			t.Logf("using trace ID %s", tc.traceID)
 			t.Logf("using workflow run ID %s", cfg.WorkflowRunID)
