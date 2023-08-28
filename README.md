@@ -31,6 +31,7 @@ bodies, they need to know the following:
 * **The visibility of the privacy compliance.** This includes
   being able to track and monitor the organization's compliance with its policies/controls
   and applicable laws and regulations.
+  
   PMAP provides a solution for the first three problems. We are working on a
   solution to provide visibility of privacy compliance in the near future.
 
