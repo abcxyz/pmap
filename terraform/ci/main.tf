@@ -11,6 +11,30 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+resource "google_project_service" "serviceusage" {
+  project = var.project_id
+
+  service            = "serviceusage.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "services" {
+  for_each = toset([
+    "cloudresourcemanager.googleapis.com",
+    "iam.googleapis.com",
+    "storage.googleapis.com",
+    "artifactregistry.googleapis.com",
+  ])
+
+  project = var.project_id
+
+  service            = each.value
+  disable_on_destroy = false
+
+  depends_on = [
+    google_project_service.serviceusage,
+  ]
+}
 
 module "common_infra" {
   source = "../modules/common"
@@ -48,6 +72,8 @@ resource "google_storage_bucket" "integ_test_dedicated_bucket" {
   labels = {
     env = "pmap-ci-test"
   }
+
+  depends_on = [google_project_service.services["artifactregistry.googleapis.com"]]
 }
 
 # Add service account to static bucket IAM
@@ -72,6 +98,8 @@ resource "google_artifact_registry_repository" "integ_test_deicated_artifact_rep
   labels = {
     env = "pmap-ci-test"
   }
+
+  depends_on = [google_project_service.services["storage.googleapis.com"]]
 }
 
 # Add service account to static artifact registry repo

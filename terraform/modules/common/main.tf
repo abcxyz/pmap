@@ -58,6 +58,8 @@ resource "google_bigquery_dataset" "pmap" {
   location                        = "US"
   delete_contents_on_destroy      = false
   default_partition_expiration_ms = 172800000 // 2 days.
+
+  depends_on = [google_project_service.services["bigquery.googleapis.com"]]
 }
 
 // Create PubSub topics, BigQuery subcriptions, and BigQuery tables for successfully and unsuccessfully processed events.
