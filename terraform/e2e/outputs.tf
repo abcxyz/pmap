@@ -31,3 +31,14 @@ output "run_service_account_member" {
   description = "Service Account name Cloud Run services to run as in the form serviceAccount:{email}."
   value       = module.common_infra.run_service_account_member
 }
+
+output "run_service_account" {
+  description = "Service Account Cloud Run services to run as."
+  value       = module.common_infra.run_service_account
+}
+
+output "run_service_account_name" {
+  description = "Service Account name Cloud Run services to run as."
+  value       = module.common_infra.run_service_account_name
+}
+
