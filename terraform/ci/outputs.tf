@@ -45,7 +45,6 @@ output "run_service_account_member" {
   value       = module.common_infra.run_service_account_member
 }
 
-
 output "gcs_notification_topics" {
   description = "A map of event to GCS notification Pub/Sub topics."
   value       = module.common_infra.gcs_notification_topics
