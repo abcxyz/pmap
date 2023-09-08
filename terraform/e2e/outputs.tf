@@ -26,3 +26,8 @@ output "bigquery_subscriptions" {
   description = "A map of event to Pub/Sub topics and BigQuery tables."
   value       = module.common_infra.bigquery_subscriptions
 }
+
+output "run_service_account_member" {
+  description = "Service Account name Cloud Run services to run as in the form serviceAccount:{email}."
+  value       = module.common_infra.run_service_account_member
+}
