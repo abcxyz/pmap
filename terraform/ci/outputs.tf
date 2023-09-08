@@ -40,6 +40,12 @@ output "run_service_account_name" {
   value       = module.common_infra.run_service_account_name
 }
 
+output "run_service_account_member" {
+  description = "Service Account name Cloud Run services to run as in the form serviceAccount:{email}."
+  value       = module.common_infra.run_service_account_member
+}
+
+
 output "gcs_notification_topics" {
   description = "A map of event to GCS notification Pub/Sub topics."
   value       = module.common_infra.gcs_notification_topics
