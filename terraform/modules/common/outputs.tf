@@ -45,6 +45,11 @@ output "run_service_account_member" {
   value       = google_service_account.run_service_account.member
 }
 
+output "run_service_account_id" {
+  description = "the id of Service Account Cloud Run services to run as in the form projects/{{project}}/serviceAccounts/{{email}}."
+  value       = google_service_account.run_service_account.id
+}
+
 output "gcs_notification_topics" {
   description = "A map of event to GCS notification Pub/Sub topics."
   value       = google_pubsub_topic.pmap_gcs_notification

@@ -42,3 +42,7 @@ output "run_service_account_name" {
   value       = module.common_infra.run_service_account_name
 }
 
+output "run_service_account_id" {
+  description = "Service Account name Cloud Run services to run as."
+  value       = module.common_infra.run_service_account_id
+}
