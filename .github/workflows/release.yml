@@ -21,7 +21,7 @@ on:
 env:
   # .goreleaser.docker.yaml reads DOCKER_REPO
   DOCKER_REPO: 'us-docker.pkg.dev/abcxyz-artifacts/docker-images'
-  WIF_PROVIDER: 'projects/gha-pmap-ci-i-f49bd9/locations/global/workloadIdentityPools/github-automation/providers/pmap-ci-i'
+  WIF_PROVIDER: 'projects/125781045617/locations/global/workloadIdentityPools/github-automation/providers/pmap-ci-i'
   WIF_SERVICE_ACCOUNT: 'github-automation-bot@gha-pmap-ci-i-f49bd9.iam.gserviceaccount.com'
   DEV_PROJECT_ID: 'pmap-a-b0'
   DEV_REGION: 'us-central1'
