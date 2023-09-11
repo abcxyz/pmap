@@ -57,6 +57,10 @@ resource "google_cloud_run_v2_job" "pmap_prober" {
 
   location = "us-central1"
 
+  depends_on = [
+    google_project_service.services["cloudscheduler.googleapis.com"],
+  ]
+
   template {
 
     template {
@@ -84,10 +88,6 @@ resource "google_cloud_run_v2_job" "pmap_prober" {
       template[0].template[0].containers[0].image,
     ]
   }
-
-  depends_on = [
-    google_project_service.services["cloudscheduler.googleapis.com"],
-  ]
 }
 
 # This is prober dedicated service accout.
