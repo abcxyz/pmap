@@ -57,10 +57,6 @@ resource "google_cloud_run_v2_job" "pmap_prober" {
 
   location = "us-central1"
 
-  depends_on = [
-    google_project_service.prober_services["cloudscheduler.googleapis.com"],
-  ]
-
   template {
 
     template {
@@ -157,5 +153,7 @@ resource "google_cloud_scheduler_job" "job" {
     }
   }
 
-  depends_on = [google_cloud_run_v2_job.pmap_prober]
+  depends_on = [
+    google_project_service.prober_services["cloudscheduler.googleapis.com"],
+  ]
 }
