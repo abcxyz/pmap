@@ -42,3 +42,8 @@ output "run_service_account_name" {
   value       = module.common_infra.run_service_account_name
 }
 
+output "gcs_bucket_name" {
+  description = "GCS bucket name"
+  value       = module.common_infra.gcs_bucket_name
+}
+

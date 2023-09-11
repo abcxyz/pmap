@@ -66,3 +66,8 @@ output "bigquery_subscriptions" {
     for event in var.event_types : event => module.pubsub_bigquery[event].bigquery_subscription
   }
 }
+
+output "gcs_bucket_name" {
+  description = "GCS bucket name"
+  value       = google_storage_bucket.pmap.name
+}
