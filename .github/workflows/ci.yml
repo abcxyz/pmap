@@ -49,7 +49,8 @@ env:
   INTEG_TEST_POLICY_DOWNSTREAM_TOPIC: 'policy-bigquery'
   INTEG_TEST_STATIC_GCS_BUCKET: 'pmap-static-ci-bucket-9d89'
   INTEG_TEST_STATIC_AR_REPO: 'pmap-static-ci-artifact-registry-repo-9d89'
-  INTEG_TEST_MAPPING_DEFAULT_RESOURCE_SCOPE: 'folders/46289608867'# Folder deployments > pmap > integration
+  # Folder deployments > pmap > integration
+  INTEG_TEST_MAPPING_DEFAULT_RESOURCE_SCOPE: 'folders/46289608867'
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
