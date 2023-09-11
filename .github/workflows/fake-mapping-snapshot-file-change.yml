@@ -24,7 +24,7 @@ jobs:
   snapshot:
     uses: 'abcxyz/pmap/.github/workflows/snapshot-file-change.yml@main' # ratchet:exclude
     with:
-      workload_identity_provider: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
-      service_account: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
+      workload_identity_provider: 'projects/gha-pmap-ci-i-f49bd9/locations/global/workloadIdentityPools/github-automation/providers/pmap-ci-i'
+      service_account: 'github-automation-bot@gha-pmap-ci-i-f49bd9.iam.gserviceaccount.com'
       destination_prefix: 'pmap-dev/mapping'
       path: 'test/e2e/testdata/fakedata/mapping'

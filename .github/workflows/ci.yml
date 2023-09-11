@@ -25,31 +25,31 @@ on:
   workflow_call:
 
 env:
-  WIF_PROVIDER: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
-  WIF_SERVICE_ACCOUNT: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
+  WIF_PROVIDER: 'projects/gha-pmap-ci-i-f49bd9/locations/global/workloadIdentityPools/github-automation/providers/pmap-ci-i'
+  WIF_SERVICE_ACCOUNT: 'github-automation-bot@gha-pmap-ci-i-f49bd9.iam.gserviceaccount.com'
   DOCKER_REGISTRY: 'us-docker.pkg.dev'
-  DOCKER_REPO: 'us-docker.pkg.dev/pmap-ci/ci-images'
+  DOCKER_REPO: 'us-docker.pkg.dev/pmap-i-b0/ci-images'
   DOCKER_TAG: '${{ github.sha }}'
 
   TF_MODULE_DIR: './terraform/modules/pmap-service'
   MAPPING_TF_MODULE_DIR: 'mapping_tf_module'
   POLICY_TF_MODULE_DIR: 'policy_tf_module'
-  INTEG_TEST_PROJECT_ID: 'pmap-ci'
-  INTEG_TEST_BUCKET_ID: 'pmap-ci'
-  INTEG_TEST_BIGQUERY_DATASET_ID: 'pmap_86d8'
+  INTEG_TEST_PROJECT_ID: 'pmap-i-b0'
+  INTEG_TEST_BUCKET_ID: 'pmap-ci-e9fae9'
+  INTEG_TEST_BIGQUERY_DATASET_ID: 'pmap_fb09'
   INTEG_TEST_MAPPING_TABLE_ID: 'mapping'
   INTEG_TEST_MAPPING_FAILURE_TABLE_ID: 'mapping-failure'
   INTEG_TEST_POLICY_TABLE_ID: 'policy'
-  INTEG_TEST_RUN_SERVICE_ACCOUNT: 'run-pmap-86d8@pmap-ci.iam.gserviceaccount.com'
-  INTEG_TEST_OIDC_SERVICE_ACCOUNT: 'pmap-oidc-86d8@pmap-ci.iam.gserviceaccount.com'
+  INTEG_TEST_RUN_SERVICE_ACCOUNT: 'run-pmap-fb09@pmap-i-b0.iam.gserviceaccount.com'
+  INTEG_TEST_OIDC_SERVICE_ACCOUNT: 'pmap-oidc-fb09@pmap-i-b0.iam.gserviceaccount.com'
   INTEG_TEST_MAPPING_UPSTREAM_TOPIC: 'mapping-gcs'
   INTEG_TEST_MAPPING_DOWNSTREAM_TOPIC: 'mapping-bigquery'
   INTEG_TEST_MAPPING_DOWNSTREAM_FAILURE_TOPIC: 'mapping-failure-bigquery'
   INTEG_TEST_POLICY_UPSTREAM_TOPIC: 'policy-gcs'
   INTEG_TEST_POLICY_DOWNSTREAM_TOPIC: 'policy-bigquery'
-  INTEG_TEST_STATIC_GCS_BUCKET: 'pmap-static-ci-bucket-7faa'
-  INTEG_TEST_STATIC_AR_REPO: 'pmap-static-ci-artifact-registry-repo-7faa'
-  INTEG_TEST_MAPPING_DEFAULT_RESOURCE_SCOPE: 'folders/1082218530939'
+  INTEG_TEST_STATIC_GCS_BUCKET: 'pmap-static-ci-bucket-9d89'
+  INTEG_TEST_STATIC_AR_REPO: 'pmap-static-ci-artifact-registry-repo-9d89'
+  INTEG_TEST_MAPPING_DEFAULT_RESOURCE_SCOPE: 'folders/46289608867'# Folder deployments > pmap > integration
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
@@ -244,18 +244,18 @@ jobs:
     needs: ['set_up_integration_infra']
     uses: './.github/workflows/snapshot-file-copy.yml'
     with:
-      workload_identity_provider: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
-      service_account: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
-      destination_prefix: 'pmap-ci/mapping/${{ needs.set_up_integration_infra.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT }}'
+      workload_identity_provider: 'projects/gha-pmap-ci-i-f49bd9/locations/global/workloadIdentityPools/github-automation/providers/pmap-ci-i'
+      service_account: 'github-automation-bot@gha-pmap-ci-i-f49bd9.iam.gserviceaccount.com'
+      destination_prefix: 'pmap-ci-e9fae9/mapping/${{ needs.set_up_integration_infra.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT }}'
       path: 'test/e2e/testdata/fakedata/mapping'
 
   call_policy_reusable_workflow:
     needs: ['set_up_integration_infra']
     uses: './.github/workflows/snapshot-file-copy.yml'
     with:
-      workload_identity_provider: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
-      service_account: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
-      destination_prefix: 'pmap-ci/policy/${{ needs.set_up_integration_infra.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT }}'
+      workload_identity_provider: 'projects/gha-pmap-ci-i-f49bd9/locations/global/workloadIdentityPools/github-automation/providers/pmap-ci-i'
+      service_account: 'github-automation-bot@gha-pmap-ci-i-f49bd9.iam.gserviceaccount.com'
+      destination_prefix: 'pmap-ci-e9fae9/policy/${{ needs.set_up_integration_infra.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT }}'
       path: 'test/e2e/testdata/fakedata/policy'
 
   # Run integration tests
