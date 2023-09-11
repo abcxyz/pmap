@@ -34,7 +34,7 @@ resource "google_project_service" "serviceusage" {
   disable_on_destroy = false
 }
 
-resource "google_project_service" "services" {
+resource "google_project_service" "prober_services" {
   for_each = toset([
     "cloudscheduler.googleapis.com",
   ])
@@ -58,7 +58,7 @@ resource "google_cloud_run_v2_job" "pmap_prober" {
   location = "us-central1"
 
   depends_on = [
-    google_project_service.services["cloudscheduler.googleapis.com"],
+    google_project_service.prober_services["cloudscheduler.googleapis.com"],
   ]
 
   template {
