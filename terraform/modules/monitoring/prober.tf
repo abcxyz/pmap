@@ -26,6 +26,29 @@ locals {
     "LOG_LEVEL" : var.log_level
   }
 }
+
+resource "google_project_service" "serviceusage" {
+  project = var.project_id
+
+  service            = "serviceusage.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "prober_services" {
+  for_each = toset([
+    "cloudscheduler.googleapis.com",
+  ])
+
+  project = var.project_id
+
+  service            = each.value
+  disable_on_destroy = false
+
+  depends_on = [
+    google_project_service.serviceusage,
+  ]
+}
+
 resource "google_cloud_run_v2_job" "pmap_prober" {
 
   project = var.project_id
@@ -130,5 +153,7 @@ resource "google_cloud_scheduler_job" "job" {
     }
   }
 
-  depends_on = [google_cloud_run_v2_job.pmap_prober]
+  depends_on = [
+    google_project_service.prober_services["cloudscheduler.googleapis.com"],
+  ]
 }
