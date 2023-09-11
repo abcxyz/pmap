@@ -26,6 +26,29 @@ locals {
     "LOG_LEVEL" : var.log_level
   }
 }
+
+resource "google_project_service" "serviceusage" {
+  project = var.project_id
+
+  service            = "serviceusage.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "services" {
+  for_each = toset([
+    "cloudscheduler.googleapis.com",
+  ])
+
+  project = var.project_id
+
+  service            = each.value
+  disable_on_destroy = false
+
+  depends_on = [
+    google_project_service.serviceusage,
+  ]
+}
+
 resource "google_cloud_run_v2_job" "pmap_prober" {
 
   project = var.project_id
@@ -61,6 +84,10 @@ resource "google_cloud_run_v2_job" "pmap_prober" {
       template[0].template[0].containers[0].image,
     ]
   }
+
+  depends_on = [
+    google_project_service.services["cloudscheduler.googleapis.com"],
+  ]
 }
 
 # This is prober dedicated service accout.

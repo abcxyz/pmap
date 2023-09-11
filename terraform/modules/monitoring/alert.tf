@@ -12,6 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+resource "google_project_service" "serviceusage" {
+  project = var.project_id
+
+  service            = "serviceusage.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_project_service" "services" {
   for_each = toset([
     "monitoring.googleapis.com",
@@ -21,6 +28,10 @@ resource "google_project_service" "services" {
 
   service            = each.value
   disable_on_destroy = false
+
+  depends_on = [
+    google_project_service.serviceusage,
+  ]
 }
 
 # The email channel where alert will be sent to.
