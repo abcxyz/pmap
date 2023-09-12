@@ -398,7 +398,7 @@ func TestMappingReusableWorkflowCall(t *testing.T) {
 			wantResourceMapping: &v1alpha1.ResourceMapping{
 				Resource: &v1alpha1.Resource{
 					Provider: "gcp",
-					Name:     fmt.Sprintf("//storage.googleapis.com/%s", "pmap-static-ci-bucket-7faa"),
+					Name:     fmt.Sprintf("//storage.googleapis.com/%s", "pmap-static-ci-bucket-9d89"),
 				},
 				Contacts: &v1alpha1.Contacts{Email: []string{"pmap.mapping@gmail.com"}},
 			},
