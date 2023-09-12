@@ -13,7 +13,7 @@ split the two releases into two config files:
 
 -   Send a PR to update all dependencies For Go, 
 ```sh 
-go get -u && go mod tidy
+go get -u ./... && go mod tidy
 ```
 -   Sync to main/HEAD 
 ```sh 
