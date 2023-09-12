@@ -26,5 +26,5 @@ jobs:
     with:
       workload_identity_provider: 'projects/125781045617/locations/global/workloadIdentityPools/github-automation/providers/pmap-ci-i'
       service_account: 'github-automation-bot@gha-pmap-ci-i-f49bd9.iam.gserviceaccount.com'
-      destination_prefix: 'pmap-dev/policy'
+      destination_prefix: 'pmap-autopush-bd1a4c/policy'
       path: 'test/e2e/testdata/fakedata/policy'
