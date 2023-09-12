@@ -27,9 +27,9 @@ on:
   workflow_dispatch:
 
 env:
-  WIF_PROVIDER: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
-  WIF_SERVICE_ACCOUNT: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
-  CI_PROJECT_ID: 'pmap-ci'
+  WIF_PROVIDER: 'projects/125781045617/locations/global/workloadIdentityPools/github-automation/providers/pmap-ci-i'
+  WIF_SERVICE_ACCOUNT: 'github-automation-bot@gha-pmap-ci-i-f49bd9.iam.gserviceaccount.com'
+  CI_PROJECT_ID: 'pmap-i-b0'
   DOCKER_REGISTRY: 'us-docker.pkg.dev'
   DOCKER_REPO: 'ci-images'
 

@@ -21,9 +21,9 @@ on:
 env:
   # .goreleaser.docker.yaml reads DOCKER_REPO
   DOCKER_REPO: 'us-docker.pkg.dev/abcxyz-artifacts/docker-images'
-  WIF_PROVIDER: 'projects/921163060412/locations/global/workloadIdentityPools/github-pool-3b39/providers/github-provider'
-  WIF_SERVICE_ACCOUNT: 'pmap-3b39-ci-sa@pmap-ci.iam.gserviceaccount.com'
-  DEV_PROJECT_ID: 'pmap-dev-380219'
+  WIF_PROVIDER: 'projects/125781045617/locations/global/workloadIdentityPools/github-automation/providers/pmap-ci-i'
+  WIF_SERVICE_ACCOUNT: 'github-automation-bot@gha-pmap-ci-i-f49bd9.iam.gserviceaccount.com'
+  DEV_PROJECT_ID: 'pmap-a-b0'
   DEV_REGION: 'us-central1'
 
 # Don't cancel in progress since we don't want to have half-baked release.
@@ -94,7 +94,7 @@ jobs:
       id-token: 'write'
     strategy:
       matrix:
-        service_name: ['mapping-aa11', 'policy-b6b9']
+        service_name: ['mapping-b428', 'policy-1d9c']
     steps:
       - name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@c4799db9111fba4461e9f9da8732e5057b394f72' # ratchet:google-github-actions/auth@v0
