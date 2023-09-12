@@ -57,7 +57,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Linting jobs - go, terraform.
+  # Linting jobs - go, terraform, yaml.
   go_lint:
     uses: 'abcxyz/pkg/.github/workflows/go-lint.yml@main' # ratchet:exclude
     with:
