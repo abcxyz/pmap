@@ -245,8 +245,8 @@ jobs:
     needs: ['set_up_integration_infra']
     uses: './.github/workflows/snapshot-file-copy.yml'
     with:
-      workload_identity_provider: '${{ env.WIF_PROVIDER }}'
-      service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+      workload_identity_provider: 'projects/125781045617/locations/global/workloadIdentityPools/github-automation/providers/pmap-ci-i'
+      service_account: 'github-automation-bot@gha-pmap-ci-i-f49bd9.iam.gserviceaccount.com'
       destination_prefix: 'pmap-ci-e9fae9/mapping/${{ needs.set_up_integration_infra.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT }}'
       path: 'test/e2e/testdata/fakedata/mapping'
 
@@ -254,8 +254,8 @@ jobs:
     needs: ['set_up_integration_infra']
     uses: './.github/workflows/snapshot-file-copy.yml'
     with:
-      workload_identity_provider: '${{ env.WIF_PROVIDER }}'
-      service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+      workload_identity_provider: 'projects/125781045617/locations/global/workloadIdentityPools/github-automation/providers/pmap-ci-i'
+      service_account: 'github-automation-bot@gha-pmap-ci-i-f49bd9.iam.gserviceaccount.com'
       destination_prefix: 'pmap-ci-e9fae9/policy/${{ needs.set_up_integration_infra.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT }}'
       path: 'test/e2e/testdata/fakedata/policy'
 
