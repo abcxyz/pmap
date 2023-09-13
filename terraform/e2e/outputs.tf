@@ -42,6 +42,16 @@ output "run_service_account_name" {
   value       = module.common_infra.run_service_account_name
 }
 
+output "prober_service_account" {
+  description = "Service Account Prober job to run as."
+  value       = module.monitoring.prober_service_account
+}
+
+output "prober_service_account_name" {
+  description = "Service Account name Prober job to run as."
+  value       = module.monitoring.prober_service_account_name
+}
+
 output "gcs_bucket_name" {
   description = "GCS bucket name"
   value       = module.common_infra.gcs_bucket_name
