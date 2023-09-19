@@ -73,11 +73,25 @@ Set up
 [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation),
 and a service account with adequate condition and permission, see guide
 [here](https://github.com/google-github-actions/auth#setting-up-workload-identity-federation).
+Please restrict any human access to this service account, it should only be used by your PMAP instance.
 
 ```
 -  Service account used in Authenticating via Workload Identity Federation
    needs [roles/storage.objectCreator]
    to snapshot the data mappings and policies/controls from GitHub to GCS.
+
+-   When creating the workload identity pool provider, make sure to map the
+    attributes such as `"attribute.job_workflow_ref":
+    "assertion.job_workflow_ref"` and add attribute conditions:
+    -   `attribute.event_name != \"pull_request_target\"` to prevent
+         workflows triggered by a forked repository.
+    -   `attribute.repository_owner_id == \"${var.github_owner_id}\" &&
+         attribute.repository_id == \"${var.github_repository_id}\"` to only
+         allow workflows from your pmap repository.
+    -   `matches(attribute.job_workflow_ref, \"abcxyz/pmap/*\")`
+         to only allow trusted workflow jobs which are from
+         `abcxyz/pmap` source repo. 
+
 ```
 
 ### GitHub Central Repository
@@ -87,6 +101,9 @@ mappings and policies/controls as long as at least one level of group are needed
 folders in the root of the central GitHub repository are needed). Files
 containing the data mappings or policies/controls can’t be stored directly in the
 root of the central GitHub repository.
+
+Yoy can leverage [pmap-template](https://github.com/abcxyz/pmap-template) to 
+create the GitHub Central Repository.
 
 #### Data Mapping
 
