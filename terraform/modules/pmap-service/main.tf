@@ -27,7 +27,7 @@ data "google_project" "project" {
 }
 
 module "service" {
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=46d3ffd82d7c3080bc5ec2cc788fe3e21176a8be"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=e7f268b6a29e130eb81e2b7250f6b67a9ae03bd3"
 
   project_id = var.project_id
 
