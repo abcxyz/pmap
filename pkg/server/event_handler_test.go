@@ -570,8 +570,8 @@ func testGCSMetadataBytes() []byte {
 }
 
 // Returns a fake http func that writes the data in http response.
-func testHandleObjectRead(t *testing.T, data []byte) func(w http.ResponseWriter, r *http.Request) {
-	t.Helper()
+func testHandleObjectRead(tb testing.TB, data []byte) func(w http.ResponseWriter, r *http.Request) {
+	tb.Helper()
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -579,7 +579,7 @@ func testHandleObjectRead(t *testing.T, data []byte) func(w http.ResponseWriter,
 		case "/foo/pmap-test/gh-prefix/dir1/dir2/bar":
 			_, err := w.Write(data)
 			if err != nil {
-				t.Fatalf("failed to write response for object info: %v", err)
+				tb.Fatalf("failed to write response for object info: %v", err)
 			}
 		default:
 			http.Error(w, "injected error", http.StatusNotFound)
