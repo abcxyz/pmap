@@ -46,8 +46,7 @@ func TestEventHandler_NewHandler(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup fake storage client.
-	hc, done := newTestServer(testHandleObjectRead(t, []byte("test")))
-	defer done()
+	hc := newTestServer(t, testHandleObjectRead(t, []byte("test")))
 	c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
 	if err != nil {
 		t.Fatalf("failed to creat GCS storage client %v", err)
@@ -226,8 +225,8 @@ isOK: true`),
 			t.Parallel()
 
 			// Setup fake storage client.
-			hc, done := newTestServer(testHandleObjectRead(t, tc.gcsObjectBytes))
-			defer done()
+			hc := newTestServer(t, testHandleObjectRead(t, tc.gcsObjectBytes))
+
 			c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
 			if err != nil {
 				t.Fatalf("failed to creat GCS storage client %v", err)
@@ -493,8 +492,7 @@ isOK: true`),
 			ctx := context.Background()
 
 			// Create fake http client for storage client.
-			hc, done := newTestServer(testHandleObjectRead(t, tc.gcsObjectBytes))
-			defer done()
+			hc := newTestServer(t, testHandleObjectRead(t, tc.gcsObjectBytes))
 
 			// Setup test handler with fake storage client.
 			c, err := storage.NewClient(ctx, option.WithHTTPClient(hc))
@@ -537,7 +535,8 @@ isOK: true`),
 }
 
 // Creates a fake http client.
-func newTestServer(handler func(w http.ResponseWriter, r *http.Request)) (*http.Client, func()) {
+func newTestServer(t *testing.T, handler func(w http.ResponseWriter, r *http.Request)) *http.Client {
+	t.Helper()
 	ts := httptest.NewTLSServer(http.HandlerFunc(handler))
 	// Need insecure TLS option for testing.
 	// #nosec G402
@@ -548,10 +547,11 @@ func newTestServer(handler func(w http.ResponseWriter, r *http.Request)) (*http.
 			return tls.Dial("tcp", ts.Listener.Addr().String(), tlsConf)
 		},
 	}
-	return &http.Client{Transport: tr}, func() {
+	t.Cleanup(func() {
 		tr.CloseIdleConnections()
 		ts.Close()
-	}
+	})
+	return &http.Client{Transport: tr}
 }
 
 // Returns fake metadata that include github resource info.
@@ -570,8 +570,8 @@ func testGCSMetadataBytes() []byte {
 }
 
 // Returns a fake http func that writes the data in http response.
-func testHandleObjectRead(t *testing.T, data []byte) func(w http.ResponseWriter, r *http.Request) {
-	t.Helper()
+func testHandleObjectRead(tb testing.TB, data []byte) func(w http.ResponseWriter, r *http.Request) {
+	tb.Helper()
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -579,7 +579,7 @@ func testHandleObjectRead(t *testing.T, data []byte) func(w http.ResponseWriter,
 		case "/foo/pmap-test/gh-prefix/dir1/dir2/bar":
 			_, err := w.Write(data)
 			if err != nil {
-				t.Fatalf("failed to write response for object info: %v", err)
+				tb.Fatalf("failed to write response for object info: %v", err)
 			}
 		default:
 			http.Error(w, "injected error", http.StatusNotFound)
