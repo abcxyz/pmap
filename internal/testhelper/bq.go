@@ -20,8 +20,9 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/bigquery"
-	"github.com/abcxyz/pkg/bqutil"
 	"github.com/sethvargo/go-retry"
+
+	"github.com/abcxyz/pkg/bqutil"
 )
 
 // BQEntry defines the fields we need from bigquery entry.

@@ -20,13 +20,14 @@ import (
 	"net/http"
 
 	"cloud.google.com/go/pubsub"
+	"google.golang.org/protobuf/types/known/structpb"
+
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/multicloser"
 	"github.com/abcxyz/pkg/serving"
 	"github.com/abcxyz/pmap/internal/version"
 	"github.com/abcxyz/pmap/pkg/server"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 var _ cli.Command = (*PolicyServerCommand)(nil)

@@ -28,14 +28,15 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
-	"github.com/abcxyz/pkg/logging"
-	"github.com/abcxyz/pkg/protoutil"
-	"github.com/abcxyz/pmap/apis/v1alpha1"
-	"github.com/abcxyz/pmap/pkg/pmaperrors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/abcxyz/pkg/logging"
+	"github.com/abcxyz/pkg/protoutil"
+	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/abcxyz/pmap/pkg/pmaperrors"
 )
 
 const (

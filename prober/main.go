@@ -27,15 +27,16 @@ import (
 
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/storage"
-	"github.com/abcxyz/pkg/logging"
-	"github.com/abcxyz/pmap/apis/v1alpha1"
-	"github.com/abcxyz/pmap/internal/testhelper"
-	"github.com/abcxyz/pmap/pkg/server"
 	"github.com/google/go-cmp/cmp"
 	"github.com/sethvargo/go-retry"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	"github.com/abcxyz/pkg/logging"
+	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/abcxyz/pmap/internal/testhelper"
+	"github.com/abcxyz/pmap/pkg/server"
 )
 
 const (

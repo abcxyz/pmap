@@ -19,7 +19,9 @@ import (
 	"fmt"
 	"net/http"
 
+	asset "cloud.google.com/go/asset/apiv1"
 	"cloud.google.com/go/pubsub"
+
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/multicloser"
@@ -28,8 +30,6 @@ import (
 	"github.com/abcxyz/pmap/internal/version"
 	"github.com/abcxyz/pmap/pkg/mapping/processors"
 	"github.com/abcxyz/pmap/pkg/server"
-
-	asset "cloud.google.com/go/asset/apiv1"
 )
 
 var _ cli.Command = (*MappingServerCommand)(nil)
