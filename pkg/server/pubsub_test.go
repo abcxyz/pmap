@@ -20,13 +20,14 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/pubsub/pstest"
-	"github.com/abcxyz/pkg/testutil"
-	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/abcxyz/pkg/testutil"
+	"github.com/abcxyz/pmap/apis/v1alpha1"
 )
 
 const (

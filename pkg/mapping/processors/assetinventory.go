@@ -21,16 +21,16 @@ import (
 	"fmt"
 	"strings"
 
+	asset "cloud.google.com/go/asset/apiv1"
 	"cloud.google.com/go/asset/apiv1/assetpb"
+	"google.golang.org/api/iterator"
+	v1 "google.golang.org/genproto/googleapis/iam/v1" //nolint:staticcheck // "cloud.google.com/go/asset/apiv1" still uses v1.Policy(deprecated).
+	"google.golang.org/protobuf/types/known/structpb"
+
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/protoutil"
 	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"github.com/abcxyz/pmap/pkg/pmaperrors"
-	"google.golang.org/api/iterator"
-	"google.golang.org/protobuf/types/known/structpb"
-
-	asset "cloud.google.com/go/asset/apiv1"
-	v1 "google.golang.org/genproto/googleapis/iam/v1" //nolint:staticcheck // "cloud.google.com/go/asset/apiv1" still uses v1.Policy(deprecated).
 )
 
 const (

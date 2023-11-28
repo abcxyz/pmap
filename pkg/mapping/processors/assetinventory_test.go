@@ -19,17 +19,17 @@ import (
 	"fmt"
 	"testing"
 
+	asset "cloud.google.com/go/asset/apiv1"
 	"cloud.google.com/go/asset/apiv1/assetpb"
-	"github.com/abcxyz/pkg/testutil"
-	"github.com/abcxyz/pmap/apis/v1alpha1"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/api/option"
+	v1 "google.golang.org/genproto/googleapis/iam/v1" //nolint:staticcheck // "cloud.google.com/go/asset/apiv1" still uses v1.Policy(deprecated).
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	asset "cloud.google.com/go/asset/apiv1"
-	v1 "google.golang.org/genproto/googleapis/iam/v1" //nolint:staticcheck // "cloud.google.com/go/asset/apiv1" still uses v1.Policy(deprecated).
+	"github.com/abcxyz/pkg/testutil"
+	"github.com/abcxyz/pmap/apis/v1alpha1"
 )
 
 func TestParseProject(t *testing.T) {

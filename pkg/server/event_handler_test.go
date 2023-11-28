@@ -29,15 +29,16 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
-	"github.com/abcxyz/pkg/testutil"
-	"github.com/abcxyz/pmap/apis/v1alpha1"
-	"github.com/abcxyz/pmap/pkg/pmaperrors"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/api/option"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/abcxyz/pkg/testutil"
+	"github.com/abcxyz/pmap/apis/v1alpha1"
+	"github.com/abcxyz/pmap/pkg/pmaperrors"
 )
 
 func TestEventHandler_NewHandler(t *testing.T) {
