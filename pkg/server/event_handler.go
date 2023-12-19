@@ -204,7 +204,9 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 		// Handle Pub/Sub http request which is a GCS notification message.
 		body, err := io.ReadAll(io.LimitReader(r.Body, httpRequestSizeLimitInBytes))
 		if err != nil {
-			logger.ErrorContext(ctx, "failed to read the request body", "code", http.StatusBadRequest, "error", err)
+			logger.ErrorContext(ctx, "failed to read the request body",
+				"error", err,
+				"code", http.StatusBadRequest)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -213,7 +215,9 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 		var m PubSubMessage
 		// Handle message body(base64-encoded) decoding.
 		if err := json.Unmarshal(body, &m); err != nil {
-			logger.ErrorContext(ctx, "failed to unmarshal the request body", "code", http.StatusBadRequest, "error", err)
+			logger.ErrorContext(ctx, "failed to unmarshal the request body",
+				"error", err,
+				"code", http.StatusBadRequest)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -227,8 +231,11 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 			Attributes: m.Message.Attributes,
 		}
 		if err := h.Handle(ctx, n); err != nil {
-			logger.ErrorContext(ctx, "failed to handle request", "code", http.StatusInternalServerError,
-				"error", err, "bucketId", n.Attributes["bucketId"], "objectId", n.Attributes["objectId"])
+			logger.ErrorContext(ctx, "failed to handle request",
+				"error", err,
+				"code", http.StatusInternalServerError,
+				"bucketId", n.Attributes["bucketId"],
+				"objectId", n.Attributes["objectId"])
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -255,7 +262,10 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 			return err
 		}
 		attr[AttrKeyProcessErr] = err.Error()
-		logger.ErrorContext(ctx, err.Error(), "bucketId", m.Attributes["bucketId"], "objectId", m.Attributes["objectId"])
+		logger.ErrorContext(ctx, "failed to handle event",
+			"error", err.Error(),
+			"bucketId", m.Attributes["bucketId"],
+			"objectId", m.Attributes["objectId"])
 		if err := h.failureMessenger.Send(ctx, eventBytes, attr); err != nil {
 			return fmt.Errorf("failed to send failure event downstream: %w", err)
 		}
