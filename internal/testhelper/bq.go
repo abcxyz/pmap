@@ -21,8 +21,6 @@ import (
 
 	"cloud.google.com/go/bigquery"
 	"github.com/sethvargo/go-retry"
-
-	"github.com/abcxyz/pkg/bqutil"
 )
 
 // BQEntry defines the fields we need from bigquery entry.
@@ -33,10 +31,39 @@ type BQEntry struct {
 
 // SingleBQEntry returns a single [BQEntry] from the given query.
 func SingleBQEntry(ctx context.Context, bqQuery *bigquery.Query, backoff retry.Backoff) (*BQEntry, error) {
-	q := bqutil.NewQuery[BQEntry](bqQuery)
-	results, err := bqutil.RetryQueryEntries(ctx, q, 1, backoff)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query BigQuery: %w", err)
+	var entry *BQEntry
+	if err := retry.Do(ctx, backoff, func(ctx context.Context) error {
+		result, err := func() (*BQEntry, error) {
+			job, err := bqQuery.Run(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to run query: %w", err)
+			}
+
+			if status, err := job.Wait(ctx); err != nil {
+				return nil, fmt.Errorf("failed to wait for query: %w", err)
+			} else if status.Err() != nil {
+				return nil, fmt.Errorf("query failed: %w", status.Err())
+			}
+
+			it, err := job.Read(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read query result: %w", err)
+			}
+
+			var r BQEntry
+			if err := it.Next(&r); err != nil {
+				return nil, fmt.Errorf("failed to read first entry: %w", err)
+			}
+			return &r, nil
+		}()
+		if err != nil {
+			return retry.RetryableError(fmt.Errorf("failed to get entry: %w", err))
+		}
+
+		entry = result
+		return nil
+	}); err != nil {
+		return nil, fmt.Errorf("failed to get matched bq entry: %w", err)
 	}
-	return &results[0], nil
+	return entry, nil
 }
