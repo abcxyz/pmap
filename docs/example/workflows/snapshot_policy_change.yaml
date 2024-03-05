@@ -3,7 +3,7 @@ name: 'snapshot-policy-data-change'
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
   workflow_dispatch:
 
 # Don't cancel in progress since we don't want to have half-baked file change snapshot.
