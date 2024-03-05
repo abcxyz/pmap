@@ -41,27 +41,27 @@ jobs:
       contents: 'read'
       id-token: 'write'
     steps:
-      - uses: 'docker/setup-qemu-action@e81a89b1732b9c48d79cd809d8d81d79c4647a18' # ratchet:docker/setup-qemu-action@v2
-      - uses: 'actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8' # ratchet:actions/checkout@v3
+      - uses: 'docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3' # ratchet:docker/setup-qemu-action@v3
+      - uses: 'actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11' # ratchet:actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: 'actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f' # ratchet:actions/setup-go@v3
+      - uses: 'actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491' # ratchet:actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version-file: 'go.mod'
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@c4799db9111fba4461e9f9da8732e5057b394f72' # ratchet:google-github-actions/auth@v0
+        uses: 'google-github-actions/auth@55bd3a7c6e2ae7cf1877fd1ccb9d54c0503c457c' # ratchet:google-github-actions/auth@v2
         with:
           workload_identity_provider: '${{ env.WIF_PROVIDER }}'
           service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
           token_format: 'access_token'
       - name: 'Authenticate to Artifact Registry'
-        uses: 'docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a' # ratchet:docker/login-action@v2
+        uses: 'docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d' # ratchet:docker/login-action@v3
         with:
           username: 'oauth2accesstoken'
           password: '${{ steps.auth.outputs.access_token }}'
           registry: 'us-docker.pkg.dev'
-      - uses: 'goreleaser/goreleaser-action@b508e2e3ef3b19d4e4146d4f8fb3ba9db644a757' # ratchet:goreleaser/goreleaser-action@v3
+      - uses: 'goreleaser/goreleaser-action@7ec5c2b0c6cdda6e8bbb49444bc797dd33d74dd8' # ratchet:goreleaser/goreleaser-action@v5
         with:
           version: 'v1.16.1' # Manually pinned
           args: 'release -f .goreleaser.docker.yaml --clean'
@@ -73,13 +73,13 @@ jobs:
       contents: 'write'
       packages: 'write'
     steps:
-      - uses: 'actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8' # ratchet:actions/checkout@v3
+      - uses: 'actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11' # ratchet:actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: 'actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f' # ratchet:actions/setup-go@v3
+      - uses: 'actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491' # ratchet:actions/setup-go@v5
         with:
-          go-version: '1.21'
-      - uses: 'goreleaser/goreleaser-action@b508e2e3ef3b19d4e4146d4f8fb3ba9db644a757' # ratchet:goreleaser/goreleaser-action@v3
+          go-version-file: 'go.mod'
+      - uses: 'goreleaser/goreleaser-action@7ec5c2b0c6cdda6e8bbb49444bc797dd33d74dd8' # ratchet:goreleaser/goreleaser-action@v5
         with:
           version: 'v1.16.1' # Manually pinned
           args: 'release --clean'
@@ -97,7 +97,7 @@ jobs:
         service_name: ['mapping-b428', 'policy-1d9c']
     steps:
       - name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@c4799db9111fba4461e9f9da8732e5057b394f72' # ratchet:google-github-actions/auth@v0
+        uses: 'google-github-actions/auth@55bd3a7c6e2ae7cf1877fd1ccb9d54c0503c457c' # ratchet:google-github-actions/auth@v2
         with:
           workload_identity_provider: '${{ env.WIF_PROVIDER }}'
           service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
@@ -121,7 +121,7 @@ jobs:
       id-token: 'write'
     steps:
       - name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@c4799db9111fba4461e9f9da8732e5057b394f72' # ratchet:google-github-actions/auth@v0
+        uses: 'google-github-actions/auth@55bd3a7c6e2ae7cf1877fd1ccb9d54c0503c457c' # ratchet:google-github-actions/auth@v2
         with:
           workload_identity_provider: '${{ env.WIF_PROVIDER }}'
           service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'

@@ -1,6 +1,8 @@
 module github.com/abcxyz/pmap
 
-go 1.21
+go 1.22
+
+toolchain go1.22.1
 
 require (
 	cloud.google.com/go/asset v1.14.1
