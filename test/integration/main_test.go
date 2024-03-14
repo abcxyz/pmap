@@ -450,7 +450,7 @@ func TestMappingReusableWorkflowCall(t *testing.T) {
 				t.Errorf("gotPayload unexpected diff (-want,+got):\n%s", diff)
 			}
 
-			if diff := cmp.Diff(tc.traceID, gotResourceMapping.Annotations.AsMap()["traceID"]); diff != "" {
+			if diff := cmp.Diff(tc.traceID, gotResourceMapping.GetAnnotations().AsMap()["traceID"]); diff != "" {
 				t.Errorf("traceID got unexpected diff (-want,+got):\n%s", diff)
 			}
 		})

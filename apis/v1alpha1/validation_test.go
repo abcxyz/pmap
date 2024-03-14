@@ -195,7 +195,7 @@ func TestValidateResouceMapping(t *testing.T) {
 				t.Errorf("ValidateResourceMapping got unexpected error: %s", diff)
 			}
 			if tc.wantSubscope != "" {
-				if diff := cmp.Diff(tc.wantSubscope, tc.data.Resource.Subscope); diff != "" {
+				if diff := cmp.Diff(tc.wantSubscope, tc.data.GetResource().GetSubscope()); diff != "" {
 					t.Errorf("subscope normalization failed (-want, +got): %v", diff)
 				}
 			}
