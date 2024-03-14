@@ -230,6 +230,7 @@ func (h *EventHandler[T, P]) HTTPHandler() http.Handler {
 			Data:       m.Message.Data, // Notification payload.
 			Attributes: m.Message.Attributes,
 		}
+		//nolint:sloglint
 		if err := h.Handle(ctx, n); err != nil {
 			logger.ErrorContext(ctx, "failed to handle request",
 				"error", err,
@@ -262,6 +263,7 @@ func (h *EventHandler[T, P]) Handle(ctx context.Context, m pubsub.Message) error
 			return err
 		}
 		attr[AttrKeyProcessErr] = err.Error()
+		//nolint:sloglint
 		logger.ErrorContext(ctx, "failed to handle event",
 			"error", err.Error(),
 			"bucketId", m.Attributes["bucketId"],

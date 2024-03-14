@@ -209,7 +209,7 @@ func probePolicy(ctx context.Context, timestamp string) error {
 	traceID := fmt.Sprintf("%s-%s", proberPolicyTraceIDPrefix, timestamp)
 
 	logger := logging.FromContext(ctx).With("trace_id", traceID)
-	logger.Info("policy probe started")
+	logger.InfoContext(ctx, "policy probe started")
 
 	data := []byte(fmt.Sprintf(`
 policy_id: %s

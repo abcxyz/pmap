@@ -32,17 +32,17 @@ const (
 
 // ValidateResourceMapping checks if the ResourceMapping is valid.
 func ValidateResourceMapping(m *ResourceMapping) (vErr error) {
-	for _, e := range m.Contacts.Email {
+	for _, e := range m.GetContacts().GetEmail() {
 		if _, err := mail.ParseAddress(e); err != nil {
 			vErr = errors.Join(vErr, fmt.Errorf("invalid owner: %w", err))
 		}
 	}
 
-	if _, ok := m.Annotations.AsMap()[AnnotationKeyAssetInfo]; ok {
+	if _, ok := m.GetAnnotations().AsMap()[AnnotationKeyAssetInfo]; ok {
 		vErr = errors.Join(vErr, fmt.Errorf("reserved key is included: %s", AnnotationKeyAssetInfo))
 	}
 
-	if err := validateResource(m.Resource); err != nil {
+	if err := validateResource(m.GetResource()); err != nil {
 		vErr = errors.Join(vErr, err)
 	}
 
@@ -50,11 +50,11 @@ func ValidateResourceMapping(m *ResourceMapping) (vErr error) {
 }
 
 func validateResource(r *Resource) (vErr error) {
-	if r.Name == "" {
+	if r.GetName() == "" {
 		vErr = errors.Join(vErr, fmt.Errorf("empty resource name"))
 	}
 
-	if r.Provider == "" {
+	if r.GetProvider() == "" {
 		vErr = errors.Join(vErr, fmt.Errorf("empty resource provider"))
 	}
 
@@ -66,15 +66,15 @@ func validateResource(r *Resource) (vErr error) {
 }
 
 func validateSubscope(r *Resource) error {
-	if r.Subscope == "" {
+	if r.GetSubscope() == "" {
 		return nil
 	}
 
 	// If r.Subscope = "parent/foo/child/bar?key1=value1&key2=value2" after
 	// url.Parse(r.Subscope), we will have: u.RawQuery: key1=value1&key2=value2
-	u, err := url.Parse(r.Subscope)
+	u, err := url.Parse(r.GetSubscope())
 	if err != nil {
-		return fmt.Errorf("subscope validation failed: failed to parse subscope string %s: %w", r.Subscope, err)
+		return fmt.Errorf("subscope validation failed: failed to parse subscope string %s: %w", r.GetSubscope(), err)
 	}
 
 	// [url.Parse] silently discards malformed value pairs. So we need to use
