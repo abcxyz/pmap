@@ -43,6 +43,8 @@ module "service" {
   }
 
   envvars = merge(local.common_env_vars, var.pmap_specific_envvars)
+
+  ingress = "internal-and-cloud-load-balancing"
 }
 
 // Create push subscriptions with the pmap service push endpoint.
