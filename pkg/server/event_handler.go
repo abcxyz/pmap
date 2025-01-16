@@ -291,7 +291,7 @@ func (h *EventHandler[T, P]) generatePmapEventBytes(ctx context.Context, m pubsu
 	// yaml files that user uploaded.
 	p := P(new(T))
 	if err := protoutil.FromYAML(b, p); err != nil {
-		return nil, pmaperrors.New(fmt.Sprintf("failed to unmarshal object yaml: %v", err))
+		return nil, pmaperrors.New("failed to unmarshal object yaml: %v", err)
 	}
 
 	var processErr error
