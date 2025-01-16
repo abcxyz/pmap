@@ -147,6 +147,14 @@ func (p *AssetInventoryProcessor) validateAndEnrich(ctx context.Context, resourc
 
 	assetInventoryAnnos := map[string]any{}
 
+	tags := resource.GetTags()
+	tagKeys := make([]string, 0, len(tags))
+	tagValues := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		tagKeys = append(tagKeys, tag.GetTagKey())
+		tagValues = append(tagValues, tag.GetTagValue())
+	}
+
 	if len(ancestors) != 0 {
 		assetInventoryAnnos["ancestors"] = ancestors
 	}
@@ -159,11 +167,11 @@ func (p *AssetInventoryProcessor) validateAndEnrich(ctx context.Context, resourc
 	if resource.GetCreateTime() != nil {
 		assetInventoryAnnos["createTime"] = resource.GetCreateTime()
 	}
-	if len(resource.GetTagKeys()) > 0 {
-		assetInventoryAnnos["tagKeys"] = resource.GetTagKeys()
+	if len(tagKeys) > 0 {
+		assetInventoryAnnos["tagKeys"] = tagKeys
 	}
-	if len(resource.GetTagValues()) > 0 {
-		assetInventoryAnnos["tagValues"] = resource.GetTagValues()
+	if len(tagValues) > 0 {
+		assetInventoryAnnos["tagValues"] = tagValues
 	}
 	if len(iamPolicies) > 0 {
 		assetInventoryAnnos["iamPolicies"] = iamPolicies
