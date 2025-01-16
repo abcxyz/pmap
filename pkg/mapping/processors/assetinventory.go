@@ -85,7 +85,7 @@ func (p *AssetInventoryProcessor) Process(ctx context.Context, resourceMapping *
 
 	resourceScope, err := parseScope(resourceName)
 	if err != nil {
-		return pmaperrors.New(fmt.Sprintf("failed to parse project: %v", err))
+		return pmaperrors.New("failed to parse project: %v", err)
 	}
 	// Need defaultResourceScope because resources such as GCS bucket won't include Project info in its resource name.
 	// See details: https://cloud.google.com/asset-inventory/docs/resource-name-format.
@@ -119,7 +119,7 @@ func (p *AssetInventoryProcessor) validateAndEnrich(ctx context.Context, resourc
 	}
 	resource, err := p.getSingleResource(ctx, resourceSearchReq)
 	if err != nil {
-		return nil, pmaperrors.New(fmt.Sprintf("failed to get single matched resource: %v", err))
+		return nil, pmaperrors.New("failed to get single matched resource: %v", err)
 	}
 
 	var ancestors []string

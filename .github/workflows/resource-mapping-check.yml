@@ -33,12 +33,12 @@ jobs:
     runs-on: 'ubuntu-latest'
     steps:
       - name: 'Checkout'
-        uses: 'actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11' # ratchet:actions/checkout@v4
+        uses: 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' # ratchet:actions/checkout@v4
         with:
           fetch-depth: 0 # OR "2" -> To retrieve the preceding commit.
       - name: 'Get changed yaml files'
         id: 'changed-yaml-files'
-        uses: 'tj-actions/changed-files@800a2825992141ddde1a8bca8ad394cec34d3188' # ratchet:tj-actions/changed-files@v42
+        uses: 'tj-actions/changed-files@d6e91a2266cdb9d62096cebf1e8546899c6aa18f' # ratchet:tj-actions/changed-files@v45
         with:
           files: |
             ${{ inputs.resource_mapping_directory }}/**/*.{yaml,yml}
@@ -58,7 +58,7 @@ jobs:
             echo "$file was copied to ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change"
           done
       - id: 'setup-go'
-        uses: 'actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491' # ratchet:actions/setup-go@v5
+        uses: 'actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a' # ratchet:actions/setup-go@v5
         with:
           go-version: '${{ inputs.go_version }}'
       - id: 'run-check'

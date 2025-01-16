@@ -65,10 +65,3 @@ func limitedSizeMessage(data []byte, attr map[string]string) (*pubsub.Message, e
 		Attributes: attr,
 	}, nil
 }
-
-func min(a, b int) int {
-	if a <= b {
-		return a
-	}
-	return b
-}
