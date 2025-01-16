@@ -63,7 +63,7 @@ func TestPubSubMessenger_Send(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			conn := testNewPubSubGrpcConn(ctx, t, tc.pubSubServerOption)
+			conn := testNewPubSubGrpcConn(t, tc.pubSubServerOption)
 			testTopic := testCreatePubsubTopic(ctx, t, serverProjectID, serverTopicID, option.WithGRPCConn(conn))
 
 			msger := NewPubSubMessenger(testTopic)
@@ -84,7 +84,7 @@ func TestPubSubMessenger_Send(t *testing.T) {
 // Creates a GRPC connection with PubSub test server. Note that the GRPC connection is not closed at the end because
 // it is duplicative if the PubSub client is also closing. Please remember to close the connection if the PubSub client
 // will not close.
-func testNewPubSubGrpcConn(ctx context.Context, t *testing.T, opts ...pstest.ServerReactorOption) *grpc.ClientConn {
+func testNewPubSubGrpcConn(t *testing.T, opts ...pstest.ServerReactorOption) *grpc.ClientConn {
 	t.Helper()
 
 	// Create PubSub test server.
@@ -96,7 +96,7 @@ func testNewPubSubGrpcConn(ctx context.Context, t *testing.T, opts ...pstest.Ser
 	})
 
 	// Connect to the server without using TLS.
-	conn, err := grpc.DialContext(ctx, svr.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(svr.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("fail to connect to test PubSub server: %v", err)
 	}
