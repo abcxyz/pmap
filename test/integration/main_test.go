@@ -199,7 +199,7 @@ func TestMappingEventHandling(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			traceID, err := rand.Int(rand.Reader, big.NewInt(100000))
 			if err != nil {
@@ -307,7 +307,7 @@ func TestPolicyEventHandling(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			traceID, err := rand.Int(rand.Reader, big.NewInt(100000))
 			if err != nil {
@@ -405,7 +405,7 @@ func TestMappingReusableWorkflowCall(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			t.Logf("using trace ID %s", tc.traceID)
 			t.Logf("using workflow run ID %s", cfg.WorkflowRunID)
@@ -484,7 +484,7 @@ func TestPolicyReusableWorkflowCall(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			ctx := context.Background()
+			ctx := t.Context()
 			ctx = logging.WithLogger(ctx, logging.TestLogger(t))
 
 			t.Logf("using trace ID %s", tc.traceID)

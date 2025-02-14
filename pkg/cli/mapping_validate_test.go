@@ -15,7 +15,6 @@
 package cli
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,7 +29,7 @@ import (
 func TestNewValidateCmd(t *testing.T) {
 	t.Parallel()
 
-	ctx := logging.WithLogger(context.Background(), logging.TestLogger(t))
+	ctx := logging.WithLogger(t.Context(), logging.TestLogger(t))
 	td := t.TempDir()
 
 	cases := []struct {

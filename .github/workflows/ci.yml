@@ -257,6 +257,9 @@ jobs:
   call_mapping_reusable_workflow:
     needs: ['set_up_integration_infra']
     uses: './.github/workflows/snapshot-file-copy.yml'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     with:
       workload_identity_provider: 'projects/125781045617/locations/global/workloadIdentityPools/github-automation/providers/pmap-ci-i'
       service_account: 'github-automation-bot@gha-pmap-ci-i-f49bd9.iam.gserviceaccount.com'
@@ -266,6 +269,9 @@ jobs:
   call_policy_reusable_workflow:
     needs: ['set_up_integration_infra']
     uses: './.github/workflows/snapshot-file-copy.yml'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     with:
       workload_identity_provider: 'projects/125781045617/locations/global/workloadIdentityPools/github-automation/providers/pmap-ci-i'
       service_account: 'github-automation-bot@gha-pmap-ci-i-f49bd9.iam.gserviceaccount.com'

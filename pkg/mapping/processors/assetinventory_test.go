@@ -285,7 +285,7 @@ func TestProcessor_UpdatedProcess(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Setup fake Asset Inventory server.
 			addr, conn := testutil.FakeGRPCServer(t, func(s *grpc.Server) {
