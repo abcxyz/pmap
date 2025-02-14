@@ -44,7 +44,7 @@ import (
 func TestEventHandler_NewHandler(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Setup fake storage client.
 	hc := newTestServer(t, testHandleObjectRead(t, []byte("test")))
@@ -91,7 +91,7 @@ func TestEventHandler_NewHandler(t *testing.T) {
 func TestEventHandler_HttpHandler(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	cases := []struct {
 		name               string
@@ -484,7 +484,7 @@ isOK: true`),
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Create fake http client for storage client.
 			hc := newTestServer(t, testHandleObjectRead(t, tc.gcsObjectBytes))

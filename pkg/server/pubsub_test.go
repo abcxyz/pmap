@@ -39,7 +39,7 @@ const (
 func TestPubSubMessenger_Send(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	cases := []struct {
 		name               string

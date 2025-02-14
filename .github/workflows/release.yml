@@ -32,6 +32,9 @@ concurrency: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-releas
 jobs:
   ci:
     uses: 'abcxyz/pmap/.github/workflows/ci.yml@main' # ratchet:exclude
+    permissions:
+      contents: 'read'
+      id-token: 'write'
 
   image-release:
     # Run CI before the release
