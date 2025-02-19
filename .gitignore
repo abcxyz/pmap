@@ -113,5 +113,5 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-# Ignore google auth action cred file.
+# Ignore generated credentials from google-github-actions/auth
 gha-creds-*.json
