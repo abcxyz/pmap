@@ -38,7 +38,7 @@ jobs:
           fetch-depth: 0 # OR "2" -> To retrieve the preceding commit.
       - name: 'Get changed yaml files'
         id: 'changed-yaml-files'
-        uses: 'tj-actions/changed-files@d6e91a2266cdb9d62096cebf1e8546899c6aa18f' # ratchet:tj-actions/changed-files@v45
+        uses: 'step-security/changed-files@3dbe17c78367e7d60f00d78ae6781a35be47b4a1' # ratchet:step-security/changed-files@v45
         with:
           files: |
             ${{ inputs.resource_mapping_directory }}/**/*.{yaml,yml}
@@ -58,7 +58,7 @@ jobs:
             echo "$file was copied to ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change"
           done
       - id: 'setup-go'
-        uses: 'actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a' # ratchet:actions/setup-go@v5
+        uses: 'actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34' # ratchet:actions/setup-go@v5
         with:
           go-version: '${{ inputs.go_version }}'
       - id: 'run-check'

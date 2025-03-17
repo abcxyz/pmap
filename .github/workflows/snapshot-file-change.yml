@@ -49,7 +49,7 @@ jobs:
           echo "CUR_TIMESTAMP=$(date --rfc-3339=seconds | sed 's/ /T/')" >> $GITHUB_ENV
       - name: 'Get changed yaml files'
         id: 'changed-yaml-files'
-        uses: 'tj-actions/changed-files@d6e91a2266cdb9d62096cebf1e8546899c6aa18f' # ratchet:tj-actions/changed-files@v45
+        uses: 'step-security/changed-files@3dbe17c78367e7d60f00d78ae6781a35be47b4a1' # ratchet:step-security/changed-files@v45
         with:
           files: |
             ${{ inputs.path }}/**/*.{yml,yaml}
