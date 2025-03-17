@@ -97,7 +97,7 @@ jobs:
         uses: 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' # ratchet:actions/checkout@v4
 
       - name: 'Setup Go'
-        uses: 'actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a' # ratchet:actions/setup-go@v5
+        uses: 'actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34' # ratchet:actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
 
@@ -110,7 +110,7 @@ jobs:
           token_format: 'access_token'
 
       - name: 'Authenticate to Artifact Registry'
-        uses: 'docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567' # ratchet:docker/login-action@v3
+        uses: 'docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772' # ratchet:docker/login-action@v3
         with:
           username: 'oauth2accesstoken'
           password: '${{ steps.auth.outputs.access_token }}'
@@ -123,7 +123,7 @@ jobs:
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
           git tag -f `date "+%Y%m%d%H%M%S"`
       - name: 'Build the service containers and push to the registry with goreleaser'
-        uses: 'goreleaser/goreleaser-action@9ed2f89a662bf1735a48bc8557fd212fa902bebf' # ratchet:goreleaser/goreleaser-action@v6
+        uses: 'goreleaser/goreleaser-action@90a3faa9d0182683851fbfa97ca1a2cb983bfca3' # ratchet:goreleaser/goreleaser-action@v6
         with:
           version: 'v1.16.1' # Manually pinned
           args: 'release -f .goreleaser.docker.yaml --clean'
@@ -231,7 +231,7 @@ jobs:
           terraform -chdir=${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }} apply -auto-approve -var-file=${{ env.POLICY_TF_VAR_FILE }};
 
       - name: 'Upload terraform files for mapping'
-        uses: 'actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08' # ratchet:actions/upload-artifact@v4.6.0
+        uses: 'actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1' # ratchet:actions/upload-artifact@v4.6.1
         if: '${{ always() }}'
         with:
           name: 'terraform-mapping-files-${{ github.run_id}}'
@@ -243,7 +243,7 @@ jobs:
           retention-days: 1
 
       - name: 'Upload terraform files for policy'
-        uses: 'actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08' # ratchet:actions/upload-artifact@v4.6.0
+        uses: 'actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1' # ratchet:actions/upload-artifact@v4.6.1
         if: '${{ always() }}'
         with:
           name: 'terraform-policy-files-${{ github.run_id}}'
@@ -288,7 +288,7 @@ jobs:
     steps:
       - uses: 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' # ratchet:actions/checkout@v4
 
-      - uses: 'actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a' # ratchet:actions/setup-go@v5
+      - uses: 'actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34' # ratchet:actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
 
@@ -360,7 +360,7 @@ jobs:
 
       - name: 'download artifact for mapping'
         if: '${{ always() }}'
-        uses: 'actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16' # ratchet:actions/download-artifact@v4.1.8
+        uses: 'actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806' # ratchet:actions/download-artifact@v4.1.9
         with:
           name: 'terraform-mapping-files-${{ github.run_id }}'
           path: '${{ runner.temp}}/${{ env.MAPPING_TF_MODULE_DIR }}'
@@ -373,7 +373,7 @@ jobs:
 
       - name: 'download artifact for policy'
         if: '${{ always() }}'
-        uses: 'actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16' # ratchet:actions/download-artifact@v4.1.8
+        uses: 'actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806' # ratchet:actions/download-artifact@v4.1.9
         with:
           name: 'terraform-policy-files-${{ github.run_id }}'
           path: '${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }}'
