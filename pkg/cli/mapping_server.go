@@ -88,7 +88,7 @@ func (c *MappingServerCommand) RunUnstarted(ctx context.Context, args []string) 
 
 	logger := logging.FromContext(ctx)
 	logger.DebugContext(ctx, "server starting",
-		"commit", version.Commit,
+		"commit1", version.Commit,
 		"version", version.Version)
 
 	if err := c.cfg.Validate(); err != nil {
