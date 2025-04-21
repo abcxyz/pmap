@@ -160,7 +160,7 @@ jobs:
           downstream_failure_topic="${{ env.INTEG_TEST_MAPPING_DOWNSTREAM_FAILURE_TOPIC }}"
           pmap_service_account="${{ env.INTEG_TEST_RUN_SERVICE_ACCOUNT }}"
           oidc_service_account="${{ env.INTEG_TEST_OIDC_SERVICE_ACCOUNT }}"
-          gcs_events_filter="hasPrefix\(attributes.objectId, \"mapping/${INTEG_TEST_OBJECT_PREFIX}\"\)"
+          gcs_events_filter="hasPrefix(attributes.objectId, \"mapping/${INTEG_TEST_OBJECT_PREFIX}\")"
           pmap_specific_envvars={PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE="projects/${{ env.INTEG_TEST_PROJECT_ID}}"}
           enable_dead_lettering=false
           EOF
@@ -183,7 +183,7 @@ jobs:
           downstream_topic="${{ env.INTEG_TEST_POLICY_DOWNSTREAM_TOPIC }}"
           pmap_service_account="${{ env.INTEG_TEST_RUN_SERVICE_ACCOUNT }}"
           oidc_service_account="${{ env.INTEG_TEST_OIDC_SERVICE_ACCOUNT }}"
-          gcs_events_filter="hasPrefix\(attributes.objectId, \"policy/${INTEG_TEST_OBJECT_PREFIX}\"\)"
+          gcs_events_filter="hasPrefix(attributes.objectId, \"policy/${INTEG_TEST_OBJECT_PREFIX}\")"
           enable_dead_lettering=false
           EOF
 
