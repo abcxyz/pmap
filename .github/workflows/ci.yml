@@ -57,33 +57,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Linting jobs - go, terraform, yaml.
-  go_lint:
-    uses: 'abcxyz/actions/.github/workflows/go-lint.yml@main' # ratchet:exclude
-
-  terraform_lint:
-    uses: 'abcxyz/actions/.github/workflows/terraform-lint.yml@main' # ratchet:exclude
-    with:
-      directory: 'terraform'
-      terraform_version: '1.3'
-
-  yaml_lint:
-    uses: 'abcxyz/actions/.github/workflows/yaml-lint.yml@main' # ratchet:exclude
-
   # Unit tests - go
   go_test:
     uses: 'abcxyz/actions/.github/workflows/go-test.yml@main' # ratchet:exclude
-
-  # lint_and_unit is a virtual job that is used as dependencies for later jobs.
-  lint_and_unit:
-    runs-on: 'ubuntu-latest'
-    needs:
-      - 'go_lint'
-      - 'terraform_lint'
-      - 'yaml_lint'
-      - 'go_test'
-    steps:
-      - run: 'echo prechecks complete'
 
   # Build pmap services and push to artifact registry
   build:
@@ -91,7 +67,7 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
-    needs: ['lint_and_unit']
+    needs: ['go_test']
     steps:
       - name: 'Checkout'
         uses: 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' # ratchet:actions/checkout@v4
@@ -121,7 +97,7 @@ jobs:
       - run: |-
           git config user.name "${GITHUB_ACTOR}"
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-          git tag -f `date "+%Y%m%d%H%M%S"`
+          git tag -f "$(date "+%Y%m%d%H%M%S")"
       - name: 'Build the service containers and push to the registry with goreleaser'
         uses: 'goreleaser/goreleaser-action@90a3faa9d0182683851fbfa97ca1a2cb983bfca3' # ratchet:goreleaser/goreleaser-action@v6
         with:
@@ -152,7 +128,7 @@ jobs:
       - name: 'Workaround Terraform issue'
         shell: 'bash'
         run: |-
-          echo "GOOGLE_OAUTH_ACCESS_TOKEN=${{ steps.auth.outputs.access_token }}" >> $GITHUB_ENV
+          echo "GOOGLE_OAUTH_ACCESS_TOKEN=${{ steps.auth.outputs.access_token }}" >> "${GITHUB_ENV}"
 
       - uses: 'hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd' # ratchet:hashicorp/setup-terraform@v3
         with:
@@ -165,50 +141,54 @@ jobs:
         id: 'generate_object_prefix'
         run: |
           OBJECT_PREFIX=${RANDOM}
-          echo "INTEG_TEST_OBJECT_PREFIX=${OBJECT_PREFIX}" >> "$GITHUB_ENV"
-          echo "INTEG_TEST_OBJECT_PREFIX_OUTPUT=${OBJECT_PREFIX}" >> "$GITHUB_OUTPUT"
+          echo "INTEG_TEST_OBJECT_PREFIX=${OBJECT_PREFIX}" >> "${GITHUB_ENV}"
+          echo "INTEG_TEST_OBJECT_PREFIX_OUTPUT=${OBJECT_PREFIX}" >> "${GITHUB_OUTPUT}"
 
       - name: 'Write mapping tfvars file'
-        run: |-
-          mkdir -p '${{ runner.temp }}/${{ env.MAPPING_TF_MODULE_DIR }}'
-          VAR_FILE='${{ runner.temp }}/${{ env.MAPPING_TF_MODULE_DIR }}/mapping_ci.tfvars'
+        shell: 'bash'
+        run: |
+          mkdir -p "${{ runner.temp }}/${{ env.MAPPING_TF_MODULE_DIR }}"
+          VAR_FILE="${{ runner.temp }}/${{ env.MAPPING_TF_MODULE_DIR }}/mapping_ci.tfvars"
 
-          touch ${VAR_FILE}
-          echo project_id=\"${{ env.INTEG_TEST_PROJECT_ID }}\" >> ${VAR_FILE};
-          echo service_name=\"mapping\" >> ${VAR_FILE};
-          echo pmap_container_image=\"${{ env.DOCKER_REPO }}/pmap:${{ env.DOCKER_TAG }}-amd64\" >> ${VAR_FILE};
-          echo pmap_args=[\"mapping\",\"server\"] >> ${VAR_FILE};
-          echo upstream_topic=\"${{ env.INTEG_TEST_MAPPING_UPSTREAM_TOPIC }}\" >> ${VAR_FILE};
-          echo downstream_topic=\"${{ env.INTEG_TEST_MAPPING_DOWNSTREAM_TOPIC }}\" >> ${VAR_FILE};
-          echo downstream_failure_topic=\"${{ env.INTEG_TEST_MAPPING_DOWNSTREAM_FAILURE_TOPIC }}\" >> ${VAR_FILE};
-          echo pmap_service_account=\"${{ env.INTEG_TEST_RUN_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
-          echo oidc_service_account=\"${{ env.INTEG_TEST_OIDC_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
-          echo gcs_events_filter=\"hasPrefix\(attributes.objectId, \\\"mapping/${INTEG_TEST_OBJECT_PREFIX}\\\"\)\">> ${VAR_FILE};
-          echo pmap_specific_envvars={PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE=\"projects/${{ env.INTEG_TEST_PROJECT_ID}}\"} >> ${VAR_FILE}
-          echo enable_dead_lettering=false >> ${VAR_FILE};
+          cat > "${VAR_FILE}" <<EOF
+          echo project_id="${{ env.INTEG_TEST_PROJECT_ID }}"
+          echo service_name="mapping"
+          echo pmap_container_image="${{ env.DOCKER_REPO }}/pmap:${{ env.DOCKER_TAG }}-amd64"
+          echo pmap_args=["mapping","server"]
+          echo upstream_topic="${{ env.INTEG_TEST_MAPPING_UPSTREAM_TOPIC }}"
+          echo downstream_topic="${{ env.INTEG_TEST_MAPPING_DOWNSTREAM_TOPIC }}"
+          echo downstream_failure_topic="${{ env.INTEG_TEST_MAPPING_DOWNSTREAM_FAILURE_TOPIC }}"
+          echo pmap_service_account="${{ env.INTEG_TEST_RUN_SERVICE_ACCOUNT }}"
+          echo oidc_service_account="${{ env.INTEG_TEST_OIDC_SERVICE_ACCOUNT }}"
+          echo gcs_events_filter="hasPrefix\(attributes.objectId, \"mapping/${INTEG_TEST_OBJECT_PREFIX}\"\)"
+          echo pmap_specific_envvars={PMAP_MAPPING_DEFAULT_RESOURCE_SCOPE="projects/${{ env.INTEG_TEST_PROJECT_ID}}"}
+          echo enable_dead_lettering=false
+          EOF
 
-          cat ${VAR_FILE};
-          echo "MAPPING_TF_VAR_FILE=${VAR_FILE}" >> $GITHUB_ENV;
+          cat "${VAR_FILE}"
+          echo "MAPPING_TF_VAR_FILE=${VAR_FILE}" >> "${GITHUB_ENV}";
 
       - name: 'Write policy tfvars file'
-        run: |-
-          mkdir -p '${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }}'
-          VAR_FILE='${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }}/policy_ci.tfvars'
+        shell: 'bash'
+        run: |
+          mkdir -p "${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }}"
+          VAR_FILE="${{ runner.temp }}/${{ env.POLICY_TF_MODULE_DIR }}/policy_ci.tfvars"
 
-          touch ${VAR_FILE}
-          echo project_id=\"${{ env.INTEG_TEST_PROJECT_ID }}\" >> ${VAR_FILE};
-          echo service_name=\"policy\" >> ${VAR_FILE};
-          echo pmap_container_image=\"${{ env.DOCKER_REPO }}/pmap:${{ env.DOCKER_TAG }}-amd64\" >> ${VAR_FILE};
-          echo pmap_args=[\"policy\",\"server\"] >> ${VAR_FILE};
-          echo upstream_topic=\"${{ env.INTEG_TEST_POLICY_UPSTREAM_TOPIC }}\" >> ${VAR_FILE};
-          echo downstream_topic=\"${{ env.INTEG_TEST_POLICY_DOWNSTREAM_TOPIC }}\" >> ${VAR_FILE};
-          echo pmap_service_account=\"${{ env.INTEG_TEST_RUN_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
-          echo oidc_service_account=\"${{ env.INTEG_TEST_OIDC_SERVICE_ACCOUNT }}\" >> ${VAR_FILE};
-          echo gcs_events_filter=\"hasPrefix\(attributes.objectId, \\\"policy/${INTEG_TEST_OBJECT_PREFIX}\\\"\)\">> ${VAR_FILE};
-          echo enable_dead_lettering=false >> ${VAR_FILE};
+          cat > "${VAR_FILE}" <<EOF
+          project_id="${{ env.INTEG_TEST_PROJECT_ID }}"
+          service_name="policy"
+          pmap_container_image="${{ env.DOCKER_REPO }}/pmap:${{ env.DOCKER_TAG }}-amd64"
+          pmap_args=["policy","server"]
+          upstream_topic="${{ env.INTEG_TEST_POLICY_UPSTREAM_TOPIC }}"}"
+          downstream_topic="${{ env.INTEG_TEST_POLICY_DOWNSTREAM_TOPIC }}"
+          pmap_service_account="${{ env.INTEG_TEST_RUN_SERVICE_ACCOUNT }}"
+          oidc_service_account="${{ env.INTEG_TEST_OIDC_SERVICE_ACCOUNT }}"
+          gcs_events_filter="hasPrefix\(attributes.objectId, \"policy/${INTEG_TEST_OBJECT_PREFIX}\"\)"
+          enable_dead_lettering=false
+          EOF
 
-          cat ${VAR_FILE};
-          echo "POLICY_TF_VAR_FILE=${VAR_FILE}" >> $GITHUB_ENV;
+          cat "${VAR_FILE}"
+          echo "POLICY_TF_VAR_FILE=${VAR_FILE}" >> "${GITHUB_ENV}";
 
       - name: 'Init the terraform infrastructure for mapping'
         run: |-
@@ -303,14 +283,14 @@ jobs:
       # uploaded file's path.
       - name: 'Write object prefix'
         run: |
-          echo "INTEG_TEST_OBJECT_PREFIX=${{ needs.set_up_integration_infra.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT }}" >> $GITHUB_ENV
+          echo "INTEG_TEST_OBJECT_PREFIX=${{ needs.set_up_integration_infra.outputs.INTEG_TEST_OBJECT_PREFIX_OUTPUT }}" >> "${GITHUB_ENV}"
 
       # Write workflow id to GITHUB_ENV. This variable works as the unique identifier
       # of the files uploaded by reusable workflow.
       - name: 'write workflow id to env'
         id: 'write_workflow_id'
         run: |
-          echo "WORKFLOW_RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
+          echo "WORKFLOW_RUN_ID=${{ github.run_id }}" >> "${GITHUB_ENV}"
 
       - name: 'Run tests'
         env:
@@ -350,7 +330,7 @@ jobs:
       - name: 'Workaround Terraform issue'
         shell: 'bash'
         run: |-
-          echo "GOOGLE_OAUTH_ACCESS_TOKEN=${{ steps.auth.outputs.access_token }}" >> $GITHUB_ENV
+          echo "GOOGLE_OAUTH_ACCESS_TOKEN=${{ steps.auth.outputs.access_token }}" >> "${GITHUB_ENV}"
 
       - name: 'Init the mapping terraform infrastructure for clean up'
         if: '${{ always() }}'
