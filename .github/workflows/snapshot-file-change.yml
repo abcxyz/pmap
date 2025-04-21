@@ -46,13 +46,15 @@ jobs:
       # set timestamp with format: 2023-05-23T03:38:33+00:00
       - name: 'Set current timestamp'
         run: |
-          echo "CUR_TIMESTAMP=$(date --rfc-3339=seconds | sed 's/ /T/')" >> $GITHUB_ENV
+          echo "CUR_TIMESTAMP=$(date --rfc-3339=seconds | sed 's/ /T/')" >> "${GITHUB_ENV}"
+
       - name: 'Get changed yaml files'
         id: 'changed-yaml-files'
         uses: 'step-security/changed-files@3dbe17c78367e7d60f00d78ae6781a35be47b4a1' # ratchet:step-security/changed-files@v45
         with:
           files: |
             ${{ inputs.path }}/**/*.{yml,yaml}
+
       - name: 'Copy added and changed files'
         id: 'copy-changed-yaml-files'
         if: '${{ steps.changed-yaml-files.outputs.any_changed == ''true'' }}'
@@ -69,12 +71,14 @@ jobs:
             sudo cp --parents $file ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change
             echo "$file was copied to ${{ env.RUNNER_TEMP }}/pmap/snapshot-file-change"
           done
+
       - name: 'Authenticate to Google Cloud'
         id: 'auth'
         uses: 'google-github-actions/auth@6fc4af4b145ae7821d527454aa9bd537d1f2dc5f' # ratchet:google-github-actions/auth@v2
         with:
           workload_identity_provider: '${{ inputs.workload_identity_provider }}'
           service_account: '${{ inputs.service_account }}'
+
       - name: 'GCS upload files'
         if: '${{ steps.copy-changed-yaml-files.outcome == ''success'' }}'
         id: 'gcs-upload-file'
@@ -93,6 +97,7 @@ jobs:
             x-goog-meta-github-workflow: ${{ github.workflow }}
             x-goog-meta-github-workflow-sha: ${{ github.workflow_sha }}
             x-goog-meta-github-workflow-triggered-timestamp: ${{ env.CUR_TIMESTAMP }}
+
       - name: 'List all uploaded files'
         run: |-
           echo "all gcs uploaded files"
