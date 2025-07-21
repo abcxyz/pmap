@@ -74,7 +74,7 @@ func (cfg *MappingHandlerConfig) Validate() (retErr error) {
 	}
 
 	// For mapping server, we also require a failure topic ID.
-	if cfg.HandlerConfig.FailureTopicID == "" {
+	if cfg.FailureTopicID == "" {
 		retErr = errors.Join(retErr, fmt.Errorf("PMAP_FAILURE_TOPIC_ID is empty and require a value for mapping service"))
 	}
 
